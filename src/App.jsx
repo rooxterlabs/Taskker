@@ -244,7 +244,7 @@ export default function App() {
                         >
                             <Users className="w-3.5 h-3.5" />
                             <span className="truncate max-w-[120px]">
-                                {selectedMember ? selectedMember : "Team Member"}
+                                {(activeTab === 'team' && selectedMember) ? selectedMember : "Team Member"}
                             </span>
                             <ChevronDown className={`w-3 h-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
