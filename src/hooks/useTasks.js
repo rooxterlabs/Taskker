@@ -192,6 +192,8 @@ export function useTasks() {
             console.error('Error adding task:', error);
             fetchData();
         }
+
+        return newTask;
     };
 
     const updateTask = async (id, fieldOrObject, value) => {

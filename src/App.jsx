@@ -74,6 +74,7 @@ export default function App() {
     const [selectedDateTasks, setSelectedDateTasks] = useState(null);
     const [calendarMode, setCalendarMode] = useState('week'); // 'month' or 'week'
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isGlobalAddTaskOpen, setIsGlobalAddTaskOpen] = useState(false);
     const teamDropdownRef = React.useRef(null);
 
     // Close Team Member dropdown on outside click
@@ -267,77 +268,74 @@ export default function App() {
                     </div>
                 </header>
 
-                {/* Global Navigation - Adjusted for Minimalist Side-by-Side Appeal */}
-                <nav className="flex flex-nowrap items-center justify-between md:justify-start gap-1 md:gap-2 bg-slate-900/40 backdrop-blur-md border border-slate-800/50 p-1 rounded-2xl w-full md:w-fit mb-6 md:mb-8 relative z-30">
-                    <button
-                        onClick={() => setActiveTab('dashboard')}
-                        className={`flex items-center justify-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 rounded-xl font-bold transition-all text-[10px] md:text-xs min-w-0 ${activeTab === 'dashboard'
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                            }`}
-                    >
-                        <LayoutDashboard className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Overview</span>
-                    </button>
-
-                    <div className="relative flex items-center min-w-0" ref={teamDropdownRef}>
+                {/* Global Navigation and Add Task Button Wrapper */}
+                <div className="flex flex-nowrap items-center gap-2 mb-6 md:mb-8 w-full md:w-auto pb-1 md:pb-0 relative z-40">
+                    <nav className="flex flex-nowrap items-center justify-between md:justify-start gap-1 md:gap-2 bg-slate-900/40 backdrop-blur-md border border-slate-800/50 p-1 rounded-2xl shrink-0 relative z-30">
                         <button
-                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className={`flex items-center justify-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 rounded-xl font-bold transition-all text-[10px] md:text-xs w-full ${activeTab === 'team'
+                            onClick={() => setActiveTab('dashboard')}
+                            className={`flex items-center justify-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 rounded-xl font-bold transition-all text-[10px] md:text-xs min-w-0 ${activeTab === 'dashboard'
                                 ? 'bg-blue-600 text-white shadow-md'
                                 : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
                                 }`}
                         >
-                            <Users className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate max-w-[70px] md:max-w-[120px]">
-                                {(activeTab === 'team' && selectedMember) ? selectedMember : "Team Member"}
-                            </span>
-                            <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                            <LayoutDashboard className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Overview</span>
                         </button>
 
-                        {isDropdownOpen && (
-                            <div className="absolute top-[calc(100%+0.5rem)] left-0 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2">
-                                {teamMembers.map(member => (
+                        <div className="relative flex items-center min-w-0" ref={teamDropdownRef}>
+                            <button
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                className={`flex items-center justify-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 rounded-xl font-bold transition-all text-[10px] md:text-xs w-full ${activeTab === 'team'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                    }`}
+                            >
+                                <Users className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate max-w-[70px] md:max-w-[120px]">
+                                    {(activeTab === 'team' && selectedMember) ? selectedMember : "Team Member"}
+                                </span>
+                                <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isDropdownOpen && (
+                                <div className="absolute top-[calc(100%+0.5rem)] left-0 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2">
+                                    {teamMembers.map(member => (
+                                        <button
+                                            key={member.id}
+                                            onClick={() => handleMemberSelect(member)}
+                                            className="px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-blue-600 hover:text-white transition-colors"
+                                        >
+                                            {member.name}
+                                        </button>
+                                    ))}
+                                    <div className="h-px bg-slate-800 my-1"></div>
                                     <button
-                                        key={member.id}
-                                        onClick={() => handleMemberSelect(member)}
-                                        className="px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-blue-600 hover:text-white transition-colors"
+                                        onClick={() => handleMemberSelect('NEW')}
+                                        className="px-4 py-3 text-left text-xs font-bold text-blue-400 hover:bg-blue-900/30 transition-colors flex items-center gap-2"
                                     >
-                                        {member.name}
+                                        <UserPlus className="w-3.5 h-3.5" /> CREATE NEW
                                     </button>
-                                ))}
-                                <div className="h-px bg-slate-800 my-1"></div>
-                                <button
-                                    onClick={() => handleMemberSelect('NEW')}
-                                    className="px-4 py-3 text-left text-xs font-bold text-blue-400 hover:bg-blue-900/30 transition-colors flex items-center gap-2"
-                                >
-                                    <UserPlus className="w-3.5 h-3.5" /> CREATE NEW
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={() => setActiveTab('calendar')}
+                            className={`flex items-center justify-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 rounded-xl font-bold transition-all text-[10px] md:text-xs min-w-0 ${activeTab === 'calendar'
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                }`}
+                        >
+                            <CalendarDays className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Calendar</span>
+                        </button>
+                    </nav>
 
                     <button
-                        onClick={() => setActiveTab('calendar')}
-                        className={`flex items-center justify-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 rounded-xl font-bold transition-all text-[10px] md:text-xs min-w-0 ${activeTab === 'calendar'
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                            }`}
+                        onClick={() => setIsGlobalAddTaskOpen(true)}
+                        className="shrink-0 flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-slate-400 hover:text-white border border-slate-700/50 hover:bg-slate-800/50 whitespace-nowrap active:scale-95"
                     >
-                        <CalendarDays className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Calendar</span>
+                        Add Task
                     </button>
-
-                    {/* View: Deleted / Trash (Temporarily Hidden)
-                    <button
-                        onClick={() => setActiveTab('deleted')}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all text-sm ${(activeTab === 'deleted')
-                            ? 'bg-red-600 text-white shadow-lg'
-                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                            }`}
-                    >
-                        <Trash2 className="w-4 h-4" /> Deleted
-                    </button>
-                    */}
-                </nav>
+                </div>
 
                 {/* View: Calendar */}
                 {activeTab === 'calendar' && (
@@ -612,7 +610,7 @@ export default function App() {
                                 onClick={() => addTask(selectedMember)}
                                 className="shrink-0 bg-blue-600 hover:bg-blue-500 flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl font-bold transition-all active:scale-95 shadow-xl shadow-blue-900/20 group whitespace-nowrap text-xs md:text-sm"
                             >
-                                <Plus className="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-90 transition-transform" /> Add Action
+                                Add Task
                             </button>
                         </div>
 
@@ -887,6 +885,18 @@ export default function App() {
                 )
             }
 
+            {/* Global Add Task Modal */}
+            <GlobalAddTaskModal
+                isOpen={isGlobalAddTaskOpen}
+                onClose={() => setIsGlobalAddTaskOpen(false)}
+                teamMembers={teamMembers}
+                categories={categories}
+                addTask={addTask}
+                updateTask={updateTask}
+                addCategory={addCategory}
+                deleteCategory={deleteCategory}
+            />
+
             {/* Styles Injection */}
             <style>{`
         .glass {
@@ -1082,7 +1092,7 @@ function DueByDropdown({ value, priority, onSelect }) {
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 cursor-pointer">
+                <div className="absolute top-full right-0 md:left-0 md:right-auto mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 cursor-pointer">
                     {DUE_BY_OPTIONS.map(opt => {
                         const optPriority = getOptionPriority(opt);
                         return (
@@ -1192,7 +1202,7 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                 />
             </td>
             <td className="px-6 py-4">
-                <div className="flex items-center gap-2 relative z-10">
+                <div className="flex items-center gap-2">
                     <DueByDropdown
                         value={task.due_by_type || ''}
                         priority={task.priority}
@@ -1223,11 +1233,11 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
     }, [task.action]);
 
     return (
-        <div className={`bg-slate-800/40 p-4 rounded-2xl border ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'} flex flex-col gap-4 relative shadow-lg overflow-hidden`}>
+        <div className={`bg-slate-800/40 p-4 rounded-2xl border ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'} flex flex-col gap-4 relative shadow-lg`}>
 
             {/* BIG BACKGROUND OVERDUE TEXT */}
             {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && (
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-0">
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-0 overflow-hidden rounded-2xl">
                     <span className="text-red-500/10 font-black text-6xl tracking-[0.2em] uppercase -rotate-12 select-none whitespace-nowrap">
                         OVERDUE!
                     </span>
@@ -1275,7 +1285,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
             />
 
             {/* Bottom row: Category and Due By */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-700/50 relative z-10">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-700/50">
                 <CategoryDropdown
                     categories={categories}
                     value={task.category || ''}
@@ -1476,9 +1486,9 @@ function AllTasksBoard({ tasks, categoryFilter, updateTask, categories, addCateg
             <div className="grid grid-cols-1 md:grid-flow-col md:auto-cols-fr gap-2 md:gap-4 w-full">
                 {columns.map(col => {
                     const colTasks = getTasksByBucket(col.id);
-                    // Hide column if it's empty, NOT the 'Completed' column, and we aren't dragging a task
+                    // Only hide 'Backburner' column if empty and not dragging
                     const isDragging = activeTask !== null;
-                    if (colTasks.length === 0 && col.id !== 'Completed' && !isDragging) {
+                    if (colTasks.length === 0 && col.id === 'Backburner' && !isDragging) {
                         return null;
                     }
                     return (
@@ -1529,5 +1539,116 @@ function AllTasksBoard({ tasks, categoryFilter, updateTask, categories, addCateg
                 ) : null}
             </DragOverlay>
         </DndContext>
+    );
+}
+
+// --- Global Add Task Modal Component ---
+function GlobalAddTaskModal({ isOpen, onClose, teamMembers, categories, addTask, updateTask, addCategory, deleteCategory }) {
+    const [action, setAction] = React.useState('');
+    const [assignee, setAssignee] = React.useState('');
+    const [category, setCategory] = React.useState('');
+    const [dueByType, setDueByType] = React.useState('This Week');
+    const textareaRef = React.useRef(null);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setAction('');
+            setAssignee('');
+            setCategory(categories.length > 0 ? categories[0].name : '');
+            setDueByType('This Week');
+            setTimeout(() => {
+                if (textareaRef.current) textareaRef.current.focus();
+            }, 50);
+        }
+    }, [isOpen, teamMembers, categories]);
+
+    const handleCreate = async () => {
+        if (!action.trim() || !assignee) return;
+        const newTask = await addTask(assignee);
+        if (newTask) {
+            updateTask(newTask.id, {
+                action: action.trim(),
+                category,
+                due_by_type: dueByType
+            });
+        }
+        onClose();
+    };
+
+    if (!isOpen) return null;
+
+    const mockPriority = ['1 hr', '6 hrs', 'Today'].includes(dueByType) ? 'P1' : ['3 days', 'This Week'].includes(dueByType) ? 'P2' : ['This Month'].includes(dueByType) ? 'P3' : null;
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
+
+            <div className="w-full max-w-lg bg-slate-800/90 p-5 md:p-6 rounded-[2rem] border border-slate-700/50 flex flex-col gap-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] relative" onClick={e => e.stopPropagation()}>
+
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-red-400 transition-colors p-1">
+                    <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex justify-between items-start gap-2 pr-8">
+                    <div className="relative group">
+                        <select
+                            value={assignee}
+                            onChange={(e) => setAssignee(e.target.value)}
+                            className="appearance-none bg-blue-500/20 text-[10px] md:text-xs font-black uppercase px-3 py-1.5 rounded-md border border-blue-500/30 text-blue-300 outline-none cursor-pointer transition-all hover:bg-blue-500/30 pr-8"
+                        >
+                            <option value="" disabled>Assigned To</option>
+                            {teamMembers.map(m => <option key={m.id} value={m.name} className="bg-slate-900">{m.name}</option>)}
+                        </select>
+                        <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none group-hover:text-blue-300 transition-colors" />
+                    </div>
+                </div>
+
+                <textarea
+                    ref={textareaRef}
+                    value={action}
+                    onChange={(e) => setAction(e.target.value)}
+                    className="bg-transparent border-none outline-none w-full font-bold text-lg md:text-xl text-white focus:text-blue-400 transition-colors placeholder:text-slate-600 resize-none overflow-hidden block"
+                    placeholder="Task description..."
+                    rows={1}
+                    onInput={(e) => {
+                        e.target.style.height = 'auto';
+                        e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleCreate();
+                        }
+                    }}
+                />
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-700/50">
+                    <CategoryDropdown
+                        categories={categories}
+                        value={category}
+                        onSelect={setCategory}
+                        onAdd={addCategory}
+                        onDelete={deleteCategory}
+                    />
+
+                    <div className="flex items-center gap-2">
+                        <DueByDropdown
+                            value={dueByType}
+                            priority={mockPriority}
+                            onSelect={setDueByType}
+                        />
+                    </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                    <button
+                        onClick={handleCreate}
+                        disabled={!action.trim() || !assignee}
+                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-xl transition-all active:scale-95 shadow-lg flex items-center gap-2 text-sm"
+                    >
+                        Add Task
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 }
