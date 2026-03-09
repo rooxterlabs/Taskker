@@ -12,6 +12,7 @@ import {
     CheckCircle2,
     Activity,
     BarChart3,
+    CheckSquare,
     ChevronDown,
     UserPlus,
     Pencil,
@@ -807,15 +808,7 @@ export default function App() {
 
                             {/* Action Corner: Toggles and Close */}
                             <div className="absolute top-6 right-6 flex items-center gap-3 z-10">
-                                {(modalFilter === 'Completed' || modalFilter === 'Archive') && (
-                                    <button
-                                        onClick={() => setModalFilter(modalFilter === 'Completed' ? 'Archive' : 'Completed')}
-                                        className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-700"
-                                    >
-                                        <Archive className="w-4 h-4" />
-                                        {modalFilter === 'Completed' ? 'ARCHIVE' : '7 DAYS COMPLETED'}
-                                    </button>
-                                )}
+
                                 <button
                                     onClick={() => setModalFilter(null)}
                                     className="p-2 bg-slate-800/50 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors"
@@ -856,7 +849,17 @@ export default function App() {
                                                     </>
                                                 )}
                                                 <th className="px-3 md:px-4 py-3 md:py-4">Submitted On</th>
-                                                <th className="px-2 md:px-4 py-3 md:py-4 w-10"></th>
+                                                <th className="px-2 md:px-4 py-3 md:py-4 w-10 text-right">
+                                                    {(modalFilter === 'Completed' || modalFilter === 'Archive') && (
+                                                        <button
+                                                            onClick={() => setModalFilter(modalFilter === 'Completed' ? 'Archive' : 'Completed')}
+                                                            className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-emerald-500 hover:text-emerald-400 rounded-lg transition-all border border-slate-700/50 flex items-center justify-center ml-auto"
+                                                            title={modalFilter === 'Completed' ? 'View Archive' : 'View Completed'}
+                                                        >
+                                                            {modalFilter === 'Completed' ? <Archive className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
+                                                        </button>
+                                                    )}
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
@@ -1192,11 +1195,6 @@ function DueByDropdown({ value, priority, onSelect }) {
                 <span className="text-slate-300 text-xs font-bold whitespace-nowrap">
                     {value || "Due By..."}
                 </span>
-                {shortPriority && (
-                    <span className={`text-xs font-black ${priorityColor}`}>
-                        {shortPriority}
-                    </span>
-                )}
                 <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : 'opacity-50'}`} />
             </button>
 
@@ -1213,11 +1211,6 @@ function DueByDropdown({ value, priority, onSelect }) {
                                 <span className={`text-sm font-semibold flex-1 ${value === opt ? 'text-white' : 'text-slate-400'}`}>
                                     {opt}
                                 </span>
-                                {optPriority && (
-                                    <span className={`text-xs font-black ${optPriority.color}`}>
-                                        {optPriority.text}
-                                    </span>
-                                )}
                             </div>
                         );
                     })}
