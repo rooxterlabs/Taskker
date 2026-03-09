@@ -24,7 +24,9 @@ import {
     List,
     User,
     Settings,
-    Minus
+    Minus,
+    MoreHorizontal,
+    FileText
 } from 'lucide-react';
 import { useTasks } from './hooks/useTasks';
 import { STATUS_OPTIONS, DUE_BY_OPTIONS } from './constants';
@@ -72,8 +74,9 @@ export default function App() {
     const [showAllTasksBoard, setShowAllTasksBoard] = useState(false);
     const [allTasksCategoryFilter, setAllTasksCategoryFilter] = useState('All');
     const [selectedDateTasks, setSelectedDateTasks] = useState(null);
-    const [calendarMode, setCalendarMode] = useState('week'); // 'month' or 'week'
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [dayModeDateStr, setDayModeDateStr] = useState(null);
+    const [calendarMode, setCalendarMode] = useState('week'); // 'day', 'month' or 'week'
+    const [isBottomBarOpen, setIsBottomBarOpen] = useState(false);
     const [isGlobalAddTaskOpen, setIsGlobalAddTaskOpen] = useState(false);
     const teamDropdownRef = React.useRef(null);
 
@@ -118,6 +121,46 @@ export default function App() {
         });
         return grouped;
     }, [tasks]);
+
+    const sortedTaskDates = React.useMemo(() => {
+        return Object.keys(calendarDays).sort((a, b) => new Date(a) - new Date(b));
+    }, [calendarDays]);
+
+    const handleNavigateDay = (currentDateStr, direction, isInline = false) => {
+        const idx = sortedTaskDates.indexOf(currentDateStr);
+        if (idx === -1) return;
+        const newIdx = idx + direction;
+        if (newIdx >= 0 && newIdx < sortedTaskDates.length) {
+            const nextDateStr = sortedTaskDates[newIdx];
+            if (isInline) {
+                setDayModeDateStr(nextDateStr);
+            } else {
+                setSelectedDateTasks({
+                    date: new Date(nextDateStr),
+                    tasks: calendarDays[nextDateStr]
+                });
+            }
+        }
+    };
+
+    const touchStartX = React.useRef(null);
+    const touchEndX = React.useRef(null);
+
+    const onTouchStart = (e) => {
+        touchEndX.current = null;
+        touchStartX.current = e.targetTouches[0].clientX;
+    };
+
+    const onTouchMove = (e) => {
+        touchEndX.current = e.targetTouches[0].clientX;
+    };
+
+    const onTouchEnd = (dateStr, isInline = false) => {
+        if (!touchStartX.current || !touchEndX.current) return;
+        const distance = touchStartX.current - touchEndX.current;
+        if (distance > 50) handleNavigateDay(dateStr, 1, isInline);
+        if (distance < -50) handleNavigateDay(dateStr, -1, isInline);
+    };
 
     if (loading) {
         return (
@@ -206,51 +249,53 @@ export default function App() {
 
     return (
         <div className="min-h-screen bg-black text-slate-50 p-4 md:p-8 font-sans antialiased selection:bg-blue-500/30">
-            {/* FLOATING SIDEBAR TOGGLE */}
+            {/* FLOATING BOTTOM BAR TOGGLE */}
             <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="fixed top-6 right-3 md:right-4 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center z-[100] bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md border border-slate-700 rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95 group"
+                onClick={() => setIsBottomBarOpen(!isBottomBarOpen)}
+                className={`fixed bottom-3 left-3 md:bottom-4 md:left-4 w-10 h-10 md:w-10 md:h-10 flex items-center justify-center z-[100] bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md border border-slate-700 rounded-xl md:rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95 group ${isBottomBarOpen ? 'bg-slate-700 shadow-inner' : ''}`}
             >
-                {isSidebarOpen ? (
-                    <Minus className="w-5 h-5 text-slate-300 group-hover:text-white" />
-                ) : (
-                    <Plus className="w-5 h-5 text-slate-300 group-hover:text-white" />
-                )}
+                <MoreHorizontal className="w-5 h-5 text-slate-300 group-hover:text-white" />
             </button>
 
-            {/* SLIDING SIDEBAR OVERLAY */}
+            {/* SLIDING BOTTOM BAR OVERLAY */}
             <div
-                className={`fixed top-0 right-0 h-full w-16 md:w-20 bg-slate-900/40 backdrop-blur-md border-l border-slate-700/50 shadow-2xl z-[90] flex flex-col items-center pt-20 pb-6 gap-4 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                className={`fixed bottom-0 left-0 right-0 h-16 md:h-16 bg-slate-900/40 backdrop-blur-xl border-t border-slate-700/50 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-[90] flex flex-row items-center px-4 md:px-6 gap-3 md:gap-4 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex-nowrap ${isBottomBarOpen ? 'translate-y-0' : 'translate-y-full'}`}
             >
-                <button
-                    onClick={() => alert("Profile Setting is under construction")}
-                    className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-2xl transition-all hover:scale-110 shadow-lg group relative"
-                    title="User Profile"
-                >
-                    <User className="w-5 h-5" />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 md:w-2.5 md:h-2.5 bg-emerald-500 border border-[#2b2b36] rounded-full"></div>
-                </button>
+                {/* Spacer to align with toggle button */}
+                <div className="w-10 md:w-10 shrink-0"></div>
+
+                <div className="flex items-center gap-2 md:gap-3 shrink-0 overflow-x-auto no-scrollbar py-2">
+                    <button
+                        onClick={() => alert("Profile Setting is under construction")}
+                        className="w-10 h-10 md:w-10 md:h-10 shrink-0 flex items-center justify-center bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl md:rounded-2xl transition-colors shadow-lg group relative"
+                        title="User Profile"
+                    >
+                        <User className="w-5 h-5 transition-transform duration-300 group-hover:scale-125" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 md:w-2.5 md:h-2.5 bg-emerald-500 border border-[#2b2b36] rounded-full"></div>
+                    </button>
+
+                    <button className="w-10 h-10 md:w-10 md:h-10 shrink-0 rounded-xl md:rounded-2xl overflow-hidden border-2 border-slate-700 hover:border-slate-500 transition-colors shadow-lg group">
+                        <img src={`${import.meta.env.BASE_URL}avatars/RooxterFilms_Avatar.jpg`} alt="RooxterFilms" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </button>
+
+                    <button className="w-10 h-10 md:w-10 md:h-10 shrink-0 rounded-xl md:rounded-2xl overflow-hidden border-2 border-slate-700 hover:border-slate-500 transition-colors shadow-lg group">
+                        <img src={`${import.meta.env.BASE_URL}avatars/TumbleTech_Avatar.jpg`} alt="TumbleTech" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </button>
+
+                    <button className="w-10 h-10 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-xl md:rounded-2xl border-2 border-dashed border-slate-700 hover:border-slate-500 hover:bg-slate-800/50 transition-colors shadow-lg group" title="Add Company">
+                        <Plus className="w-5 h-5 text-slate-500 group-hover:text-white transition-colors" />
+                    </button>
+                </div>
+
+                <div className="flex-1 min-w-[20px]"></div>
 
                 <button
                     onClick={() => alert("Admin Tools is under construction")}
-                    className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 rounded-2xl transition-all hover:scale-110 group"
+                    className="w-10 h-10 md:w-10 md:h-10 shrink-0 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 rounded-xl md:rounded-2xl transition-colors group ml-auto mr-1"
                     title="Settings"
                 >
                     <Settings className="w-5 h-5 transition-transform group-hover:rotate-45" />
                 </button>
-
-                {/* BOTTOM AVATARS */}
-                <div className="mt-auto flex flex-col items-center gap-4">
-                    <button className="w-10 h-10 md:w-12 md:h-12 rounded-2xl overflow-hidden border-2 border-slate-700 hover:border-slate-500 transition-colors shadow-lg group">
-                        <img src={`${import.meta.env.BASE_URL}avatars/RooxterFilms_Avatar.jpg`} alt="RooxterFilms" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                    </button>
-
-                    <button className="w-10 h-10 md:w-12 md:h-12 rounded-2xl overflow-hidden border-2 border-slate-700 hover:border-slate-500 transition-colors shadow-lg group">
-                        <img src={`${import.meta.env.BASE_URL}avatars/TumbleTech_Avatar.jpg`} alt="TumbleTech" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                    </button>
-
-                    <Plus className="w-6 h-6 text-slate-500 hover:text-white transition-colors cursor-pointer mt-2" />
-                </div>
             </div>
 
             <div className="max-w-7xl mx-auto relative pl-0 lg:pl-4 transition-transform duration-500">
@@ -342,7 +387,6 @@ export default function App() {
                     <div className="glass p-4 md:p-8 rounded-[3rem] animate-in fade-in duration-700">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4 md:mb-8 border-b border-slate-800/50 pb-6 relative z-10">
                             <div className="flex items-center gap-4">
-                                <CalendarDays className="w-6 h-6 md:w-8 md:h-8 text-blue-400" />
                                 <div className="flex items-center gap-2 md:gap-4">
                                     <button
                                         onClick={() => setCurrentMonthDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
@@ -364,163 +408,225 @@ export default function App() {
 
                             <div className="flex items-center bg-slate-900/50 rounded-xl border border-slate-700 p-1">
                                 <button
-                                    onClick={() => setCalendarMode('month')}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
+                                    onClick={() => setCalendarMode('day')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'day' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
                                 >
-                                    <CalendarDays className="w-4 h-4" /> Grid
+                                    <FileText className="w-4 h-4" /> Day
                                 </button>
                                 <button
                                     onClick={() => setCalendarMode('week')}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
                                 >
-                                    <List className="w-4 h-4" /> Flow
+                                    <List className="w-4 h-4" /> Week
+                                </button>
+                                <button
+                                    onClick={() => setCalendarMode('month')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
+                                >
+                                    <CalendarDays className="w-4 h-4" /> Month
                                 </button>
                             </div>
                         </div>
 
-                        {/* Month Grid */}
+                        {/* Calendar Content */}
                         <div className="w-full">
-                            <div className="grid grid-cols-7 gap-1 md:gap-2">
-                                {/* Headers */}
-                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                    <div key={day} className="text-center text-[10px] md:text-xs font-black uppercase text-slate-500 py-1 md:py-2 border-b border-slate-700">
-                                        <span className="md:hidden">{day.substring(0, 1)}</span>
-                                        <span className="hidden md:inline">{day}</span>
-                                    </div>
-                                ))}
+                            {calendarMode === 'day' ? (
+                                (() => {
+                                    const dateStrToShow = dayModeDateStr || sortedTaskDates.find(d => new Date(d) >= new Date()) || sortedTaskDates[0] || new Date().toLocaleDateString('en-US');
+                                    const tasksToShow = calendarDays[dateStrToShow] || [];
+                                    const dayDate = new Date(dateStrToShow);
 
-                                {/* Generate current month cells based on mode */}
-                                {(() => {
-                                    const firstDay = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
-                                    const offset = firstDay.getDay();
-                                    const daysInMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate();
-                                    const totalCells = Math.ceil((offset + daysInMonth) / 7) * 7;
+                                    return (
+                                        <div
+                                            className="w-full flex flex-col items-center justify-center py-4"
+                                            onTouchStart={onTouchStart}
+                                            onTouchMove={onTouchMove}
+                                            onTouchEnd={() => onTouchEnd(dateStrToShow, true)}
+                                        >
+                                            <div className="mb-8 flex items-center justify-center gap-4 text-center w-full">
+                                                <button
+                                                    onClick={() => handleNavigateDay(dateStrToShow, -1, true)}
+                                                    className={`p-2 transition-colors ${sortedTaskDates.indexOf(dateStrToShow) > 0 ? 'text-blue-500 hover:text-white hover:bg-slate-800 rounded-lg' : 'text-slate-700 cursor-not-allowed opacity-30'}`}
+                                                >
+                                                    <ChevronLeft className="w-8 h-8 md:w-10 md:h-10" />
+                                                </button>
+                                                <h3 className="text-xl md:text-3xl font-light text-slate-300 tracking-wider">
+                                                    {dayDate.toLocaleDateString('en-US', { weekday: 'long' })} - {dayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </h3>
+                                                <button
+                                                    onClick={() => handleNavigateDay(dateStrToShow, 1, true)}
+                                                    className={`p-2 transition-colors ${sortedTaskDates.indexOf(dateStrToShow) < sortedTaskDates.length - 1 ? 'text-blue-500 hover:text-white hover:bg-slate-800 rounded-lg' : 'text-slate-700 cursor-not-allowed opacity-30'}`}
+                                                >
+                                                    <ChevronRight className="w-8 h-8 md:w-10 md:h-10" />
+                                                </button>
+                                            </div>
 
-                                    if (calendarMode === 'week') {
-                                        // WEEK / FLOW LAYOUT
-                                        const weeks = [];
-                                        for (let i = 0; i < totalCells; i += 7) {
-                                            const weekCells = Array.from({ length: 7 }).map((_, j) => i + j);
+                                            <div className="flex flex-col gap-4 w-full max-w-2xl px-2">
+                                                {tasksToShow.length > 0 ? tasksToShow.map(calendarTask => {
+                                                    const liveTask = tasks.find(t => t.id === calendarTask.id);
+                                                    if (!liveTask) return null;
+                                                    return (
+                                                        <TaskCard
+                                                            key={liveTask.id}
+                                                            task={liveTask}
+                                                            updateTask={updateTask}
+                                                            categories={categories}
+                                                            addCategory={addCategory}
+                                                            deleteCategory={deleteCategory}
+                                                            deleteTask={deleteTask}
+                                                            showAssignee={true}
+                                                        />
+                                                    );
+                                                }) : (
+                                                    <div className="text-center py-20 text-slate-500 italic">No tasks assigned for this day.</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })()
+                            ) : (
+                                <div className="grid grid-cols-7 gap-1 md:gap-2">
+                                    {/* Headers */}
+                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                        <div key={day} className="text-center text-[10px] md:text-xs font-black uppercase text-slate-500 py-1 md:py-2 border-b border-slate-700">
+                                            <span className="md:hidden">{day.substring(0, 1)}</span>
+                                            <span className="hidden md:inline">{day}</span>
+                                        </div>
+                                    ))}
 
-                                            // Check if this week has any tasks
-                                            const hasTasks = weekCells.some(cellIdx => {
-                                                const dateCount = cellIdx - offset + 1;
-                                                const isCurrentMonth = dateCount > 0 && dateCount <= daysInMonth;
-                                                if (!isCurrentMonth) return false;
+                                    {/* Generate current month cells based on mode */}
+                                    {(() => {
+                                        const firstDay = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
+                                        const offset = firstDay.getDay();
+                                        const daysInMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate();
+                                        const totalCells = Math.ceil((offset + daysInMonth) / 7) * 7;
 
-                                                const cellDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), dateCount);
-                                                const dateStr = cellDate.toLocaleDateString('en-US');
-                                                return calendarDays[dateStr] && calendarDays[dateStr].length > 0;
-                                            });
+                                        if (calendarMode === 'week') {
+                                            // WEEK / FLOW LAYOUT
+                                            const weeks = [];
+                                            for (let i = 0; i < totalCells; i += 7) {
+                                                const weekCells = Array.from({ length: 7 }).map((_, j) => i + j);
 
-                                            if (hasTasks) {
-                                                weeks.push(weekCells);
-                                            }
-                                        }
-
-                                        if (weeks.length === 0) {
-                                            return (
-                                                <div className="col-span-7 flex flex-col items-center justify-center py-20 text-slate-500">
-                                                    <CalendarDays className="w-12 h-12 mb-4 opacity-20" />
-                                                    <p className="italic">No tasks scheduled for this month.</p>
-                                                </div>
-                                            );
-                                        }
-
-                                        return weeks.map((week, weekIdx) => (
-                                            <React.Fragment key={weekIdx}>
-                                                {week.map((cellIdx) => {
+                                                // Check if this week has any tasks
+                                                const hasTasks = weekCells.some(cellIdx => {
                                                     const dateCount = cellIdx - offset + 1;
                                                     const isCurrentMonth = dateCount > 0 && dateCount <= daysInMonth;
-
-                                                    if (!isCurrentMonth) {
-                                                        return <div key={cellIdx} className="p-1 md:p-2 border border-transparent flex flex-col bg-transparent min-h-[100px] border-b border-slate-800/30"></div>;
-                                                    }
+                                                    if (!isCurrentMonth) return false;
 
                                                     const cellDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), dateCount);
                                                     const dateStr = cellDate.toLocaleDateString('en-US');
-                                                    const dayTasks = calendarDays[dateStr] ? calendarDays[dateStr] : [];
-                                                    const isToday = cellDate.toDateString() === new Date().toDateString();
+                                                    return calendarDays[dateStr] && calendarDays[dateStr].length > 0;
+                                                });
 
-                                                    return (
-                                                        <div key={cellIdx}
-                                                            onClick={() => { if (dayTasks.length > 0) setSelectedDateTasks({ date: cellDate, tasks: dayTasks }); }}
-                                                            className={`relative pt-6 px-1 pb-4 md:px-2 md:pb-6 border-b border-slate-800/30 flex flex-col bg-transparent group overflow-visible transition-colors hover:bg-slate-800/20 min-h-[100px] ${dayTasks.length > 0 ? 'cursor-pointer' : ''}`}
-                                                        >
-                                                            <div className={`absolute top-2 left-2 w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded-full text-xs md:text-sm font-black ${isToday ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50' : 'text-slate-300 group-hover:text-blue-400'}`}>
-                                                                {dateCount}
-                                                            </div>
-                                                            <div className="flex-1 flex flex-col mt-2">
-                                                                {dayTasks.map(task => (
-                                                                    <div
-                                                                        key={task.id}
-                                                                        className={`shrink-0 transition-all hover:scale-[1.02]
+                                                if (hasTasks) {
+                                                    weeks.push(weekCells);
+                                                }
+                                            }
+
+                                            if (weeks.length === 0) {
+                                                return (
+                                                    <div className="col-span-7 flex flex-col items-center justify-center py-20 text-slate-500">
+                                                        <CalendarDays className="w-12 h-12 mb-4 opacity-20" />
+                                                        <p className="italic">No tasks scheduled for this month.</p>
+                                                    </div>
+                                                );
+                                            }
+
+                                            return weeks.map((week, weekIdx) => (
+                                                <React.Fragment key={weekIdx}>
+                                                    {week.map((cellIdx) => {
+                                                        const dateCount = cellIdx - offset + 1;
+                                                        const isCurrentMonth = dateCount > 0 && dateCount <= daysInMonth;
+
+                                                        if (!isCurrentMonth) {
+                                                            return <div key={cellIdx} className="p-1 md:p-2 border border-transparent flex flex-col bg-transparent min-h-[100px] border-b border-slate-800/30"></div>;
+                                                        }
+
+                                                        const cellDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), dateCount);
+                                                        const dateStr = cellDate.toLocaleDateString('en-US');
+                                                        const dayTasks = calendarDays[dateStr] ? calendarDays[dateStr] : [];
+                                                        const isToday = cellDate.toDateString() === new Date().toDateString();
+
+                                                        return (
+                                                            <div key={cellIdx}
+                                                                onClick={() => { if (dayTasks.length > 0) setSelectedDateTasks({ date: cellDate, tasks: dayTasks }); }}
+                                                                className={`relative pt-6 px-1 pb-4 md:px-2 md:pb-6 border-b border-slate-800/30 flex flex-col bg-transparent group overflow-visible transition-colors hover:bg-slate-800/20 min-h-[100px] ${dayTasks.length > 0 ? 'cursor-pointer' : ''}`}
+                                                            >
+                                                                <div className={`absolute top-2 left-2 w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded-full text-xs md:text-sm font-black ${isToday ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50' : 'text-slate-300 group-hover:text-blue-400'}`}>
+                                                                    {dateCount}
+                                                                </div>
+                                                                <div className="flex-1 flex flex-col mt-2">
+                                                                    {dayTasks.map(task => (
+                                                                        <div
+                                                                            key={task.id}
+                                                                            className={`shrink-0 transition-all hover:scale-[1.02]
                                                                             h-1.5 w-full rounded-full mb-1
                                                                             md:h-auto md:w-auto md:rounded-md md:mb-1.5
                                                                             md:text-[10px] md:leading-[1.2] md:px-2 md:py-1 md:font-semibold md:border md:bg-slate-900 md:shadow-sm
                                                                             ${task.priority?.includes('P1') ? 'bg-red-500 md:bg-slate-900 md:border-red-500/30 md:text-red-200' :
-                                                                                task.priority?.includes('P2') ? 'bg-orange-500 md:bg-slate-900 md:border-orange-500/30 md:text-orange-200' :
-                                                                                    task.priority?.includes('P3') ? 'bg-yellow-500 md:bg-slate-900 md:border-yellow-500/30 md:text-yellow-200' :
-                                                                                        'bg-slate-500 md:bg-slate-900 md:border-slate-500/30 md:text-slate-200'}`}
-                                                                        title={task.action}
-                                                                    >
-                                                                        <div className="hidden md:block truncate">{task.action}</div>
-                                                                    </div>
-                                                                ))}
+                                                                                    task.priority?.includes('P2') ? 'bg-orange-500 md:bg-slate-900 md:border-orange-500/30 md:text-orange-200' :
+                                                                                        task.priority?.includes('P3') ? 'bg-yellow-500 md:bg-slate-900 md:border-yellow-500/30 md:text-yellow-200' :
+                                                                                            'bg-slate-500 md:bg-slate-900 md:border-slate-500/30 md:text-slate-200'}`}
+                                                                            title={task.action}
+                                                                        >
+                                                                            <div className="hidden md:block truncate">{task.action}</div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
+                                                        );
+                                                    })}
+                                                </React.Fragment>
+                                            ));
+                                        } else {
+                                            // GRID / MONTH LAYOUT
+                                            return Array.from({ length: totalCells }).map((_, i) => {
+                                                const dateCount = i - offset + 1;
+                                                const isCurrentMonth = dateCount > 0 && dateCount <= daysInMonth;
+
+                                                if (!isCurrentMonth) {
+                                                    return <div key={i} className="min-h-[60px] md:min-h-[120px] p-1 md:p-2 border border-transparent rounded-lg md:rounded-xl flex flex-col bg-transparent"></div>;
+                                                }
+
+                                                const cellDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), dateCount);
+                                                const dateStr = cellDate.toLocaleDateString('en-US');
+                                                const dayTasks = calendarDays[dateStr] ? calendarDays[dateStr] : [];
+
+                                                const isToday = cellDate.toDateString() === new Date().toDateString();
+
+                                                return (
+                                                    <div key={i}
+                                                        onClick={() => { if (dayTasks.length > 0) setSelectedDateTasks({ date: cellDate, tasks: dayTasks }); }}
+                                                        className={`min-h-[60px] md:min-h-[120px] h-[60px] md:h-[120px] relative pt-5 md:pt-6 px-1 pb-1 md:px-2 md:pb-2 border border-slate-800/50 rounded-lg md:rounded-xl flex flex-col bg-slate-900/30 overflow-hidden transition-colors ${dayTasks.length > 0 ? 'cursor-pointer hover:bg-slate-800/40 hover:border-slate-600' : ''}`}
+                                                    >
+                                                        <div className={`absolute top-1 left-1 w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded-sm text-[8px] md:text-[10px] font-bold ${isToday ? 'bg-blue-400/20 text-blue-400' : 'text-slate-500'}`}>
+                                                            {dateCount}
                                                         </div>
-                                                    );
-                                                })}
-                                            </React.Fragment>
-                                        ));
-                                    } else {
-                                        // GRID / MONTH LAYOUT
-                                        return Array.from({ length: totalCells }).map((_, i) => {
-                                            const dateCount = i - offset + 1;
-                                            const isCurrentMonth = dateCount > 0 && dateCount <= daysInMonth;
-
-                                            if (!isCurrentMonth) {
-                                                return <div key={i} className="min-h-[60px] md:min-h-[120px] p-1 md:p-2 border border-transparent rounded-lg md:rounded-xl flex flex-col bg-transparent"></div>;
-                                            }
-
-                                            const cellDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), dateCount);
-                                            const dateStr = cellDate.toLocaleDateString('en-US');
-                                            const dayTasks = calendarDays[dateStr] ? calendarDays[dateStr] : [];
-
-                                            const isToday = cellDate.toDateString() === new Date().toDateString();
-
-                                            return (
-                                                <div key={i}
-                                                    onClick={() => { if (dayTasks.length > 0) setSelectedDateTasks({ date: cellDate, tasks: dayTasks }); }}
-                                                    className={`min-h-[60px] md:min-h-[120px] h-[60px] md:h-[120px] relative pt-5 md:pt-6 px-1 pb-1 md:px-2 md:pb-2 border border-slate-800/50 rounded-lg md:rounded-xl flex flex-col bg-slate-900/30 overflow-hidden transition-colors ${dayTasks.length > 0 ? 'cursor-pointer hover:bg-slate-800/40 hover:border-slate-600' : ''}`}
-                                                >
-                                                    <div className={`absolute top-1 left-1 w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded-sm text-[8px] md:text-[10px] font-bold ${isToday ? 'bg-blue-400/20 text-blue-400' : 'text-slate-500'}`}>
-                                                        {dateCount}
-                                                    </div>
-                                                    <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar">
-                                                        {dayTasks.map(task => (
-                                                            <div
-                                                                key={task.id}
-                                                                className={`shrink-0 transition-all hover:scale-[1.02]
+                                                        <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar">
+                                                            {dayTasks.map(task => (
+                                                                <div
+                                                                    key={task.id}
+                                                                    className={`shrink-0 transition-all hover:scale-[1.02]
                                                                     h-1 w-full rounded-full mb-0.5
                                                                     md:h-auto md:w-auto md:rounded md:mb-1
                                                                     md:text-[9px] md:leading-tight md:px-1.5 md:py-0.5 md:font-semibold md:border md:bg-slate-800/80
                                                                     ${task.priority?.includes('P1') ? 'bg-red-500 md:bg-transparent md:border-red-500/50 md:text-red-200' :
-                                                                        task.priority?.includes('P2') ? 'bg-orange-500 md:bg-transparent md:border-orange-500/50 md:text-orange-200' :
-                                                                            task.priority?.includes('P3') ? 'bg-yellow-500 md:bg-transparent md:border-yellow-500/50 md:text-yellow-200' :
-                                                                                'bg-slate-500 md:bg-transparent md:border-slate-500/50 md:text-slate-200'}`}
-                                                                title={task.action}
-                                                            >
-                                                                <div className="hidden md:block truncate">{task.action}</div>
-                                                            </div>
-                                                        ))}
+                                                                            task.priority?.includes('P2') ? 'bg-orange-500 md:bg-transparent md:border-orange-500/50 md:text-orange-200' :
+                                                                                task.priority?.includes('P3') ? 'bg-yellow-500 md:bg-transparent md:border-yellow-500/50 md:text-yellow-200' :
+                                                                                    'bg-slate-500 md:bg-transparent md:border-slate-500/50 md:text-slate-200'}`}
+                                                                    title={task.action}
+                                                                >
+                                                                    <div className="hidden md:block truncate">{task.action}</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        });
-                                    }
-                                })()}
-                            </div>
+                                                );
+                                            });
+                                        }
+                                    })()}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -569,6 +675,19 @@ export default function App() {
                                     <AllTasksBoard tasks={tasks} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} />
                                 </div>
                             )}
+                        </div>
+
+                        {/* Unified My Tasks Board Container (Placeholder) */}
+                        <div className={`glass w-full mt-2 transition-all duration-500 overflow-hidden border border-slate-700/50 shadow-lg rounded-[2rem]`}>
+                            <button
+                                onClick={() => alert("My Tasks is under construction")}
+                                className={`w-full flex items-center justify-between px-8 py-4 transition-all group hover:bg-slate-800/50`}
+                            >
+                                <span className={`uppercase transition-all text-xs md:text-sm font-medium tracking-widest text-slate-500 group-hover:text-slate-300`}>
+                                    MY TASKS
+                                </span>
+                                <ChevronDown className={`w-5 h-5 transition-transform duration-500 text-slate-500 group-hover:text-slate-300`} />
+                            </button>
                         </div>
 
                         <div className="col-span-full glass p-4 md:p-5 rounded-2xl mt-4 border border-slate-700/50">
@@ -835,7 +954,12 @@ export default function App() {
                 selectedDateTasks && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedDateTasks(null)}></div>
-                        <div className="relative w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div
+                            className="relative w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200"
+                            onTouchStart={onTouchStart}
+                            onTouchMove={onTouchMove}
+                            onTouchEnd={() => onTouchEnd(selectedDateTasks.date.toLocaleDateString('en-US'))}
+                        >
                             <button
                                 onClick={() => setSelectedDateTasks(null)}
                                 className="absolute -top-12 right-0 p-2 bg-slate-800/50 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors z-[70]"
@@ -843,10 +967,22 @@ export default function App() {
                                 <X className="w-5 h-5" />
                             </button>
 
-                            <div className="mb-4 text-center">
-                                <h3 className="text-xl md:text-2xl font-black text-white tracking-widest uppercase">
-                                    Tasks for {selectedDateTasks.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            <div className="mb-4 flex items-center justify-center gap-4 text-center">
+                                <button
+                                    onClick={() => handleNavigateDay(selectedDateTasks.date.toLocaleDateString('en-US'), -1)}
+                                    className={`p-1 transition-colors ${sortedTaskDates.indexOf(selectedDateTasks.date.toLocaleDateString('en-US')) > 0 ? 'text-blue-500 hover:text-white hover:bg-slate-800 rounded-lg' : 'text-slate-700 cursor-not-allowed opacity-30'}`}
+                                >
+                                    <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
+                                </button>
+                                <h3 className="text-lg md:text-xl font-light text-slate-300 tracking-wider">
+                                    {selectedDateTasks.date.toLocaleDateString('en-US', { weekday: 'long' })} - {selectedDateTasks.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </h3>
+                                <button
+                                    onClick={() => handleNavigateDay(selectedDateTasks.date.toLocaleDateString('en-US'), 1)}
+                                    className={`p-1 transition-colors ${sortedTaskDates.indexOf(selectedDateTasks.date.toLocaleDateString('en-US')) < sortedTaskDates.length - 1 ? 'text-blue-500 hover:text-white hover:bg-slate-800 rounded-lg' : 'text-slate-700 cursor-not-allowed opacity-30'}`}
+                                >
+                                    <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
+                                </button>
                             </div>
 
                             <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto no-scrollbar pb-4 px-2">
@@ -1325,8 +1461,18 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
             {...attributes}
             {...listeners}
         >
-            <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 hover:border-slate-500/50 transition-colors group flex flex-col gap-2">
-                <div className="flex items-start gap-3">
+            <div className={`bg-slate-800/60 p-3 rounded-xl border ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50 hover:border-slate-500/50'} transition-colors group flex flex-col gap-2 relative`}>
+
+                {/* BIG BACKGROUND OVERDUE TEXT */}
+                {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && (
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-0 overflow-hidden rounded-xl">
+                        <span className="text-red-500/10 font-black text-4xl md:text-5xl tracking-widest uppercase -rotate-12 select-none whitespace-nowrap">
+                            OVERDUE!
+                        </span>
+                    </div>
+                )}
+
+                <div className="flex items-start gap-3 relative z-10">
                     <button
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => updateTask(task.id, 'status', task.status === 'Done' ? 'In Progress' : 'Done')}
@@ -1353,7 +1499,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                     </div>
                 </div>
                 <div
-                    className="flex justify-start pt-1 border-t border-slate-700/30"
+                    className="flex justify-between items-center pt-1 border-t border-slate-700/30 gap-2"
                     onPointerDown={(e) => e.stopPropagation()}
                 >
                     <CategoryDropdown
@@ -1363,6 +1509,16 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                         onAdd={addCategory}
                         onDelete={deleteCategory}
                     />
+
+                    <div className="flex items-center gap-1">
+                        {task.status !== 'Done' && (
+                            <DueByDropdown
+                                value={task.due_by_type || ''}
+                                priority={task.priority}
+                                onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -1374,14 +1530,14 @@ function DroppableColumn({ id, title, colorClass, bgClass, borderClass, activeBo
     const currentBorder = isOver ? activeBorderClass : borderClass;
 
     return (
-        <div ref={setNodeRef} className={`flex flex-col h-full bg-slate-900/40 rounded-2xl border ${currentBorder} overflow-hidden transition-all duration-300`}>
+        <div ref={setNodeRef} className={`flex flex-col h-full bg-slate-900/40 rounded-2xl border ${currentBorder} transition-all duration-300`}>
             {/* Column Header */}
-            <div className={`${bgClass} p-3 border-b ${currentBorder} flex justify-between items-center transition-all duration-300`}>
+            <div className={`${bgClass} p-3 border-b ${currentBorder} flex justify-between items-center transition-all duration-300 rounded-t-2xl`}>
                 <h3 className={`text-xs font-black uppercase tracking-wider ${colorClass}`}>{title}</h3>
                 <span className={`text-[10px] font-bold ${colorClass} opacity-70`}>{tasks.length}</span>
             </div>
             {/* Task List */}
-            <div className="flex-1 p-2 flex flex-col gap-2 overflow-y-auto max-h-[500px] no-scrollbar">
+            <div className="flex-1 p-2 flex flex-col gap-2 pb-24">
                 {children}
             </div>
         </div>
