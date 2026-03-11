@@ -641,7 +641,7 @@ export default function App() {
                             <StatCard label="P2 (NORMAL)" shortLabel="P2" value={stats.p2} icon={AlertTriangle} color="text-orange-500" bgColor="bg-orange-500/10" onClick={() => setModalFilter('P2')} />
                             <StatCard label="P3 (LOW)" shortLabel="P3" value={stats.p3} icon={Calendar} color="text-yellow-500" bgColor="bg-yellow-500/10" onClick={() => setModalFilter('P3')} />
                             <StatCard label="BACKBURNER" shortLabel="BACKBURNER" value={stats.backburner} icon={Coffee} color="text-slate-400" bgColor="bg-slate-400/10" onClick={() => setModalFilter('Backburner')} />
-                            <StatCard label="COMPLETED (7d)" shortLabel="COMPLETED" value={stats.completed} icon={CheckCircle2} color="text-emerald-500" bgColor="bg-emerald-500/10" onClick={() => setModalFilter('Completed')} />
+                            <StatCard label="Done (7 Days)" shortLabel="DONE" value={stats.completed} icon={CheckCircle2} color="text-emerald-500" bgColor="bg-emerald-500/10" onClick={() => setModalFilter('Completed')} />
                         </div>
 
                         {/* Unified All Tasks / Production Board Container */}
@@ -653,7 +653,7 @@ export default function App() {
                                 className={`w-full flex items-center justify-between px-8 transition-all hover:bg-slate-800/50 cursor-pointer group ${showAllTasksBoard ? 'py-4 border-b border-white/5' : 'py-4'}`}
                             >
                                 <span className={`uppercase transition-all ${showAllTasksBoard ? 'text-base md:text-lg font-light tracking-[0.3em] text-slate-300' : 'text-xs md:text-sm font-medium tracking-widest text-slate-500 group-hover:text-slate-300'}`}>
-                                    {showAllTasksBoard ? 'VIEW ALL TASKS' : 'VIEW ALL TASKS'}
+                                    {showAllTasksBoard ? 'SHOW ALL TASKS' : 'SHOW ALL TASKS'}
                                 </span>
                                 <div className="flex items-center gap-4">
                                     {showAllTasksBoard && (
@@ -1009,6 +1009,11 @@ export default function App() {
                 addCategory={addCategory}
                 deleteCategory={deleteCategory}
             />
+
+            {/* Versioning */}
+            <div className="fixed bottom-2 right-2 text-[10px] font-thin text-white/50 pointer-events-none z-0">
+                v1.002
+            </div>
 
             {/* Styles Injection */}
             <style>{`
