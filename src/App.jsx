@@ -251,49 +251,46 @@ export default function App() {
 
     return (
         <div className="min-h-screen bg-black text-slate-50 p-4 md:p-8 font-sans antialiased selection:bg-blue-500/30">
-            {/* FLOATING BOTTOM BAR TOGGLE */}
+            {/* RIGHT SIDE BAR TOGGLE */}
             <button
                 onClick={() => setIsBottomBarOpen(!isBottomBarOpen)}
-                className={`fixed bottom-3 left-3 md:bottom-4 md:left-4 w-10 h-10 md:w-10 md:h-10 flex items-center justify-center z-[100] bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md border border-slate-700 rounded-xl md:rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95 group ${isBottomBarOpen ? 'bg-slate-700 shadow-inner' : ''}`}
+                className={`fixed top-4 right-4 md:top-6 md:right-6 w-10 h-10 md:w-10 md:h-10 flex items-center justify-center z-[100] bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md border border-slate-700 rounded-xl md:rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95 group ${isBottomBarOpen ? 'bg-slate-700 shadow-inner' : ''}`}
             >
                 <MoreHorizontal className="w-5 h-5 text-slate-300 group-hover:text-white" />
             </button>
 
-            {/* SLIDING BOTTOM BAR OVERLAY */}
+            {/* SLIDING RIGHT SIDE BAR OVERLAY */}
             <div
-                className={`fixed bottom-0 left-0 right-0 h-16 md:h-16 bg-slate-900/40 backdrop-blur-xl border-t border-slate-700/50 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-[90] flex flex-row items-center px-4 md:px-6 gap-3 md:gap-4 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex-nowrap ${isBottomBarOpen ? 'translate-y-0' : 'translate-y-full'}`}
+                className={`fixed top-0 bottom-0 right-0 w-20 md:w-24 bg-slate-900/40 backdrop-blur-xl border-l border-slate-700/50 shadow-[-10px_0_40px_rgba(0,0,0,0.5)] z-[90] flex flex-col items-center pt-24 pb-8 px-2 md:px-4 gap-6 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isBottomBarOpen ? 'translate-x-0' : 'translate-x-full'}`}
             >
-                {/* Spacer to align with toggle button */}
-                <div className="w-10 md:w-10 shrink-0"></div>
-
-                <div className="flex items-center gap-2 md:gap-3 shrink-0 overflow-x-auto no-scrollbar py-2">
+                <div className="flex flex-col items-center gap-4 shrink-0 overflow-y-auto no-scrollbar w-full">
                     <button
                         onClick={() => alert("Profile Setting is under construction")}
-                        className="w-10 h-10 md:w-10 md:h-10 shrink-0 flex items-center justify-center bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl md:rounded-2xl transition-colors shadow-lg group relative"
+                        className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl md:rounded-2xl transition-colors shadow-lg group relative"
                         title="User Profile"
                     >
                         <User className="w-5 h-5 transition-transform duration-300 group-hover:scale-125" />
-                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 md:w-2.5 md:h-2.5 bg-emerald-500 border border-[#2b2b36] rounded-full"></div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 md:w-3 md:h-3 bg-emerald-500 border border-[#2b2b36] rounded-full"></div>
                     </button>
 
-                    <button className="w-10 h-10 md:w-10 md:h-10 shrink-0 rounded-xl md:rounded-2xl overflow-hidden border-2 border-slate-700 hover:border-slate-500 transition-colors shadow-lg group">
+                    <button className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl md:rounded-2xl overflow-hidden border-2 border-slate-700 hover:border-slate-500 transition-colors shadow-lg group">
                         <img src={`${import.meta.env.BASE_URL}avatars/RooxterFilms_Avatar.jpg`} alt="RooxterFilms" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                     </button>
 
-                    <button className="w-10 h-10 md:w-10 md:h-10 shrink-0 rounded-xl md:rounded-2xl overflow-hidden border-2 border-slate-700 hover:border-slate-500 transition-colors shadow-lg group">
+                    <button className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl md:rounded-2xl overflow-hidden border-2 border-slate-700 hover:border-slate-500 transition-colors shadow-lg group">
                         <img src={`${import.meta.env.BASE_URL}avatars/TumbleTech_Avatar.jpg`} alt="TumbleTech" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                     </button>
 
-                    <button className="w-10 h-10 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-xl md:rounded-2xl border-2 border-dashed border-slate-700 hover:border-slate-500 hover:bg-slate-800/50 transition-colors shadow-lg group" title="Add Company">
+                    <button className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center rounded-xl md:rounded-2xl border-2 border-dashed border-slate-700 hover:border-slate-500 hover:bg-slate-800/50 transition-colors shadow-lg group" title="Add Company">
                         <Plus className="w-5 h-5 text-slate-500 group-hover:text-white transition-colors" />
                     </button>
                 </div>
 
-                <div className="flex-1 min-w-[20px]"></div>
+                <div className="flex-1 min-h-[20px]"></div>
 
                 <button
                     onClick={() => alert("Admin Tools is under construction")}
-                    className="w-10 h-10 md:w-10 md:h-10 shrink-0 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 rounded-xl md:rounded-2xl transition-colors group ml-auto mr-1"
+                    className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 rounded-xl md:rounded-2xl transition-colors group"
                     title="Settings"
                 >
                     <Settings className="w-5 h-5 transition-transform group-hover:rotate-45" />
@@ -305,11 +302,11 @@ export default function App() {
                 {/* Header Section */}
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 md:mb-4 gap-6">
                     <div className="flex flex-col items-start w-fit">
-                        <h1 className="text-3xl md:text-4xl font-extralight tracking-widest text-slate-200">
+                        <h1 className="text-2xl md:text-3xl font-extralight tracking-widest text-slate-200">
                             TASKKER.IO
                         </h1>
                         <div className="flex items-center gap-3 mt-2">
-                            <img src={`${import.meta.env.BASE_URL}avatars/RooxterFilms_Avatar.jpg`} alt="Team Avatar" className="w-8 h-8 md:w-10 md:h-10 object-cover rounded-xl border-2 border-slate-600 shadow-sm" />
+                            <img src={`${import.meta.env.BASE_URL}avatars/RooxterFilms_Avatar.jpg`} alt="Team Avatar" className="w-8 h-8 md:w-10 md:h-10 object-cover rounded-xl border-2 border-blue-500 shadow-sm shadow-blue-500/20" />
                             <span className="text-slate-300 font-light tracking-widest uppercase text-xs md:text-sm">TEAM ROOXTER</span>
                         </div>
                     </div>
@@ -378,7 +375,7 @@ export default function App() {
 
                     <button
                         onClick={() => setIsGlobalAddTaskOpen(true)}
-                        className="flex items-center justify-center gap-1.5 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-slate-400 hover:text-white border border-slate-700/50 hover:bg-slate-800/50 whitespace-nowrap active:scale-95 min-w-0 flex-shrink"
+                        className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white bg-blue-600 hover:bg-blue-500 border border-blue-500/50 hover:border-blue-400 shadow-lg shadow-blue-500/20 whitespace-nowrap active:scale-95 min-w-0 flex-shrink"
                     >
                         <span className="truncate">Add Task</span>
                     </button>
@@ -694,13 +691,13 @@ export default function App() {
                         </div>
 
                         <div className="col-span-full glass p-4 md:p-5 rounded-2xl mt-4 border border-slate-700/50">
-                            <h3 className="text-sm font-bold tracking-wide text-slate-400 mb-3 uppercase">Active Team Roster</h3>
-                            <div className="flex flex-wrap gap-2">
+                            <h3 className="uppercase transition-all text-xs md:text-sm font-medium tracking-widest text-slate-500 mb-1">ACTIVE TEAM ROSTER</h3>
+                            <div className="flex flex-wrap gap-3">
                                 {teamMembers.length === 0 ? (
                                     <span className="text-slate-500 italic text-xs">No team members initialized. Select "Team Member &gt; NEW" to begin.</span>
                                 ) : (
                                     teamMembers.map(m => (
-                                        <div key={m.id} onClick={() => handleMemberSelect(m)} className="cursor-pointer hover:bg-slate-700 bg-slate-800/50 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-mono text-blue-300 transition-colors shadow-sm">
+                                        <div key={m.id} onClick={() => handleMemberSelect(m)} className="cursor-pointer text-xs font-mono text-blue-300/60 hover:text-blue-400 transition-colors">
                                             {m.name}
                                         </div>
                                     ))
@@ -1012,7 +1009,7 @@ export default function App() {
 
             {/* Versioning */}
             <div className="fixed bottom-2 right-2 text-[10px] font-thin text-white/50 pointer-events-none z-0">
-                v1.007
+                v0.008
             </div>
 
             {/* Styles Injection */}
