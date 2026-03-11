@@ -1500,16 +1500,59 @@ function DroppableColumn({ id, title, colorClass, bgClass, borderClass, activeBo
     const { isOver, setNodeRef } = useDroppable({ id });
     const currentBorder = isOver ? activeBorderClass : borderClass;
 
+    const scrollRef = React.useRef(null);
+    const [showScrollHint, setShowScrollHint] = React.useState(false);
+
+    React.useEffect(() => {
+        const checkScroll = () => {
+            if (scrollRef.current) {
+                const { scrollHeight, clientHeight, scrollTop } = scrollRef.current;
+                const isBottom = scrollHeight - scrollTop - clientHeight < 15;
+                setShowScrollHint(scrollHeight > clientHeight && !isBottom);
+            }
+        };
+
+        const timer = setTimeout(checkScroll, 100);
+        window.addEventListener('resize', checkScroll);
+
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', checkScroll);
+        };
+    }, [tasks]);
+
+    const handleScroll = () => {
+        if (scrollRef.current) {
+            const { scrollHeight, clientHeight, scrollTop } = scrollRef.current;
+            const isBottom = scrollHeight - scrollTop - clientHeight < 15;
+            setShowScrollHint(scrollHeight > clientHeight && !isBottom);
+        }
+    };
+
     return (
-        <div ref={setNodeRef} className={`flex flex-col h-full bg-slate-900/40 rounded-2xl border ${currentBorder} transition-all duration-300`}>
+        <div ref={setNodeRef} className={`flex flex-col h-[70vh] min-h-[400px] max-h-[800px] bg-slate-900/40 rounded-2xl border ${currentBorder} transition-all duration-300 relative overflow-hidden group`}>
             {/* Column Header */}
-            <div className={`${bgClass} p-3 border-b ${currentBorder} flex justify-between items-center transition-all duration-300 rounded-t-2xl`}>
+            <div className={`${bgClass} p-3 border-b ${currentBorder} flex justify-between items-center transition-all duration-300 rounded-t-2xl z-10 shrink-0`}>
                 <h3 className={`text-xs font-black uppercase tracking-wider ${colorClass}`}>{title}</h3>
                 <span className={`text-[10px] font-bold ${colorClass} opacity-70`}>{tasks.length}</span>
             </div>
             {/* Task List */}
-            <div className="flex-1 p-2 flex flex-col gap-2 pb-24">
+            <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="flex-1 p-2 flex flex-col gap-2 pb-24 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-800/30 [&::-webkit-scrollbar-thumb]:bg-slate-700/80 hover:[&::-webkit-scrollbar-thumb]:bg-slate-500 [&::-webkit-scrollbar-thumb]:rounded-full"
+            >
                 {children}
+            </div>
+
+            {/* Scroll Hint */}
+            <div className={`absolute bottom-0 left-0 right-0 py-2.5 px-4 ${bgClass} border-t ${borderClass} flex justify-center items-center backdrop-blur-md z-20 pointer-events-none transition-all duration-500 ease-in-out ${showScrollHint ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
+                {/* Gradient fade above the hint */}
+                <div className="absolute bottom-full left-0 right-0 h-10 bg-gradient-to-t from-slate-900/90 to-transparent pointer-events-none" />
+
+                <span className={`text-[10px] font-black uppercase tracking-widest ${colorClass} flex items-center gap-2`}>
+                    <ChevronDown className="w-3.5 h-3.5 animate-bounce" /> Scroll for more tasks
+                </span>
             </div>
         </div>
     );
