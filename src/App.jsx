@@ -656,16 +656,18 @@ export default function App() {
                                     {showAllTasksBoard ? 'VIEW ALL TASKS' : 'VIEW ALL TASKS'}
                                 </span>
                                 <div className="flex items-center gap-4">
-                                    <select
-                                        value={allTasksCategoryFilter}
-                                        onChange={(e) => setAllTasksCategoryFilter(e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onPointerDown={(e) => e.stopPropagation()}
-                                        className="bg-slate-800/80 border border-slate-700 text-slate-300 text-[10px] sm:text-xs font-bold rounded-xl px-2 py-1.5 sm:px-4 sm:py-2 outline-none cursor-pointer hover:bg-slate-700 transition-colors shadow-inner"
-                                    >
-                                        <option value="All">All Categories</option>
-                                        {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                                    </select>
+                                    {showAllTasksBoard && (
+                                        <select
+                                            value={allTasksCategoryFilter}
+                                            onChange={(e) => setAllTasksCategoryFilter(e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onPointerDown={(e) => e.stopPropagation()}
+                                            className="bg-slate-800/80 border border-slate-700 text-slate-300 text-[10px] sm:text-xs font-bold rounded-xl px-2 py-1.5 sm:px-4 sm:py-2 outline-none cursor-pointer hover:bg-slate-700 transition-colors shadow-inner"
+                                        >
+                                            <option value="All">All Categories</option>
+                                            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                        </select>
+                                    )}
                                     <ChevronDown className={`w-5 h-5 transition-transform duration-500 text-slate-500 group-hover:text-slate-300 ${showAllTasksBoard ? 'rotate-180' : ''}`} />
                                 </div>
                             </div>
@@ -1521,8 +1523,7 @@ function AllTasksBoard({ tasks, categoryFilter, updateTask, categories, addCateg
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                delay: 200, // 200ms delay to prevent accidental dragging on scroll
-                tolerance: 5, // 5px movement tolerance before cancel
+                distance: 5, // 5px movement to start drag
             },
         })
     );
