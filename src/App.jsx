@@ -344,7 +344,7 @@ export default function App() {
                             </button>
 
                             {isDropdownOpen && (
-                                <div className="absolute top-[calc(100%+0.5rem)] left-0 md:left-auto md:right-0 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2">
+                                <div className="absolute top-[calc(100%+0.5rem)] left-0 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2">
                                     {teamMembers.map(member => (
                                         <button
                                             key={member.id}
@@ -743,11 +743,11 @@ export default function App() {
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="bg-slate-900/30 border-b border-white/5 text-slate-500 text-[10px] uppercase tracking-[0.2em]">
-                                                <th className="px-4 py-3 font-bold whitespace-nowrap">Status</th>
-                                                <th className="px-4 py-3 font-bold whitespace-nowrap">Action Item</th>
-                                                <th className="px-4 py-3 font-bold whitespace-nowrap">Category</th>
-                                                <th className="px-4 py-3 font-bold whitespace-nowrap">Due By</th>
-                                                <th className="px-4 py-3 font-bold text-center whitespace-nowrap">Control</th>
+                                                <th className="px-4 py-3 font-bold whitespace-nowrap">DONE</th>
+                                                <th className="px-4 py-3 font-bold whitespace-nowrap">TASKS</th>
+                                                <th className="px-4 py-3 font-bold whitespace-nowrap">CATEGORY</th>
+                                                <th className="px-4 py-3 font-bold whitespace-nowrap">DUE BY</th>
+                                                <th className="px-4 py-3 font-bold text-center whitespace-nowrap">DELETE</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
@@ -1012,7 +1012,7 @@ export default function App() {
 
             {/* Versioning */}
             <div className="fixed bottom-2 right-2 text-[10px] font-thin text-white/50 pointer-events-none z-0">
-                v1.004
+                v1.006
             </div>
 
             {/* Styles Injection */}
@@ -1196,9 +1196,9 @@ function DueByDropdown({ value, priority, onSelect, hideLabels }) {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-1.5 text-slate-400 text-[10px] font-bold hover:text-white transition-colors group whitespace-nowrap"
+                className="flex items-center gap-1.5 text-[10px] font-bold hover:text-white transition-colors group whitespace-nowrap"
             >
-                <span className={`whitespace-nowrap ${value ? "text-slate-300" : "italic text-slate-600"}`}>
+                <span className={`whitespace-nowrap ${value ? "text-blue-400" : "italic text-slate-600"}`}>
                     {value || "Due By..."}
                 </span>
                 {!hideLabels && shortPriority && (
@@ -1294,7 +1294,7 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                     ref={textareaRef}
                     value={task.action}
                     onChange={(e) => updateTask(task.id, 'action', e.target.value)}
-                    className={`bg-transparent border-none outline-none w-full font-bold text-sm focus:text-blue-400 transition-colors placeholder:text-slate-800 resize-none overflow-hidden block relative z-10 ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200'}`}
+                    className={`bg-transparent border-none outline-none w-full font-bold text-sm md:text-base focus:text-blue-400 transition-colors placeholder:text-slate-800 resize-none overflow-hidden block relative z-10 ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200'}`}
                     placeholder="Task description..."
                     rows={1}
                     onInput={(e) => {
@@ -1385,7 +1385,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                 ref={textareaRef}
                 value={task.action}
                 onChange={(e) => updateTask(task.id, 'action', e.target.value)}
-                className={`bg-transparent border-none outline-none w-full font-bold text-xs focus:text-blue-400 transition-colors placeholder:text-slate-600 resize-none overflow-hidden block relative z-10 pt-0.5 ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200'}`}
+                className={`bg-transparent border-none outline-none w-full font-bold text-sm md:text-base focus:text-blue-400 transition-colors placeholder:text-slate-600 resize-none overflow-hidden block relative z-10 pt-0.5 ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200'}`}
                 placeholder="Task description..."
                 rows={1}
                 onInput={(e) => {
@@ -1463,7 +1463,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                             onPointerDown={(e) => e.stopPropagation()}
                             value={task.action}
                             onChange={(e) => updateTask(task.id, 'action', e.target.value)}
-                            className={`w-full bg-transparent border-none outline-none font-bold text-xs resize-none overflow-hidden block ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200 focus:text-blue-400'}`}
+                            className={`w-full bg-transparent border-none outline-none font-bold text-sm resize-none overflow-hidden block ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200 focus:text-blue-400'}`}
                             placeholder="Task description..."
                             rows={1}
                             onInput={(e) => {
