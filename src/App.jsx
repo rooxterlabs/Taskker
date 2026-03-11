@@ -48,6 +48,64 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
 
+import confetti from 'canvas-confetti';
+import doneSoundUrl from './assets/sounds/taskker_done_v01.wav';
+
+// --- Reusable Micro-interaction Components ---
+function DoneCheckbox({ task, updateTask, className }) {
+    const [isCompleting, setIsCompleting] = React.useState(false);
+
+    const handleDoneClick = (e) => {
+        e.stopPropagation();
+        if (task.status === 'Done') {
+            updateTask(task.id, 'status', 'In Progress');
+        } else {
+            setIsCompleting(true);
+
+            // Trigger Sound
+            try {
+                const audio = new Audio(doneSoundUrl);
+                audio.play().catch(err => console.log('Audio error:', err));
+            } catch (err) { }
+
+            // Trigger Confetti explosion from button origin
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = (rect.left + rect.width / 2) / window.innerWidth;
+            const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+            confetti({
+                particleCount: 15,
+                spread: 60,
+                startVelocity: 15,
+                colors: ['#10b981', '#34d399', '#059669', '#a7f3d0'],
+                origin: { x, y },
+                zIndex: 9999,
+                disableForReducedMotion: true,
+                ticks: 100,
+                gravity: 0.8,
+                scalar: 0.8
+            });
+
+            // Grace period before actual state removal
+            setTimeout(() => {
+                updateTask(task.id, 'status', 'Done');
+                // Note: component usually unmounts here as it's removed from view
+            }, 700);
+        }
+    };
+
+    const isDone = task.status === 'Done' || isCompleting;
+
+    return (
+        <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={handleDoneClick}
+            className={`rounded-full border-2 flex items-center justify-center transition-colors ${className || 'w-5 h-5 mx-auto'} ${isDone ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 hover:border-blue-400'}`}
+        >
+            {isDone && <CheckCircle2 className="w-3 h-3 text-slate-900" />}
+        </button>
+    );
+}
 
 export default function App() {
     const {
@@ -885,12 +943,7 @@ export default function App() {
                                                                     <span>{task.due_by_type || 'None'}</span>
                                                                 </td>
                                                                 <td className="px-3 md:px-4 py-3 md:py-4 text-center relative z-10 w-[10%]">
-                                                                    <button
-                                                                        onClick={() => updateTask(task.id, 'status', task.status === 'Done' ? 'In Progress' : 'Done')}
-                                                                        className={`w-5 h-5 mx-auto rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'Done' ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600 hover:border-slate-400'}`}
-                                                                    >
-                                                                        {task.status === 'Done' && <CheckCircle2 className="w-3 h-3 text-slate-900" />}
-                                                                    </button>
+                                                                    <DoneCheckbox task={task} updateTask={updateTask} className="w-5 h-5 mx-auto shrink-0" />
                                                                 </td>
                                                             </>
                                                         )}
@@ -1009,7 +1062,7 @@ export default function App() {
 
             {/* Versioning */}
             <div className="fixed bottom-2 right-2 text-[10px] font-thin text-white/50 pointer-events-none z-0">
-                v0.008
+                v0.009
             </div>
 
             {/* Styles Injection */}
@@ -1270,12 +1323,7 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
     return (
         <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'bg-red-900/10' : ''}`}>
             <td className="px-4 py-3 text-center">
-                <button
-                    onClick={() => updateTask(task.id, 'status', task.status === 'Done' ? 'In Progress' : 'Done')}
-                    className={`mx-auto w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'Done' ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 hover:border-blue-400'}`}
-                >
-                    {task.status === 'Done' && <CheckCircle2 className="w-3 h-3 text-slate-900" />}
-                </button>
+                <DoneCheckbox task={task} updateTask={updateTask} className="w-5 h-5 mx-auto shrink-0" />
             </td>
             <td className="px-4 py-3 min-w-[250px] w-full max-w-sm relative">
                 {/* BIG BACKGROUND OVERDUE TEXT */}
@@ -1359,12 +1407,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
 
             {/* Top row: Status and Assignee */}
             <div className="flex justify-between items-start gap-2 relative z-10">
-                <button
-                    onClick={() => updateTask(task.id, 'status', task.status === 'Done' ? 'In Progress' : 'Done')}
-                    className={`shrink-0 w-5 h-5 mt-0.5 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'Done' ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 hover:border-blue-400'}`}
-                >
-                    {task.status === 'Done' && <CheckCircle2 className="w-3 h-3 text-slate-900" />}
-                </button>
+                <DoneCheckbox task={task} updateTask={updateTask} className="w-5 h-5 mt-0.5 shrink-0" />
 
                 <div className="flex items-center gap-2">
                     {showAssignee && (
@@ -1445,13 +1488,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                 )}
 
                 <div className="flex items-start gap-2 relative z-10">
-                    <button
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => updateTask(task.id, 'status', task.status === 'Done' ? 'In Progress' : 'Done')}
-                        className={`shrink-0 w-5 h-5 mt-0.5 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'Done' ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 hover:border-blue-400'}`}
-                    >
-                        {task.status === 'Done' && <CheckCircle2 className="w-3 h-3 text-slate-900" />}
-                    </button>
+                    <DoneCheckbox task={task} updateTask={updateTask} className="w-5 h-5 mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
                         <div className="text-[8px] font-black uppercase text-blue-400 tracking-wider mb-0.5 truncate">
                             {task.assignee}
