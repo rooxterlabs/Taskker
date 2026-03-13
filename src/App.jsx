@@ -1062,7 +1062,7 @@ export default function App() {
 
             {/* Versioning */}
             <div className="fixed bottom-2 right-2 text-[10px] font-thin text-white/50 pointer-events-none z-0">
-                v0.009
+                v0.010
             </div>
 
             {/* Styles Injection */}
