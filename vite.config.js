@@ -4,10 +4,14 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Setting base to '/' ensures the app loads from the root of taskker.io
-  base: '/', 
+  /**
+   * Setting base to '' (empty string) or './' (relative) 
+   * makes the app work regardless of whether it's in a subfolder 
+   * or on a custom root domain.
+   */
+  base: '', 
   plugins: [
     react(),
     tailwindcss(),
   ],
-})
+}
