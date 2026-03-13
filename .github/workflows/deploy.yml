@@ -33,7 +33,6 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # This tells GitHub to grab the keys you are about to add to Settings
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
