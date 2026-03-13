@@ -5,11 +5,12 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   /**
-   * Setting base to './' (relative) ensures the app loads correctly 
-   * whether it's on rodmon-rooxter.github.io/Taskker/ 
-   * or directly on taskker.io.
+   * We use '/Taskker/' as the base because the current live site 
+   * is hosted at rodmon-rooxter.github.io/Taskker/.
+   * * When the custom domain taskker.io is fully active, 
+   * we will change this to '/'.
    */
-  base: './',
+  base: '/Taskker/',
   plugins: [
     react(),
     tailwindcss(),
