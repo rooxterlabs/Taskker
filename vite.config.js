@@ -6,7 +6,7 @@ import packageJson from './package.json'
 // https://vite.dev/config/
 export default defineConfig({
   // Setting base to '/' for the final taskker.io custom domain.
-  base: '/',
+  base: '/Taskker/',
   plugins: [
     react(),
     tailwindcss(),
