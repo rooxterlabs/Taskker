@@ -1122,7 +1122,7 @@ export default function App() {
 
             {/* Versioning */}
             <div className="fixed bottom-2 right-2 text-[10px] font-thin text-white/50 pointer-events-none z-0">
-                v0.012
+                v{import.meta.env.VITE_APP_VERSION}
             </div>
 
             {/* Styles Injection */}
