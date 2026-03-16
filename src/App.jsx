@@ -50,6 +50,8 @@ import { snapCenterToCursor } from '@dnd-kit/modifiers';
 
 import confetti from 'canvas-confetti';
 import doneSoundUrl from './assets/sounds/taskker_done_v01.wav';
+import Login from './components/Login';
+import { supabase } from './lib/supabase';
 
 // --- Reusable Micro-interaction Components ---
 function DoneCheckbox({ task, updateTask, className }) {
@@ -138,7 +140,51 @@ export default function App() {
     const [calendarMode, setCalendarMode] = useState('week'); // 'day', 'month' or 'week'
     const [isBottomBarOpen, setIsBottomBarOpen] = useState(false);
     const [isGlobalAddTaskOpen, setIsGlobalAddTaskOpen] = useState(false);
+
+    // Auth State
+    const [session, setSession] = useState(null);
+    const [userRole, setUserRole] = useState(null);
+    const [isAuthLoading, setIsAuthLoading] = useState(true);
+
     const teamDropdownRef = React.useRef(null);
+
+    // Initial Auth Load & Subscription
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
+            if (session) fetchRole(session.user.id);
+            else setIsAuthLoading(false);
+        });
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+            if (session) fetchRole(session.user.id);
+            else {
+                setUserRole(null);
+                setIsAuthLoading(false);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    const fetchRole = async (userId) => {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', userId)
+                .single();
+            if (error) throw error;
+            setUserRole(data?.role);
+        } catch (error) {
+            console.error('Error fetching role:', error);
+        } finally {
+            setIsAuthLoading(false);
+        }
+    };
 
     // Close Team Member dropdown on outside click
     useEffect(() => {
@@ -222,13 +268,19 @@ export default function App() {
         if (distance < -50) handleNavigateDay(dateStr, -1, isInline);
     };
 
-    if (loading) {
+    if (loading || isAuthLoading) {
         return (
             <div className="min-h-screen bg-black text-slate-50 flex flex-col items-center justify-center font-sans">
                 <Activity className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-                <div className="animate-pulse text-blue-400 font-bold tracking-[0.3em] text-sm">INITIALIZING ROOXTER CORE...</div>
+                <div className="animate-pulse text-blue-400 font-bold tracking-[0.3em] text-sm">
+                    {loading ? 'INITIALIZING ROOXTER CORE...' : 'AUTHENTICATING...'}
+                </div>
             </div>
         );
+    }
+
+    if (!session) {
+        return <Login />;
     }
 
     const handleMemberSelect = async (memberOrNew) => {
@@ -762,6 +814,14 @@ export default function App() {
                                 )}
                             </div>
                         </div>
+
+                        {userRole && (
+                            <div className="w-full text-center mt-4 mb-2 flex justify-center">
+                                <span className="text-[10px] text-slate-500 opacity-60 uppercase font-mono tracking-widest">
+                                    {userRole} mode
+                                </span>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -1062,7 +1122,7 @@ export default function App() {
 
             {/* Versioning */}
             <div className="fixed bottom-2 right-2 text-[10px] font-thin text-white/50 pointer-events-none z-0">
-                v0.010
+                v0.012
             </div>
 
             {/* Styles Injection */}

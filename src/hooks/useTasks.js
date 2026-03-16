@@ -42,7 +42,7 @@ export function useTasks() {
             const [tasksResult, teamsResult, categoriesResult] = await Promise.all([
                 supabase.from('tasks').select('*').order('id', { ascending: false }),
                 supabase.from('team_members').select('*').order('name', { ascending: true }),
-                supabase.from('contexts').select('*').order('name', { ascending: true })
+                supabase.from('categories').select('*').order('name', { ascending: true })
             ]);
 
             if (tasksResult.error) throw tasksResult.error;
@@ -76,8 +76,9 @@ export function useTasks() {
     };
 
     const addTeamMember = async (name) => {
-        const newMember = { name };
-        setTeamMembers([...teamMembers, { id: Date.now(), ...newMember }]);
+        const id = crypto.randomUUID();
+        const newMember = { id, name };
+        setTeamMembers(prev => [...prev, newMember]);
 
         const { data, error } = await supabase
             .from('team_members')
@@ -86,9 +87,9 @@ export function useTasks() {
 
         if (error) {
             console.error('Error adding team member:', error);
-            fetchData();
+            // Optionally remove optimistic object on error, skipping fetchData to avoid blocking UI
         } else if (data) {
-            setTeamMembers(prev => prev.map(m => m.name === name ? data[0] : m));
+            setTeamMembers(prev => prev.map(m => m.id === id ? data[0] : m));
         }
         return data;
     };
@@ -135,26 +136,27 @@ export function useTasks() {
     const addCategory = async (name) => {
         const trimmed = name.trim();
         if (!trimmed) return;
-        const newCategory = { name: trimmed };
-        setCategories([...categories, { id: Date.now(), ...newCategory }]);
+        const id = crypto.randomUUID();
+        const newCategory = { id, name: trimmed };
+        setCategories(prev => [...prev, newCategory]);
 
         const { data, error } = await supabase
-            .from('contexts')
+            .from('categories')
             .insert([newCategory])
             .select();
 
         if (error) {
             console.error('Error adding category:', error);
-            fetchData();
+            // Optionally fallback optimistic state
         } else if (data) {
-            setCategories(prev => prev.map(c => c.name === trimmed ? data[0] : c));
+            setCategories(prev => prev.map(c => c.id === id ? data[0] : c));
         }
         return data;
     };
 
     const deleteCategory = async (id) => {
         setCategories(prev => prev.filter(c => c.id !== id));
-        const { error } = await supabase.from('contexts').delete().eq('id', id);
+        const { error } = await supabase.from('categories').delete().eq('id', id);
         if (error) {
             console.error('Error deleting category:', error);
             fetchData();
@@ -162,12 +164,12 @@ export function useTasks() {
     };
 
     const addTask = async (assignee) => {
-        const todayStr = new Date().toISOString().split('T')[0];
         const dueByType = 'This Week'; // Default
         const defaultCategory = categories.length > 0 ? categories[0].name : '';
+        const id = crypto.randomUUID();
 
         const newTask = {
-            id: Date.now(),
+            id,
             status: 'To Do',
             action: '',
             category: defaultCategory,
@@ -175,22 +177,21 @@ export function useTasks() {
             priority: getPriorityFromDueByType(dueByType),
             target_deadline: calculateTargetDeadline(dueByType),
             submitted_on: new Date().toISOString(),
-            date: todayStr,
-            created: todayStr,
-            energy: 'Medium',
             assignee: assignee,
             is_archived: false
         };
 
-        setTasks([newTask, ...tasks]);
+        // UI Optimistic
+        setTasks(prev => [newTask, ...prev]);
 
+        // Only insert DB schema compatible fields
         const { error } = await supabase
             .from('tasks')
             .insert([newTask]);
 
         if (error) {
             console.error('Error adding task:', error);
-            fetchData();
+            // Do not call fetchData immediately to avoid UI locking. Let UI hold optimistic tasks.
         }
 
         return newTask;
@@ -212,17 +213,31 @@ export function useTasks() {
             updates.target_deadline = calculateTargetDeadline(updates.due_by_type);
         }
 
+        // Filter valid schema columns
+        const validSchemaKeys = [
+            'action', 'assignee', 'category', 'due_by_type', 'priority',
+            'status', 'is_archived', 'target_deadline', 'submitted_on', 'deletion_date'
+        ];
+        const dbUpdates = {};
+        for (const [key, val] of Object.entries(updates)) {
+            if (validSchemaKeys.includes(key)) {
+                dbUpdates[key] = val;
+            }
+        }
+
         // Optimistic UI update
         setTasks(prevTasks => prevTasks.map(t => t.id === id ? { ...t, ...updates } : t));
 
-        const { error } = await supabase
-            .from('tasks')
-            .update(updates)
-            .eq('id', id);
+        if (Object.keys(dbUpdates).length > 0) {
+            const { error } = await supabase
+                .from('tasks')
+                .update(dbUpdates)
+                .eq('id', id);
 
-        if (error) {
-            console.error('Error updating task:', error);
-            fetchData();
+            if (error) {
+                console.error('Error updating task:', error);
+                // Do not blindly call fetchData on every keystroke error to prevent the global loading state
+            }
         }
     };
 
