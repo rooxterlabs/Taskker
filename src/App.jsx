@@ -51,6 +51,8 @@ import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import confetti from 'canvas-confetti';
 import doneSoundUrl from './assets/sounds/taskker_done_v01.wav';
 import Login from './components/Login';
+import InviteMemberForm from './components/InviteMemberForm';
+import OnboardingGate from './components/OnboardingGate';
 import { supabase } from './lib/supabase';
 
 // --- Reusable Micro-interaction Components ---
@@ -145,6 +147,9 @@ export default function App() {
     const [session, setSession] = useState(null);
     const [userRole, setUserRole] = useState(null);
     const [isAuthLoading, setIsAuthLoading] = useState(true);
+    const [isOnboarding, setIsOnboarding] = useState(
+        window.location.hash.includes('type=invite') || window.location.hash.includes('type=recovery')
+    );
 
     const teamDropdownRef = React.useRef(null);
 
@@ -281,6 +286,10 @@ export default function App() {
 
     if (!session) {
         return <Login />;
+    }
+
+    if (isOnboarding) {
+        return <OnboardingGate user={session.user} onComplete={() => setIsOnboarding(false)} />;
     }
 
     const handleMemberSelect = async (memberOrNew) => {
@@ -814,6 +823,13 @@ export default function App() {
                                 )}
                             </div>
                         </div>
+
+                        {/* Admin Only: Invite New Members */}
+                        {(userRole === 'admin' || userRole === 'super_admin') && (
+                            <div className="col-span-full mt-6 flex justify-center">
+                                <InviteMemberForm />
+                            </div>
+                        )}
 
                         {userRole && (
                             <div className="w-full text-center mt-4 mb-2 flex justify-center">
