@@ -82,7 +82,7 @@ export function useTasks() {
         if (!member || !member.email) return { assignee_id: null, assignee_email: null };
 
         // Cross-reference the email with the profiles table to get the REAL Auth UUID
-        const profile = profiles.find(p => p.email === member.email);
+        const profile = profiles.find(p => p.email?.toLowerCase().trim() === member.email?.toLowerCase().trim());
         
         return {
             assignee_email: member.email,
@@ -185,6 +185,7 @@ export function useTasks() {
 
         if (error) {
             console.error('Error adding task:', error);
+            alert(`DB INSERT ERROR: ${error.message || JSON.stringify(error)}`);
         }
 
         return newTask;
@@ -235,6 +236,7 @@ export function useTasks() {
 
             if (error) {
                 console.error('Error updating task:', error);
+                alert(`DB UPDATE ERROR: ${error.message || JSON.stringify(error)}`);
             }
         }
     };
