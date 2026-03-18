@@ -39,10 +39,11 @@ export function useTasks() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [tasksResult, teamsResult, categoriesResult] = await Promise.all([
+            const [tasksResult, teamsResult, categoriesResult, profilesResult] = await Promise.all([
                 supabase.from('tasks').select('*').order('id', { ascending: false }),
                 supabase.from('team_members').select('*').order('name', { ascending: true }),
-                supabase.from('categories').select('*').order('name', { ascending: true })
+                supabase.from('categories').select('*').order('name', { ascending: true }),
+                supabase.from('profiles').select('email, role')
             ]);
 
             if (tasksResult.error) throw tasksResult.error;
@@ -50,8 +51,18 @@ export function useTasks() {
             if (categoriesResult.error) throw categoriesResult.error;
 
             setTasks(tasksResult.data || []);
-            setTeamMembers(teamsResult.data || []);
             setCategories(categoriesResult.data || []);
+
+            // Merge role data into teamMembers for UI logic
+            const profiles = profilesResult.data || [];
+            const mergedRoster = (teamsResult.data || []).map(member => {
+                const profile = profiles.find(p => p.email?.toLowerCase() === member.email?.toLowerCase());
+                return {
+                    ...member,
+                    role: profile?.role || 'worker' // Default to worker if profile not found yet
+                };
+            });
+            setTeamMembers(mergedRoster);
 
             // 30-Day Trash Cleanup Logic
             const thirtyDaysAgo = new Date();
@@ -75,9 +86,11 @@ export function useTasks() {
         }
     };
 
-    const addTeamMember = async (name) => {
+    const addTeamMember = async (name, email = null) => {
         const id = crypto.randomUUID();
         const newMember = { id, name };
+        if (email) newMember.email = email;
+        
         setTeamMembers(prev => [...prev, newMember]);
 
         const { data, error } = await supabase
@@ -163,10 +176,15 @@ export function useTasks() {
         }
     };
 
-    const addTask = async (assignee) => {
+    const addTask = async (assignee, userRole) => {
         const dueByType = 'This Week'; // Default
         const defaultCategory = categories.length > 0 ? categories[0].name : '';
         const id = crypto.randomUUID();
+
+        // Extract assignee info
+        const assigneeMember = teamMembers.find(m => m.name === assignee);
+        const assignee_id = assigneeMember ? assigneeMember.id : null;
+        const assignee_email = assigneeMember ? assigneeMember.email : null;
 
         const newTask = {
             id,
@@ -178,7 +196,10 @@ export function useTasks() {
             target_deadline: calculateTargetDeadline(dueByType),
             submitted_on: new Date().toISOString(),
             assignee: assignee,
-            is_archived: false
+            assignee_id: assignee_id,
+            assignee_email: assignee_email,
+            is_archived: false,
+            created_by_role: userRole || 'super_admin' // Track who created it physically
         };
 
         // UI Optimistic
@@ -213,10 +234,22 @@ export function useTasks() {
             updates.target_deadline = calculateTargetDeadline(updates.due_by_type);
         }
 
-        // Filter valid schema columns
+        // Handle assignee mapping for the new schema
+        if (updates.assignee) {
+            const assigneeMember = teamMembers.find(m => m.name === updates.assignee);
+            if (assigneeMember) {
+                updates.assignee_id = assigneeMember.id;
+                updates.assignee_email = assigneeMember.email;
+            } else {
+                updates.assignee_id = null;
+                updates.assignee_email = null;
+            }
+        }
+
+        // Filter valid schema columns (including the new created_by_role, assignee_id, assignee_email)
         const validSchemaKeys = [
-            'action', 'assignee', 'category', 'due_by_type', 'priority',
-            'status', 'is_archived', 'target_deadline', 'submitted_on', 'deletion_date'
+            'action', 'assignee', 'assignee_id', 'assignee_email', 'category', 'due_by_type', 'priority',
+            'status', 'is_archived', 'target_deadline', 'submitted_on', 'deletion_date', 'created_by_role'
         ];
         const dbUpdates = {};
         for (const [key, val] of Object.entries(updates)) {

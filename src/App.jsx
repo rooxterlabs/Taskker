@@ -53,6 +53,7 @@ import doneSoundUrl from './assets/sounds/taskker_done_v01.wav';
 import Login from './components/Login';
 import InviteMemberForm from './components/InviteMemberForm';
 import OnboardingGate from './components/OnboardingGate';
+import RoleGate from './components/RoleGate';
 import { supabase } from './lib/supabase';
 
 // --- Reusable Micro-interaction Components ---
@@ -202,10 +203,48 @@ export default function App() {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
+    const currentUserRosterName = React.useMemo(() => {
+        if (!session?.user || !teamMembers.length) return null;
+        const loggedInEmail = session.user.email?.toLowerCase().trim();
+        const loggedInId = session.user.id;
+        
+        const me = teamMembers.find(m => {
+            const hasMatchingEmail = m.email && m.email.toLowerCase().trim() === loggedInEmail;
+            const hasMatchingId = m.user_id && m.user_id === loggedInId;
+            return hasMatchingEmail || hasMatchingId;
+        });
+        return me ? me.name : null;
+    }, [session, teamMembers]);
+
+    const visibleTasks = React.useMemo(() => {
+        if (!userRole) return tasks;
+        if (userRole === 'super_admin') return tasks;
+
+        const rosterNameSafe = currentUserRosterName?.toLowerCase().trim();
+
+        if (userRole === 'admin') {
+            const workerNamesSafe = teamMembers
+                .filter(m => m.role === 'worker' && m.name)
+                .map(m => m.name.toLowerCase().trim());
+                
+            return tasks.filter(t => {
+                const assigneeSafe = t.assignee?.toLowerCase().trim();
+                return assigneeSafe === rosterNameSafe || workerNamesSafe.includes(assigneeSafe);
+            });
+        }
+
+        if (userRole === 'worker') {
+            if (!rosterNameSafe) return []; // If unlinked, see nothing.
+            return tasks.filter(t => t.assignee?.toLowerCase().trim() === rosterNameSafe);
+        }
+
+        return tasks;
+    }, [tasks, userRole, teamMembers, currentUserRosterName]);
+
     // Calendar Tasks Logic
     const calendarDays = React.useMemo(() => {
         // Filter out completed, deleted, archived, backburner, and missing target_deadline
-        let calendarTasks = tasks.filter(t =>
+        let calendarTasks = visibleTasks.filter(t =>
             t.status !== 'Done' &&
             t.status !== 'Deleted' &&
             !t.is_archived &&
@@ -297,7 +336,8 @@ export default function App() {
         if (memberOrNew === 'NEW') {
             const name = prompt("Enter new Team Member name:");
             if (name) {
-                await addTeamMember(name);
+                const email = prompt(`Enter email for ${name} (optional):`);
+                await addTeamMember(name, email ? email.trim() : null);
                 setSelectedMember(name);
                 setActiveTab('team');
             }
@@ -338,29 +378,29 @@ export default function App() {
 
         switch (modalFilter) {
             case 'P1':
-                filtered = tasks.filter(t => t.priority && t.priority.includes('P1') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
+                filtered = visibleTasks.filter(t => t.priority && t.priority.includes('P1') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
                 break;
             case 'P2':
-                filtered = tasks.filter(t => t.priority && t.priority.includes('P2') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
+                filtered = visibleTasks.filter(t => t.priority && t.priority.includes('P2') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
                 break;
             case 'P3':
-                filtered = tasks.filter(t => t.priority && t.priority.includes('P3') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
+                filtered = visibleTasks.filter(t => t.priority && t.priority.includes('P3') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
                 break;
             case 'Backburner':
-                filtered = tasks.filter(t => t.priority === 'Backburner' && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
+                filtered = visibleTasks.filter(t => t.priority === 'Backburner' && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
                 break;
             case 'Completed':
-                filtered = tasks.filter(t => {
+                filtered = visibleTasks.filter(t => {
                     if (t.status !== 'Done') return false;
                     const compDate = t.deletion_date || t.submitted_on || t.created_at || t.date;
                     return new Date(compDate) >= sevenDaysAgo;
                 });
                 break;
             case 'Overdue':
-                filtered = tasks.filter(t => t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived && isTaskOverdue(t.target_deadline));
+                filtered = visibleTasks.filter(t => t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived && isTaskOverdue(t.target_deadline));
                 break;
             case 'Archive':
-                filtered = tasks.filter(t => t.status === 'Done' || t.is_archived);
+                filtered = visibleTasks.filter(t => t.status === 'Done' || t.is_archived);
                 break;
             default:
                 break;
@@ -444,42 +484,44 @@ export default function App() {
                             <LayoutDashboard className="w-3.5 h-3.5 shrink-0" /> <span className="truncate hidden sm:inline-block">Overview</span><span className="truncate sm:hidden">Home</span>
                         </button>
 
-                        <div className="relative flex items-center min-w-0" ref={teamDropdownRef}>
-                            <button
-                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className={`flex items-center justify-center gap-1.5 md:gap-2 px-1.5 md:px-4 py-2 rounded-xl font-bold transition-all text-[10px] md:text-xs w-full min-w-0 ${activeTab === 'team'
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                                    }`}
-                            >
-                                <Users className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate max-w-[60px] md:max-w-[120px]">
-                                    {(activeTab === 'team' && selectedMember) ? selectedMember : "Team"}
-                                </span>
-                                <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                            </button>
+                        <RoleGate userRole={userRole} allowed={['admin', 'super_admin']}>
+                            <div className="relative flex items-center min-w-0" ref={teamDropdownRef}>
+                                <button
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className={`flex items-center justify-center gap-1.5 md:gap-2 px-1.5 md:px-4 py-2 rounded-xl font-bold transition-all text-[10px] md:text-xs w-full min-w-0 ${activeTab === 'team'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                        }`}
+                                >
+                                    <Users className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="truncate max-w-[60px] md:max-w-[120px]">
+                                        {(activeTab === 'team' && selectedMember) ? selectedMember : "Team"}
+                                    </span>
+                                    <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
 
-                            {isDropdownOpen && (
-                                <div className="absolute top-[calc(100%+0.5rem)] left-0 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2">
-                                    {teamMembers.map(member => (
+                                {isDropdownOpen && (
+                                    <div className="absolute top-[calc(100%+0.5rem)] left-0 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2">
+                                        {teamMembers.map(member => (
+                                            <button
+                                                key={member.id}
+                                                onClick={() => handleMemberSelect(member)}
+                                                className="px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-blue-600 hover:text-white transition-colors"
+                                            >
+                                                {member.name}
+                                            </button>
+                                        ))}
+                                        <div className="h-px bg-slate-800 my-1"></div>
                                         <button
-                                            key={member.id}
-                                            onClick={() => handleMemberSelect(member)}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-blue-600 hover:text-white transition-colors"
+                                            onClick={() => handleMemberSelect('NEW')}
+                                            className="px-4 py-3 text-left text-xs font-bold text-blue-400 hover:bg-blue-900/30 transition-colors flex items-center gap-2"
                                         >
-                                            {member.name}
+                                            <UserPlus className="w-3.5 h-3.5" /> CREATE NEW
                                         </button>
-                                    ))}
-                                    <div className="h-px bg-slate-800 my-1"></div>
-                                    <button
-                                        onClick={() => handleMemberSelect('NEW')}
-                                        className="px-4 py-3 text-left text-xs font-bold text-blue-400 hover:bg-blue-900/30 transition-colors flex items-center gap-2"
-                                    >
-                                        <UserPlus className="w-3.5 h-3.5" /> CREATE NEW
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </RoleGate>
 
                         <button
                             onClick={() => setActiveTab('calendar')}
@@ -492,12 +534,21 @@ export default function App() {
                         </button>
                     </nav>
 
-                    <button
-                        onClick={() => setIsGlobalAddTaskOpen(true)}
-                        className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white bg-blue-600 hover:bg-blue-500 border border-blue-500/50 hover:border-blue-400 shadow-lg shadow-blue-500/20 whitespace-nowrap active:scale-95 min-w-0 flex-shrink"
-                    >
-                        <span className="truncate">Add Task</span>
-                    </button>
+                    {userRole === 'worker' ? (
+                        <button
+                            onClick={() => alert("In the future, Worker User can make their own personal Task cards that doesn't show up in Admin's Production Board")}
+                            className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white bg-slate-600 hover:bg-slate-500 border border-slate-500/50 hover:border-slate-400 shadow-lg shadow-slate-500/20 whitespace-nowrap active:scale-95 min-w-0 flex-shrink"
+                        >
+                            <span className="truncate">Add Task</span>
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setIsGlobalAddTaskOpen(true)}
+                            className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white bg-blue-600 hover:bg-blue-500 border border-blue-500/50 hover:border-blue-400 shadow-lg shadow-blue-500/20 whitespace-nowrap active:scale-95 min-w-0 flex-shrink"
+                        >
+                            <span className="truncate">Add Task</span>
+                        </button>
+                    )}
                 </div>
 
                 {/* View: Calendar */}
@@ -791,7 +842,7 @@ export default function App() {
                             {/* Board Content */}
                             {showAllTasksBoard && (
                                 <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                    <AllTasksBoard tasks={tasks} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} />
+                                    <AllTasksBoard tasks={visibleTasks} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} />
                                 </div>
                             )}
                         </div>
@@ -809,32 +860,32 @@ export default function App() {
                             </button>
                         </div>
 
-                        <div className="col-span-full glass p-4 md:p-5 rounded-2xl mt-4 border border-slate-700/50">
-                            <h3 className="uppercase transition-all text-xs md:text-sm font-medium tracking-widest text-slate-500 mb-1">ACTIVE TEAM ROSTER</h3>
-                            <div className="flex flex-wrap gap-3">
-                                {teamMembers.length === 0 ? (
-                                    <span className="text-slate-500 italic text-xs">No team members initialized. Select "Team Member &gt; NEW" to begin.</span>
-                                ) : (
-                                    teamMembers.map(m => (
-                                        <div key={m.id} onClick={() => handleMemberSelect(m)} className="cursor-pointer text-xs font-mono text-blue-300/60 hover:text-blue-400 transition-colors">
-                                            {m.name}
-                                        </div>
-                                    ))
-                                )}
+                        <RoleGate userRole={userRole} allowed={['admin', 'super_admin']}>
+                            <div className="col-span-full glass p-4 md:p-5 rounded-2xl mt-4 border border-slate-700/50">
+                                <h3 className="uppercase transition-all text-xs md:text-sm font-medium tracking-widest text-slate-500 mb-1">ACTIVE TEAM ROSTER</h3>
+                                <div className="flex flex-wrap gap-3">
+                                    {teamMembers.length === 0 ? (
+                                        <span className="text-slate-500 italic text-xs">No team members initialized. Select "Team Member &gt; NEW" to begin.</span>
+                                    ) : (
+                                        teamMembers.map(m => (
+                                            <div key={m.id} onClick={() => handleMemberSelect(m)} className="cursor-pointer text-xs font-mono text-blue-300/60 hover:text-blue-400 transition-colors">
+                                                {m.name}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Admin Only: Invite New Members */}
-                        {(userRole === 'admin' || userRole === 'super_admin') && (
+                            {/* Admin Only: Invite New Members */}
                             <div className="col-span-full mt-6 flex justify-center">
                                 <InviteMemberForm />
                             </div>
-                        )}
+                        </RoleGate>
 
                         {userRole && (
                             <div className="w-full text-center mt-4 mb-2 flex justify-center">
                                 <span className="text-[10px] text-slate-500 opacity-60 uppercase font-mono tracking-widest">
-                                    {userRole} mode
+                                    {userRole} mode {currentUserRosterName ? `| Roster Name: ${currentUserRosterName}` : '| UNLINKED ACCOUNT'}
                                 </span>
                             </div>
                         )}
@@ -860,7 +911,7 @@ export default function App() {
                                 </div>
                             </div>
                             <button
-                                onClick={() => addTask(selectedMember)}
+                                onClick={() => addTask(selectedMember, userRole)}
                                 className="shrink-0 bg-blue-600 hover:bg-blue-500 flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl font-bold transition-all active:scale-95 shadow-xl shadow-blue-900/20 group whitespace-nowrap text-xs md:text-sm"
                             >
                                 Add Task
@@ -882,7 +933,7 @@ export default function App() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
-                                            {tasks
+                                            {visibleTasks
                                                 .filter(t => t.assignee === selectedMember && t.status !== 'Deleted' && t.status !== 'Done' && !t.is_archived)
                                                 .map(task => (
                                                     <TaskRow
@@ -902,7 +953,7 @@ export default function App() {
 
                                 {/* Mobile Cards */}
                                 <div className="md:hidden flex flex-col gap-4 p-4">
-                                    {tasks
+                                    {visibleTasks
                                         .filter(t => t.assignee === selectedMember && t.status !== 'Deleted' && t.status !== 'Done' && !t.is_archived)
                                         .map(task => (
                                             <TaskCard
@@ -917,7 +968,7 @@ export default function App() {
                                             />
                                         ))}
                                 </div>
-                                {tasks.filter(t => t.assignee === selectedMember && t.status !== 'Deleted' && t.status !== 'Done' && !t.is_archived).length === 0 && (
+                                {visibleTasks.filter(t => t.assignee === selectedMember && t.status !== 'Deleted' && t.status !== 'Done' && !t.is_archived).length === 0 && (
                                     <div className="p-20 text-center text-slate-600 font-bold italic tracking-tighter text-2xl">
                                         SYSTEM CLEAR. NO ACTIVE ITEMS FOR {selectedMember?.toUpperCase()}.
                                     </div>
@@ -1128,6 +1179,8 @@ export default function App() {
             <GlobalAddTaskModal
                 isOpen={isGlobalAddTaskOpen}
                 onClose={() => setIsGlobalAddTaskOpen(false)}
+                userRole={userRole}
+                currentUserRosterName={currentUserRosterName}
                 teamMembers={teamMembers}
                 categories={categories}
                 addTask={addTask}
@@ -1397,7 +1450,7 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
     }, [task.action]);
 
     return (
-        <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'bg-red-900/10' : ''}`}>
+        <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'bg-red-900/10' : ''} ${task.created_by_role === 'worker' ? 'bg-slate-900/40' : ''}`}>
             <td className="px-4 py-3 text-center">
                 <DoneCheckbox task={task} updateTask={updateTask} className="w-5 h-5 mx-auto shrink-0" />
             </td>
@@ -1470,7 +1523,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
     }, [task.action]);
 
     return (
-        <div className={`bg-slate-800/40 p-2 md:p-2.5 rounded-xl border ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'} flex flex-col gap-1.5 relative shadow-sm`}>
+        <div className={`p-2 md:p-2.5 rounded-xl border flex flex-col gap-1.5 relative shadow-sm transition-colors ${task.created_by_role === 'worker' ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-800/40 border-slate-700/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'border-red-900/50 bg-red-900/10' : ''}`}>
 
             {/* BIG BACKGROUND OVERDUE TEXT */}
             {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && (
@@ -1552,7 +1605,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
             {...attributes}
             {...listeners}
         >
-            <div className={`bg-slate-800/60 p-1.5 rounded-xl border ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50 hover:border-slate-500/50'} transition-colors group flex flex-col gap-1 relative`}>
+            <div className={`p-1.5 rounded-xl border transition-colors group flex flex-col gap-1 relative ${task.created_by_role === 'worker' ? 'bg-slate-900/80 hover:border-slate-800' : 'bg-slate-800/60 hover:border-slate-500/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'}`}>
 
                 {/* BIG BACKGROUND OVERDUE TEXT */}
                 {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && (
@@ -1828,7 +1881,7 @@ function AllTasksBoard({ tasks, categoryFilter, updateTask, categories, addCateg
 }
 
 // --- Global Add Task Modal Component ---
-function GlobalAddTaskModal({ isOpen, onClose, teamMembers, categories, addTask, updateTask, addCategory, deleteCategory }) {
+function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, teamMembers, categories, addTask, updateTask, addCategory, deleteCategory }) {
     const [action, setAction] = React.useState('');
     const [assignee, setAssignee] = React.useState('');
     const [category, setCategory] = React.useState('');
@@ -1848,8 +1901,12 @@ function GlobalAddTaskModal({ isOpen, onClose, teamMembers, categories, addTask,
     }, [isOpen, teamMembers, categories]);
 
     const handleCreate = async () => {
-        if (!action.trim() || !assignee) return;
-        const newTask = await addTask(assignee);
+        let finalAssignee = assignee;
+        if (userRole === 'worker') {
+            finalAssignee = currentUserRosterName;
+        }
+        if (!action.trim() || !finalAssignee) return;
+        const newTask = await addTask(finalAssignee, userRole);
         if (newTask) {
             updateTask(newTask.id, {
                 action: action.trim(),
@@ -1874,17 +1931,22 @@ function GlobalAddTaskModal({ isOpen, onClose, teamMembers, categories, addTask,
                 </button>
 
                 <div className="flex justify-between items-start gap-2 pr-8">
-                    <div className="relative group">
-                        <select
-                            value={assignee}
-                            onChange={(e) => setAssignee(e.target.value)}
-                            className="appearance-none bg-blue-500/20 text-[10px] md:text-xs font-black uppercase px-3 py-1.5 rounded-md border border-blue-500/30 text-blue-300 outline-none cursor-pointer transition-all hover:bg-blue-500/30 pr-8"
-                        >
-                            <option value="" disabled>Assigned To</option>
-                            {teamMembers.map(m => <option key={m.id} value={m.name} className="bg-slate-900">{m.name}</option>)}
-                        </select>
-                        <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none group-hover:text-blue-300 transition-colors" />
-                    </div>
+                    {userRole !== 'worker' && (
+                        <div className="relative group">
+                            <select
+                                value={assignee}
+                                onChange={(e) => setAssignee(e.target.value)}
+                                className="appearance-none bg-blue-500/20 text-[10px] md:text-xs font-black uppercase px-3 py-1.5 rounded-md border border-blue-500/30 text-blue-300 outline-none cursor-pointer transition-all hover:bg-blue-500/30 pr-8"
+                            >
+                                <option value="" disabled>Assigned To</option>
+                                {teamMembers
+                                    .filter(m => userRole === 'super_admin' || m.role === 'worker' || m.name === currentUserRosterName)
+                                    .map(m => <option key={m.id} value={m.name} className="bg-slate-900">{m.name}</option>)
+                                }
+                            </select>
+                            <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none group-hover:text-blue-300 transition-colors" />
+                        </div>
+                    )}
                 </div>
 
                 <textarea
