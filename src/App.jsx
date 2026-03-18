@@ -137,6 +137,7 @@ export default function App() {
     const [modalFilter, setModalFilter] = useState(null); // 'P1', 'P2', 'P3', 'Completed', 'Overdue', 'Backburner'
     const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
     const [showAllTasksBoard, setShowAllTasksBoard] = useState(false);
+    const [showMyTasksBoard, setShowMyTasksBoard] = useState(false);
     const [allTasksCategoryFilter, setAllTasksCategoryFilter] = useState('All');
     const [selectedDateTasks, setSelectedDateTasks] = useState(null);
     const [dayModeDateStr, setDayModeDateStr] = useState(null);
@@ -812,52 +813,61 @@ export default function App() {
                         </div>
 
                         {/* Unified All Tasks / Production Board Container */}
-                        <div className={`glass w-full mt-2 transition-all duration-500 overflow-hidden border border-slate-700/50 shadow-lg ${showAllTasksBoard ? 'rounded-[2.5rem] shadow-2xl pb-8' : 'rounded-[2rem]'}`}>
+                        <RoleGate userRole={userRole} allowed={['admin', 'super_admin']}>
+                            <div className={`glass w-full mt-2 transition-all duration-500 overflow-hidden border border-slate-700/50 shadow-lg ${showAllTasksBoard ? 'rounded-[2.5rem] shadow-2xl pb-8' : 'rounded-[2rem]'}`}>
 
-                            {/* Header Toggle Button */}
-                            <div
-                                onClick={() => setShowAllTasksBoard(!showAllTasksBoard)}
-                                className={`w-full flex items-center justify-between px-8 transition-all hover:bg-slate-800/50 cursor-pointer group ${showAllTasksBoard ? 'py-4 border-b border-white/5' : 'py-4'}`}
-                            >
-                                <span className={`uppercase transition-all ${showAllTasksBoard ? 'text-base md:text-lg font-light tracking-[0.3em] text-slate-300' : 'text-xs md:text-sm font-medium tracking-widest text-slate-500 group-hover:text-slate-300'}`}>
-                                    {showAllTasksBoard ? 'SHOW ALL TASKS' : 'SHOW ALL TASKS'}
-                                </span>
-                                <div className="flex items-center gap-4">
-                                    {showAllTasksBoard && (
-                                        <select
-                                            value={allTasksCategoryFilter}
-                                            onChange={(e) => setAllTasksCategoryFilter(e.target.value)}
-                                            onClick={(e) => e.stopPropagation()}
-                                            onPointerDown={(e) => e.stopPropagation()}
-                                            className="bg-slate-800/80 border border-slate-700 text-slate-300 text-[10px] sm:text-xs font-bold rounded-xl px-2 py-1.5 sm:px-4 sm:py-2 outline-none cursor-pointer hover:bg-slate-700 transition-colors shadow-inner"
-                                        >
-                                            <option value="All">All Categories</option>
-                                            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                                        </select>
-                                    )}
-                                    <ChevronDown className={`w-5 h-5 transition-transform duration-500 text-slate-500 group-hover:text-slate-300 ${showAllTasksBoard ? 'rotate-180' : ''}`} />
+                                {/* Header Toggle Button */}
+                                <div
+                                    onClick={() => setShowAllTasksBoard(!showAllTasksBoard)}
+                                    className={`w-full flex items-center justify-between px-8 transition-all hover:bg-slate-800/50 cursor-pointer group ${showAllTasksBoard ? 'py-4 border-b border-white/5' : 'py-4'}`}
+                                >
+                                    <span className={`uppercase transition-all ${showAllTasksBoard ? 'text-base md:text-lg font-light tracking-[0.3em] text-slate-300' : 'text-xs md:text-sm font-medium tracking-widest text-slate-500 group-hover:text-slate-300'}`}>
+                                        {showAllTasksBoard ? 'SHOW ALL TASKS' : 'SHOW ALL TASKS'}
+                                    </span>
+                                    <div className="flex items-center gap-4">
+                                        {showAllTasksBoard && (
+                                            <select
+                                                value={allTasksCategoryFilter}
+                                                onChange={(e) => setAllTasksCategoryFilter(e.target.value)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onPointerDown={(e) => e.stopPropagation()}
+                                                className="bg-slate-800/80 border border-slate-700 text-slate-300 text-[10px] sm:text-xs font-bold rounded-xl px-2 py-1.5 sm:px-4 sm:py-2 outline-none cursor-pointer hover:bg-slate-700 transition-colors shadow-inner"
+                                            >
+                                                <option value="All">All Categories</option>
+                                                {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                            </select>
+                                        )}
+                                        <ChevronDown className={`w-5 h-5 transition-transform duration-500 text-slate-500 group-hover:text-slate-300 ${showAllTasksBoard ? 'rotate-180' : ''}`} />
+                                    </div>
                                 </div>
+
+                                {/* Board Content */}
+                                {showAllTasksBoard && (
+                                    <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
+                                        <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} />
+                                    </div>
+                                )}
                             </div>
+                        </RoleGate>
 
-                            {/* Board Content */}
-                            {showAllTasksBoard && (
-                                <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                    <AllTasksBoard tasks={visibleTasks} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Unified My Tasks Board Container (Placeholder) */}
-                        <div className={`glass w-full mt-2 transition-all duration-500 overflow-hidden border border-slate-700/50 shadow-lg rounded-[2rem]`}>
+                        {/* Unified My Tasks Board Container */}
+                        <div className={`glass w-full mt-2 transition-all duration-500 overflow-hidden border border-slate-700/50 shadow-lg ${showMyTasksBoard ? 'rounded-[2.5rem] shadow-2xl pb-8' : 'rounded-[2rem]'}`}>
                             <button
-                                onClick={() => alert("My Tasks is under construction")}
-                                className={`w-full flex items-center justify-between px-8 py-4 transition-all group hover:bg-slate-800/50`}
+                                onClick={() => setShowMyTasksBoard(!showMyTasksBoard)}
+                                className={`w-full flex items-center justify-between px-8 transition-all hover:bg-slate-800/50 cursor-pointer group ${showMyTasksBoard ? 'py-4 border-b border-white/5' : 'py-4'}`}
                             >
-                                <span className={`uppercase transition-all text-xs md:text-sm font-medium tracking-widest text-slate-500 group-hover:text-slate-300`}>
+                                <span className={`uppercase transition-all ${showMyTasksBoard ? 'text-base md:text-lg font-light tracking-[0.3em] text-slate-300' : 'text-xs md:text-sm font-medium tracking-widest text-slate-500 group-hover:text-slate-300'}`}>
                                     MY TASKS
                                 </span>
-                                <ChevronDown className={`w-5 h-5 transition-transform duration-500 text-slate-500 group-hover:text-slate-300`} />
+                                <ChevronDown className={`w-5 h-5 transition-transform duration-500 text-slate-500 group-hover:text-slate-300 ${showMyTasksBoard ? 'rotate-180' : ''}`} />
                             </button>
+
+                            {/* Board Content */}
+                            {showMyTasksBoard && (
+                                <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
+                                    <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} />
+                                </div>
+                            )}
                         </div>
 
                         <RoleGate userRole={userRole} allowed={['admin', 'super_admin']}>
@@ -1218,7 +1228,7 @@ export default function App() {
 }
 
 // --- Updated Category Dropdown Component ---
-function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete }) {
+function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOnly }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const [isCreating, setIsCreating] = React.useState(false);
     const [newName, setNewName] = React.useState('');
@@ -1251,13 +1261,16 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete }) {
         <div className="relative inline-block" ref={ref}>
             <button
                 type="button"
-                onClick={() => { setIsOpen(!isOpen); setIsCreating(false); setNewName(''); }}
-                className="flex items-center gap-1.5 text-slate-400 text-[10px] font-bold hover:text-white transition-colors group"
+                onClick={() => {
+                    if (readOnly) return;
+                    setIsOpen(!isOpen); setIsCreating(false); setNewName(''); 
+                }}
+                className={`flex items-center gap-1.5 text-slate-400 text-[10px] font-bold ${readOnly ? 'cursor-default' : 'hover:text-white transition-colors group'}`}
             >
                 <span className={`whitespace-nowrap ${value ? "text-blue-400" : "italic text-slate-600"}`}>
                     {value || "Select Category..."}
                 </span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : 'opacity-50'}`} />
+                {!readOnly && <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : 'opacity-50'}`} />}
             </button>
 
             {isOpen && (
@@ -1327,7 +1340,7 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete }) {
 }
 
 // --- Due By Dropdown Component ---
-function DueByDropdown({ value, priority, onSelect, hideLabels }) {
+function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const ref = React.useRef(null);
 
@@ -1374,8 +1387,8 @@ function DueByDropdown({ value, priority, onSelect, hideLabels }) {
         <div className="relative inline-block" ref={ref}>
             <button
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-1.5 text-[10px] font-bold hover:text-white transition-colors group whitespace-nowrap"
+                onClick={() => !readOnly && setIsOpen(!isOpen)}
+                className={`flex items-center gap-1.5 text-[10px] font-bold ${readOnly ? 'cursor-default' : 'hover:text-white transition-colors group'} whitespace-nowrap`}
             >
                 <span className={`whitespace-nowrap ${value ? "text-blue-400" : "italic text-slate-600"}`}>
                     {value || "Due By..."}
@@ -1385,7 +1398,7 @@ function DueByDropdown({ value, priority, onSelect, hideLabels }) {
                         {shortPriority}
                     </span>
                 )}
-                <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : 'opacity-50'}`} />
+                {!readOnly && <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : 'opacity-50'}`} />}
             </button>
 
             {isOpen && (
@@ -1587,7 +1600,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
 }
 
 // --- Kanban Helpers ---
-function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCategory, hideLabels }) {
+function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCategory, hideLabels, userRole }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: task.id,
         data: { task }
@@ -1596,6 +1609,8 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
     const style = {
         opacity: isDragging ? 0 : 1, // Completely hide original so only overlay is visible
     };
+
+    const isWorker = userRole === 'worker';
 
     return (
         <div
@@ -1626,7 +1641,8 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                             onPointerDown={(e) => e.stopPropagation()}
                             value={task.action}
                             onChange={(e) => updateTask(task.id, 'action', e.target.value)}
-                            className={`w-full bg-transparent border-none outline-none font-bold text-sm resize-none overflow-hidden block ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200 focus:text-blue-400'}`}
+                            readOnly={isWorker}
+                            className={`w-full bg-transparent border-none outline-none font-bold text-sm resize-none overflow-hidden block ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200 focus:text-blue-400'} ${isWorker ? 'focus:text-slate-200 cursor-default' : ''}`}
                             placeholder="Task description..."
                             rows={1}
                             onInput={(e) => {
@@ -1646,6 +1662,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                         onSelect={(name) => updateTask(task.id, 'category', name)}
                         onAdd={addCategory}
                         onDelete={deleteCategory}
+                        readOnly={isWorker}
                     />
 
                     <div className="flex items-center gap-1">
@@ -1655,6 +1672,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                                 priority={task.priority}
                                 onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
                                 hideLabels={hideLabels}
+                                readOnly={isWorker}
                             />
                         )}
                     </div>
@@ -1727,7 +1745,7 @@ function DroppableColumn({ id, title, colorClass, bgClass, borderClass, activeBo
 }
 
 // --- All Tasks Rolldown Board Component ---
-function AllTasksBoard({ tasks, categoryFilter, updateTask, categories, addCategory, deleteCategory }) {
+function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories, addCategory, deleteCategory }) {
     const [activeId, setActiveId] = React.useState(null);
     const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
 
