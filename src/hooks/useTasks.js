@@ -183,7 +183,7 @@ export function useTasks() {
 
         // Extract assignee info
         const assigneeMember = teamMembers.find(m => m.name === assignee);
-        const assignee_id = assigneeMember ? assigneeMember.id : null;
+        const assignee_id = assigneeMember ? assigneeMember.user_id : null;
         const assignee_email = assigneeMember ? assigneeMember.email : null;
 
         const newTask = {
@@ -238,7 +238,7 @@ export function useTasks() {
         if (updates.assignee) {
             const assigneeMember = teamMembers.find(m => m.name === updates.assignee);
             if (assigneeMember) {
-                updates.assignee_id = assigneeMember.id;
+                updates.assignee_id = assigneeMember.user_id;
                 updates.assignee_email = assigneeMember.email;
             } else {
                 updates.assignee_id = null;
