@@ -33,9 +33,10 @@
 
 /* Pure White Backgrounds (Kanban / Modals / Stat Cards) */
 .theme-oatmeal .bg-slate-900, .theme-oatmeal .bg-slate-800 { background-color: #ffffff !important; }
-.theme-oatmeal .glass, .theme-oatmeal .bg-slate-900\/80, .theme-oatmeal .bg-slate-800\/50, .theme-oatmeal .bg-slate-800\/20, .theme-oatmeal .bg-slate-800\/40, .theme-oatmeal .bg-slate-800\/60, .theme-oatmeal .bg-slate-800\/80, .theme-oatmeal .bg-slate-800\/90 { background-color: #ffffff !important; border-color: #e6dfd5 !important; }
+.theme-oatmeal .glass, .theme-oatmeal .bg-slate-900\/80, .theme-oatmeal .bg-slate-900\/40, .theme-oatmeal .bg-slate-800\/50, .theme-oatmeal .bg-slate-800\/20, .theme-oatmeal .bg-slate-800\/40, .theme-oatmeal .bg-slate-800\/60, .theme-oatmeal .bg-slate-800\/80, .theme-oatmeal .bg-slate-800\/90 { background-color: #ffffff !important; border-color: #e6dfd5 !important; }
 
 /* Mocha Orange Accents (Replaces all blue interactivity) */
+.theme-oatmeal .logo-text { color: #c88d65 !important; }
 .theme-oatmeal .bg-blue-600, .theme-oatmeal .bg-blue-500, .theme-oatmeal .hover\:bg-blue-500:hover { background-color: #c88d65 !important; color: #ffffff !important; }
 .theme-oatmeal .text-blue-500, .theme-oatmeal .text-blue-400, .theme-oatmeal .hover\:text-blue-400:hover { color: #c88d65 !important; }
 .theme-oatmeal .border-blue-500 { border-color: #c88d65 !important; }
@@ -46,6 +47,9 @@
 .theme-oatmeal .text-slate-500 { color: #8f857d !important; }
 /* Roster Names Darkish Greyish Brown */
 .theme-oatmeal .text-blue-300\/60 { color: #7d6c5e !important; }
+
+/* Dropdown Hover States (Vanilla Grey Tone) */
+.theme-oatmeal .hover\:bg-blue-600:hover, .theme-oatmeal .hover\:bg-blue-900\/30:hover { background-color: rgba(0,0,0,0.06) !important; color: #52473f !important; }
 
 /* Oatmeal Borders */
 .theme-oatmeal .border-slate-800 { border-color: #e6dfd5 !important; }
@@ -106,21 +110,58 @@
 .theme-noir .hover\:bg-blue-600:hover { background-color: #52525b !important; }
 
 
-/* --- COOL YELLOW THEME (Yellow & Royal Blue Tint) --- */
+/* --- COOL YELLOW THEME (Neon Cyan & Chartreuse Workspace) --- */
 .theme-cool-yellow.min-h-screen,
-.theme-cool-yellow .bg-black { background-color: #0f172a !important; color: #eab308 !important; }
-.theme-cool-yellow .bg-slate-900 { background-color: #020617 !important; }
-.theme-cool-yellow .bg-slate-800 { background-color: #1e293b !important; }
-.theme-cool-yellow .bg-slate-800\/50, .theme-cool-yellow .bg-slate-800\/20, .theme-cool-yellow .bg-slate-800\/40, .theme-cool-yellow .bg-slate-800\/80, .theme-cool-yellow .bg-slate-800\/90 { background-color: rgba(30, 41, 59, 0.7) !important; }
+.theme-cool-yellow .bg-black { background: radial-gradient(circle at top left, #0e2747 0%, #061324 100%) !important; color: #66CCE5 !important; }
 
-/* Yellow Text Colors */
-.theme-cool-yellow .text-white, .theme-cool-yellow .text-slate-50 { color: #fef08a !important; }
-.theme-cool-yellow .text-slate-300, .theme-cool-yellow .text-slate-400 { color: #38bdf8 !important; }
-.theme-cool-yellow .text-slate-500 { color: #60a5fa !important; }
-.theme-cool-yellow .text-blue-500 { color: #eab308 !important; } 
+/* Structural Containers & Glassmorphism */
+.theme-cool-yellow .bg-slate-900, .theme-cool-yellow .bg-slate-800 { background-color: rgba(10, 25, 50, 0.9) !important; }
+.theme-cool-yellow .glass, .theme-cool-yellow .bg-slate-900\/80, .theme-cool-yellow .bg-slate-900\/40, .theme-cool-yellow .bg-slate-800\/50, .theme-cool-yellow .bg-slate-800\/20, .theme-cool-yellow .bg-slate-800\/40, .theme-cool-yellow .bg-slate-800\/60, .theme-cool-yellow .bg-slate-800\/80, .theme-cool-yellow .bg-slate-800\/90 { 
+  background-color: rgba(17, 44, 78, 0.5) !important; 
+  border-color: rgba(102, 204, 229, 0.25) !important; 
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3) !important;
+}
 
-/* Yellow Borders */
-.theme-cool-yellow .border-slate-800 { border-color: #3b82f6 !important; }
-.theme-cool-yellow .border-slate-700 { border-color: #2563eb !important; }
-.theme-cool-yellow .border-slate-600 { border-color: #1d4ed8 !important; }
-.theme-cool-yellow .border-blue-500 { border-color: #eab308 !important; } 
+/* Kanban Headers (Show All Tasks) */
+.theme-cool-yellow .glass > .w-full.cursor-pointer.group { background: linear-gradient(90deg, rgba(102, 204, 229, 0.4), rgba(102, 204, 229, 0.1)) !important; }
+.theme-cool-yellow .glass > .w-full.cursor-pointer.group:hover { background: linear-gradient(90deg, rgba(102, 204, 229, 0.5), rgba(102, 204, 229, 0.2)) !important; }
+
+/* Global Nav & Buttons */
+.theme-cool-yellow .logo-text { color: #FFE500 !important; text-shadow: 0 0 15px rgba(255, 229, 0, 0.4) !important; }
+.theme-cool-yellow .bg-blue-600, .theme-cool-yellow .bg-blue-500 { background-color: #66CCE5 !important; color: #061324 !important; box-shadow: 0 0 15px rgba(102, 204, 229, 0.4) !important; border: none !important; }
+.theme-cool-yellow .hover\:bg-blue-500:hover, .theme-cool-yellow .hover\:bg-blue-600:hover { background-color: #B2FFCC !important; color: #061324 !important; box-shadow: 0 0 20px rgba(178, 255, 204, 0.6) !important; }
+.theme-cool-yellow .text-blue-500, .theme-cool-yellow .text-blue-400 { color: #66CCE5 !important; }
+.theme-cool-yellow .text-blue-300\/60 { color: #B2FFCC !important; }
+.theme-cool-yellow .hover\:text-blue-400:hover { color: #FFE500 !important; text-shadow: 0 0 10px rgba(255, 229, 0, 0.5) !important; }
+.theme-cool-yellow .border-blue-500, .theme-cool-yellow .border-blue-500\/50, .theme-cool-yellow .border-blue-400 { border-color: #66CCE5 !important; }
+.theme-cool-yellow .hover\:bg-blue-900\/30:hover { background-color: rgba(102, 204, 229, 0.15) !important; color: #FFE500 !important; }
+
+/* Typographic Encodings */
+.theme-cool-yellow .text-white, .theme-cool-yellow .text-slate-50 { color: #ffffff !important; }
+.theme-cool-yellow .text-slate-200, .theme-cool-yellow .text-slate-300 { color: #E0F7FA !important; }
+.theme-cool-yellow .text-slate-400 { color: #66CCE5 !important; }
+.theme-cool-yellow .text-slate-500 { color: #43879a !important; }
+
+/* Structural Borders */
+.theme-cool-yellow .border-slate-800 { border-color: rgba(102, 204, 229, 0.2) !important; }
+.theme-cool-yellow .border-slate-700, .theme-cool-yellow .border-slate-700\/50, .theme-cool-yellow .border-slate-700\/30 { border-color: rgba(102, 204, 229, 0.3) !important; }
+.theme-cool-yellow .border-slate-600 { border-color: rgba(102, 204, 229, 0.4) !important; }
+
+/* Stat Card & Component Adjustments */
+.theme-cool-yellow .stat-card-widget .bg-red-500\/10, .theme-cool-yellow .stat-card-widget .bg-orange-500\/10, .theme-cool-yellow .stat-card-widget .bg-yellow-500\/10, .theme-cool-yellow .stat-card-widget .bg-emerald-500\/10, .theme-cool-yellow .stat-card-widget .bg-slate-400\/10, .theme-cool-yellow .stat-card-widget .bg-slate-950\/50 { background-color: transparent !important; }
+
+.theme-cool-yellow .stat-card-widget .text-red-500, .theme-cool-yellow .stat-card-widget .text-orange-500 { color: #FFBF00 !important; }
+.theme-cool-yellow .stat-card-widget .text-yellow-500 { color: #E5FF33 !important; }
+.theme-cool-yellow .stat-card-widget .text-emerald-500 { color: #E5FF33 !important; }
+.theme-cool-yellow .stat-card-widget .text-slate-400 { color: #66CCE5 !important; }
+.theme-cool-yellow .stat-card-widget .text-slate-200 { color: #ffffff !important; }
+
+/* Kanban Board Label Recolor (Amber, Chartreuse, Sky Blue) */
+.theme-cool-yellow .text-red-500, .theme-cool-yellow .text-orange-500, .theme-cool-yellow .text-amber-500, .theme-cool-yellow .text-orange-400, .theme-cool-yellow .text-amber-400 { color: #FFBF00 !important; }
+.theme-cool-yellow .text-yellow-500, .theme-cool-yellow .text-yellow-400, .theme-cool-yellow .text-emerald-500, .theme-cool-yellow .text-emerald-400 { color: #E5FF33 !important; }
+.theme-cool-yellow .bg-red-500\/10, .theme-cool-yellow .bg-orange-500\/10, .theme-cool-yellow .bg-amber-500\/10 { background-color: rgba(255, 191, 0, 0.1) !important; }
+.theme-cool-yellow .bg-yellow-500\/10, .theme-cool-yellow .bg-emerald-500\/10 { background-color: rgba(229, 255, 51, 0.1) !important; }
+.theme-cool-yellow .border-red-500\/20, .theme-cool-yellow .border-orange-500\/20, .theme-cool-yellow .border-amber-500\/20 { border-color: rgba(255, 191, 0, 0.2) !important; }
+.theme-cool-yellow .border-yellow-500\/20, .theme-cool-yellow .border-emerald-500\/20 { border-color: rgba(229, 255, 51, 0.2) !important; }
+.theme-cool-yellow .ring-red-500, .theme-cool-yellow .ring-orange-500, .theme-cool-yellow .ring-amber-500 { --tw-ring-color: rgba(255, 191, 0, 0.4) !important; }
+.theme-cool-yellow .ring-yellow-500, .theme-cool-yellow .ring-emerald-500 { --tw-ring-color: rgba(229, 255, 51, 0.4) !important; }

@@ -587,7 +587,7 @@ export default function App() {
                 {/* Header Section */}
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 md:mb-4 gap-6">
                     <div className="flex flex-col items-start w-fit">
-                        <h1 className="text-2xl md:text-3xl font-extralight tracking-widest text-slate-200">
+                        <h1 className="text-2xl md:text-3xl font-extralight tracking-widest text-slate-200 logo-text">
                             TASKKER.IO
                         </h1>
                         <div className="flex items-center gap-3 mt-2">
