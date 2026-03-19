@@ -257,12 +257,34 @@ export function useTasks() {
         }
     };
 
+    const updateProfileRole = async (profileId, newRole) => {
+        setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, role: newRole } : p));
+        const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', profileId);
+        if (error) fetchData();
+    };
+
+    const terminateProfile = async (profileId, email) => {
+        if (!confirm(`Are you sure you want to completely terminate the access for ${email}? This action cannot be undone.`)) return;
+        
+        // Optimistically remove from UI
+        setProfiles(prev => prev.filter(p => p.id !== profileId));
+        setTeamMembers(prev => prev.filter(m => m.user_id !== profileId && m.email !== email));
+        
+        // Drop the profile
+        const { error: pErr } = await supabase.from('profiles').delete().eq('id', profileId);
+        // Drop them from team members just in case
+        const { error: mErr } = await supabase.from('team_members').delete().eq('email', email);
+        
+        if (pErr || mErr) fetchData();
+    };
+
     const stats = useMemo(() => calculateStats(tasks), [tasks]);
 
     return {
         tasks,
         teamMembers,
         categories,
+        profiles,
         stats,
         addTask,
         addTeamMember,
@@ -273,6 +295,8 @@ export function useTasks() {
         updateTask,
         deleteTask,
         permanentlyDeleteTask,
+        updateProfileRole,
+        terminateProfile,
         resetData,
         loading
     };

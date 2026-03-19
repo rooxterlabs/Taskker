@@ -121,6 +121,7 @@ export default function App() {
         tasks,
         teamMembers,
         categories,
+        profiles,
         stats,
         addTask,
         addTeamMember,
@@ -131,6 +132,8 @@ export default function App() {
         updateTask,
         deleteTask,
         permanentlyDeleteTask,
+        updateProfileRole,
+        terminateProfile,
         resetData,
         loading
     } = useTasks();
@@ -154,6 +157,11 @@ export default function App() {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [settingsModalTab, setSettingsModalTab] = useState('profile');
 
+    // Admin Settings State
+    const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
+    const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+    const [adminModalTab, setAdminModalTab] = useState('Invite Team');
+
     const handleSignOut = async () => {
         setIsProfileMenuOpen(false);
         const { error } = await supabase.auth.signOut();
@@ -164,6 +172,13 @@ export default function App() {
         setSettingsModalTab(tab);
         setIsSettingsModalOpen(true);
         setIsProfileMenuOpen(false);
+        setIsBottomBarOpen(false);
+    };
+
+    const openAdminSettings = (tab) => {
+        setAdminModalTab(tab);
+        setIsAdminModalOpen(true);
+        setIsAdminMenuOpen(false);
         setIsBottomBarOpen(false);
     };
 
@@ -495,13 +510,58 @@ export default function App() {
 
                 <div className="flex-1 min-h-[20px]"></div>
 
-                <button
-                    onClick={() => alert("Admin Tools is under construction")}
-                    className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 rounded-xl md:rounded-2xl transition-colors group"
-                    title="Settings"
-                >
-                    <Settings className="w-5 h-5 transition-transform group-hover:rotate-45" />
-                </button>
+                {/* ADMIN SYSTEM MODULE BUTTON */}
+                <RoleGate allowed={['super_admin', 'admin']} userRole={userRole}>
+                    <div className="relative mt-auto">
+                        <button
+                            onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
+                            className={`w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center border border-slate-700 rounded-xl md:rounded-2xl transition-colors shadow-lg group ${isAdminMenuOpen ? 'bg-blue-500/30 border-blue-400 text-blue-300' : 'bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white'}`}
+                            title="Admin Module"
+                        >
+                            <Settings className={`w-5 h-5 transition-transform ${isAdminMenuOpen ? 'rotate-90' : 'group-hover:rotate-45'}`} />
+                        </button>
+
+                        {isAdminMenuOpen && (
+                            <div className="absolute right-full bottom-0 mr-4 w-56 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-right-4 z-[110] mb-2">
+                                <div className="p-2 border-b border-white/5 bg-slate-800/50 flex flex-col items-center">
+                                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-center truncate w-full">
+                                        SYSTEM MODULE
+                                    </p>
+                                    <p className="text-[9px] font-mono text-slate-500 uppercase mt-0.5">
+                                        {userRole === 'super_admin' ? 'Super Admin' : 'Admin'} Access
+                                    </p>
+                                </div>
+                                <div className="flex flex-col p-1">
+                                    <button onClick={() => openAdminSettings('Invite Team')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
+                                        <UserPlus className="w-4 h-4" /> Invite Team
+                                    </button>
+                                    {userRole === 'super_admin' && (
+                                        <button onClick={() => openAdminSettings('Users and Roles')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
+                                            <Users className="w-4 h-4" /> Users and Roles
+                                        </button>
+                                    )}
+                                    {userRole === 'admin' && (
+                                        <button onClick={() => openAdminSettings('Team Management')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
+                                            <Users className="w-4 h-4" /> Team Management
+                                        </button>
+                                    )}
+                                    <button onClick={() => openAdminSettings('System Settings')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
+                                        <Settings className="w-4 h-4" /> System Settings
+                                    </button>
+                                    {userRole === 'super_admin' && (
+                                        <button onClick={() => openAdminSettings('Billing Management')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
+                                            <FileText className="w-4 h-4" /> Billing Management
+                                        </button>
+                                    )}
+                                    <div className="h-px bg-slate-800 my-1 mx-2" />
+                                    <button onClick={() => openAdminSettings('Reward System')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-yellow-500 hover:bg-yellow-600 hover:text-white rounded-xl transition-colors">
+                                        <Zap className="w-4 h-4" /> Reward System
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </RoleGate>
             </div>
 
             <div className="max-w-7xl mx-auto relative pl-0 lg:pl-4 transition-transform duration-500">
@@ -922,7 +982,7 @@ export default function App() {
                                 <h3 className="uppercase transition-all text-xs md:text-sm font-medium tracking-widest text-slate-500 mb-1">ACTIVE TEAM ROSTER</h3>
                                 <div className="flex flex-wrap gap-3">
                                     {teamMembers.length === 0 ? (
-                                        <span className="text-slate-500 italic text-xs">No team members initialized. Select "Team Member &gt; NEW" to begin.</span>
+                                        <span className="text-slate-500 italic text-xs">No team members initialized. Check Admin Tools to invite members.</span>
                                     ) : (
                                         teamMembers.map(m => (
                                             <div key={m.id} onClick={() => handleMemberSelect(m)} className="cursor-pointer text-xs font-mono text-blue-300/60 hover:text-blue-400 transition-colors">
@@ -931,11 +991,6 @@ export default function App() {
                                         ))
                                     )}
                                 </div>
-                            </div>
-
-                            {/* Admin Only: Invite New Members */}
-                            <div className="col-span-full mt-6 flex justify-center">
-                                <InviteMemberForm />
                             </div>
                         </RoleGate>
 
@@ -1254,6 +1309,17 @@ export default function App() {
                 currentUserRosterName={currentUserRosterName}
                 teamMembers={teamMembers}
                 updateTeamMember={updateTeamMember}
+            />
+
+            {/* Admin Settings Modal */}
+            <AdminSettingsModal
+                isOpen={isAdminModalOpen}
+                onClose={() => setIsAdminModalOpen(false)}
+                initialTab={adminModalTab}
+                userRole={userRole}
+                profiles={profiles}
+                updateProfileRole={updateProfileRole}
+                terminateProfile={terminateProfile}
             />
 
             {/* Versioning */}
@@ -2191,6 +2257,151 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, tea
                         </div>
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+// --- Admin Settings Modal Component ---
+function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, updateProfileRole, terminateProfile }) {
+    const [activeTab, setActiveTab] = React.useState(initialTab || 'Invite Team');
+
+    React.useEffect(() => {
+        if (isOpen && initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [isOpen, initialTab]);
+
+    if (!isOpen) return null;
+
+    // Build the sidebar tabs dynamically based on role
+    const sidebarTabs = [];
+    sidebarTabs.push({ id: 'Invite Team', icon: UserPlus });
+    if (userRole === 'super_admin') {
+        sidebarTabs.push({ id: 'Users and Roles', icon: Users });
+    } else {
+        sidebarTabs.push({ id: 'Team Management', icon: Users });
+    }
+    sidebarTabs.push({ id: 'System Settings', icon: Settings });
+    if (userRole === 'super_admin') {
+        sidebarTabs.push({ id: 'Billing Management', icon: FileText });
+    }
+    sidebarTabs.push({ id: 'Reward System', icon: Zap });
+
+    const renderMainContent = () => {
+        if (activeTab === 'Invite Team') {
+            return (
+                <div className="w-full h-full flex flex-col">
+                    <h2 className="text-xl font-black uppercase text-white mb-6 tracking-widest flex items-center gap-3">
+                        <UserPlus className="w-6 h-6 text-blue-500" /> Invite Team
+                    </h2>
+                    <div className="flex-1 flex justify-center items-start pt-8">
+                        {/* We just inject the component straight up! */}
+                        <InviteMemberForm />
+                    </div>
+                </div>
+            );
+        }
+
+        if (activeTab === 'Users and Roles' && userRole === 'super_admin') {
+            return (
+                <div className="w-full h-full flex flex-col">
+                    <h2 className="text-xl font-black uppercase text-white mb-6 tracking-widest flex items-center gap-3">
+                        <Users className="w-6 h-6 text-blue-500" /> Users & Roles Master List
+                    </h2>
+                    <div className="flex-1 overflow-y-auto no-scrollbar pt-2 pr-2">
+                        {(!profiles || profiles.length === 0) ? (
+                            <p className="text-slate-500 italic text-sm">No profiles found.</p>
+                        ) : (
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-800/80 sticky top-0 z-10 backdrop-blur-md pb-4">
+                                    <tr className="text-[10px] text-slate-400 uppercase tracking-widest font-bold border-b border-slate-700/50">
+                                        <th className="py-3 px-4">Email</th>
+                                        <th className="py-3 px-4">Name Mapping</th>
+                                        <th className="py-3 px-4 text-center">Role</th>
+                                        <th className="py-3 px-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/50">
+                                    {profiles.map(p => (
+                                        <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
+                                            <td className="py-3 px-4 text-xs font-mono text-blue-300">{p.email}</td>
+                                            <td className="py-3 px-4 text-xs text-slate-300">{p.first_name || p.last_name ? `${p.first_name || ''} ${p.last_name || ''}` : '-'}</td>
+                                            <td className="py-3 px-4 text-center">
+                                                <select
+                                                    value={p.role}
+                                                    onChange={(e) => updateProfileRole(p.id, e.target.value)}
+                                                    className={`bg-slate-900 border appearance-none text-center px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer outline-none transition-colors ${p.role === 'super_admin' ? 'text-purple-400 border-purple-500/30' : p.role === 'admin' ? 'text-emerald-400 border-emerald-500/30' : 'text-slate-400 border-slate-700'}`}
+                                                    disabled={p.role === 'super_admin'}
+                                                >
+                                                    <option value="worker">Worker</option>
+                                                    <option value="admin">Admin</option>
+                                                    <option value="super_admin" disabled>Super Admin</option>
+                                                </select>
+                                            </td>
+                                            <td className="py-3 px-4 text-right">
+                                                <button
+                                                    onClick={() => terminateProfile(p.id, p.email)}
+                                                    disabled={p.role === 'super_admin'}
+                                                    className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 border border-red-500/30 rounded-lg text-[10px] font-bold uppercase transition-colors disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-red-500"
+                                                >
+                                                    Terminate
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // Placeholder fallback
+        return (
+            <div className="flex-1 flex flex-col">
+                <h2 className="text-xl font-black uppercase text-white mb-6 tracking-widest flex items-center gap-3">
+                    {activeTab}
+                </h2>
+                <div className="flex-1 border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center p-6 text-center">
+                    <p className="text-slate-500 font-mono text-xs leading-relaxed max-w-sm">
+                        <span className="text-blue-400 font-bold">{activeTab}</span> for <span className="uppercase">{userRole === 'super_admin' ? 'Super Admin' : 'Admin'}</span> is under construction.
+                    </p>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
+            <div className="w-full max-w-5xl bg-slate-900 overflow-hidden rounded-[2rem] border border-slate-700/50 flex shadow-[0_30px_80px_-15px_rgba(0,0,0,1)] relative min-h-[500px]" onClick={e => e.stopPropagation()}>
+                
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-red-400 transition-colors p-1 z-10">
+                    <X className="w-5 h-5" />
+                </button>
+
+                <div className="w-full flex h-[80vh] max-h-[700px]">
+                    {/* Admin Sidebar */}
+                    <div className="w-56 bg-slate-800/50 border-r border-slate-800 p-4 shrink-0 flex flex-col gap-2 overflow-y-auto no-scrollbar">
+                        <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2 pl-2 mt-4 text-center">System Module</h3>
+                        
+                        {sidebarTabs.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+                            >
+                                <item.icon className="w-4 h-4" /> {item.id}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    {/* Main Content Pane */}
+                    <div className="flex-1 p-8 bg-slate-900/80 overflow-y-auto no-scrollbar">
+                        {renderMainContent()}
+                    </div>
+                </div>
             </div>
         </div>
     );
