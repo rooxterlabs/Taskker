@@ -2272,9 +2272,8 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
     // Build the sidebar tabs dynamically based on role
     const sidebarTabs = [];
     sidebarTabs.push({ id: 'Invite Team', icon: UserPlus });
-    if (userRole === 'super_admin') {
-        sidebarTabs.push({ id: 'Users and Roles', icon: Users });
-    } else {
+    sidebarTabs.push({ id: 'Users and Roles', icon: Users });
+    if (userRole === 'admin') {
         sidebarTabs.push({ id: 'Team Management', icon: Users });
     }
     sidebarTabs.push({ id: 'System Settings', icon: Settings });
@@ -2298,7 +2297,22 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
             );
         }
 
-        if (activeTab === 'Users and Roles' && userRole === 'super_admin') {
+        if (activeTab === 'Users and Roles' && (userRole === 'super_admin' || userRole === 'admin')) {
+            const handleRoleChange = (p, newRole) => {
+                if (userRole === 'super_admin') {
+                    updateProfileRole(p.id, newRole);
+                } else if (userRole === 'admin') {
+                    // Admin intercepts to send request
+                    const superAdmins = profiles.filter(pr => pr.role === 'super_admin').map(pr => pr.email).join(',');
+                    const teamMemberName = teamMembers?.find(m => m.user_id === p.id)?.name || p.email;
+                    const actionText = newRole === 'admin' ? 'Promote to Admin' : 'Demote to Worker';
+                    const subject = encodeURIComponent(`Role Change Request: ${teamMemberName}`);
+                    const body = encodeURIComponent(`Hi Super Admin,\n\nI am requesting a role change for the following user:\n\nName: ${teamMemberName}\nEmail: ${p.email}\nCurrent Role: ${p.role}\nRequested Action: ${actionText}\n\nPlease review and adjust their role at your convenience.\n\nThank you.`);
+                    
+                    window.open(`mailto:${superAdmins}?subject=${subject}&body=${body}`, '_blank');
+                }
+            };
+
             return (
                 <div className="w-full h-full flex flex-col">
                     <h2 className="text-xl font-black uppercase text-white mb-6 tracking-widest flex items-center gap-3">
@@ -2325,7 +2339,7 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                                             <td className="py-3 px-4 text-center">
                                                 <select
                                                     value={p.role}
-                                                    onChange={(e) => updateProfileRole(p.id, e.target.value)}
+                                                    onChange={(e) => handleRoleChange(p, e.target.value)}
                                                     className={`bg-slate-900 border appearance-none text-center px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer outline-none transition-colors ${p.role === 'super_admin' ? 'text-purple-400 border-purple-500/30' : p.role === 'admin' ? 'text-emerald-400 border-emerald-500/30' : 'text-slate-400 border-slate-700'}`}
                                                     disabled={p.role === 'super_admin'}
                                                 >
@@ -2335,13 +2349,15 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                                                 </select>
                                             </td>
                                             <td className="py-3 px-4 text-right">
-                                                <button
-                                                    onClick={() => terminateProfile(p.id, p.email)}
-                                                    disabled={p.role === 'super_admin'}
-                                                    className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 border border-red-500/30 rounded-lg text-[10px] font-bold uppercase transition-colors disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-red-500"
-                                                >
-                                                    Terminate
-                                                </button>
+                                                {userRole === 'super_admin' && (
+                                                    <button
+                                                        onClick={() => terminateProfile(p.id, p.email)}
+                                                        disabled={p.role === 'super_admin'}
+                                                        className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 border border-red-500/30 rounded-lg text-[10px] font-bold uppercase transition-colors disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-red-500"
+                                                    >
+                                                        Terminate
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
