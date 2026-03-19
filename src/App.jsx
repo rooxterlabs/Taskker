@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     Plus,
+    Award,
+    Circle,
     RotateCcw,
     LayoutDashboard,
     Users,
@@ -192,6 +194,21 @@ export default function App() {
     const currentUserProfile = profiles.find(p => p.id === session?.user?.id) || {};
 
     const teamDropdownRef = React.useRef(null);
+    const profileDropdownRef = React.useRef(null);
+
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+                setIsProfileMenuOpen(false);
+            }
+            if (teamDropdownRef.current && !teamDropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Initial Auth Load & Subscription
     useEffect(() => {
@@ -500,7 +517,7 @@ export default function App() {
             >
                 <div className="flex flex-col items-center gap-4 shrink-0 overflow-visible w-full">
                     {/* USER PROFILE BUTTON & DROPDOWN */}
-                    <div className="relative">
+                    <div className="relative" ref={profileDropdownRef}>
                         <button
                             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                             className={`w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center border rounded-xl md:rounded-2xl transition-colors shadow-lg group relative ${isProfileMenuOpen ? 'bg-emerald-500/30 border-emerald-400 text-emerald-300' : 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400'}`}
@@ -1309,6 +1326,7 @@ export default function App() {
                 teamMembers={teamMembers}
                 updateTeamMember={updateTeamMember}
                 updateProfileDetails={updateProfileDetails}
+                userRole={userRole}
             />
 
             {/* Admin Settings Modal */}
@@ -2142,10 +2160,100 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
     );
 }
 
+// --- Badges Modal Component ---
+function BadgesModal({ isOpen, onClose, userRole }) {
+    if (!isOpen) return null;
+
+    const WORKER_BADGES = [
+        { id: '1', name: 'The Closer', req: 'Complete 20 tasks marked as "In Progress".' },
+        { id: '2', name: 'Early Bird', req: 'Complete 20 1hr tasks before they are overdue.' },
+        { id: '3', name: 'Multitasker', req: 'Have 5 or more active tasks assigned simultaneously.' },
+        { id: '4', name: 'Level Up 1', req: 'Complete a total of 30 tasks.' },
+        { id: '5', name: 'Level Up 2', req: 'Complete a total of 60 tasks.' },
+        { id: '6', name: 'Level Up 3', req: 'Complete a total of 100 tasks.' },
+        { id: '7', name: 'Hot Streak', req: 'Complete at least one task every day for 5 consecutive days.' },
+        { id: '8', name: 'Reliable', req: 'Go 7 days without a single "Overdue" task status.' },
+        { id: '9', name: 'Category King', req: 'Complete at least one task in 10 different unique categories.' },
+        { id: '10', name: 'First Blood', req: 'Complete your very first assigned task in the app.' },
+        { id: '11', name: 'High Stakes', req: 'Complete 10 tasks that were marked with "P1" priority.' },
+        { id: '12', name: 'Quality Control', req: 'Complete 10 tasks that were originally assigned by yourself.' },
+        { id: '13', name: 'Burnerman', req: 'Complete 10 tasks that were labeled as backburner.' },
+        { id: '14', name: 'Company Badge 1', req: 'Companies can create their own badges.' },
+        { id: '15', name: 'Company Badge 2', req: 'Companies can create their own badges.' },
+    ];
+
+    const ADMIN_BADGES = [
+        { id: 'a1', name: 'The Architect', req: 'Create 10 unique task categories.' },
+        { id: 'a2', name: 'Enforcer', req: 'Update or modify 50 tasks created by other users.' },
+        { id: 'a3', name: 'Overwatch', req: 'View the "Show All Tasks" list 100 times.' },
+        { id: 'a4', name: 'Onboarder', req: 'Successfully register 5 new team members.' },
+        { id: 'a5', name: 'Deep Clean', req: 'Delete or purge 20 obsolete tasks from the system.' },
+        { id: 'a6', name: 'Director', req: 'Assign tasks to 5 different workers in a single day.' },
+        { id: 'a7', name: 'Quality Assurance', req: 'Mark 10 tasks as "Done" that were assigned to workers.' },
+    ];
+
+    const badgesToRender = (userRole === 'admin' || userRole === 'super_admin') 
+        ? [...WORKER_BADGES, ...ADMIN_BADGES] 
+        : WORKER_BADGES;
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
+            <div className="w-full max-w-4xl bg-slate-900 overflow-hidden rounded-[2rem] border border-slate-700/50 shadow-2xl relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                
+                {/* Header */}
+                <div className="p-6 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900/95 backdrop-blur z-10">
+                    <div className="flex flex-col">
+                        <h2 className="text-xl font-black uppercase text-white tracking-widest flex items-center gap-3">
+                            <Award className="w-6 h-6 text-yellow-500" /> My Badges
+                        </h2>
+                        <p className="text-[10px] text-slate-500 font-mono mt-1 uppercase tracking-widest">
+                            Badges Gamification System is Under Construction
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="p-2 text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-all">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 overflow-y-auto no-scrollbar">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {badgesToRender.map(badge => (
+                            <div 
+                                key={badge.id} 
+                                className="group bg-slate-800/20 hover:bg-slate-900 border border-slate-800/50 hover:border-blue-500 rounded-2xl transition-all relative overflow-hidden h-36 cursor-pointer"
+                            >
+                                {/* Default View (Icon + Title) */}
+                                <div className="absolute inset-0 p-4 flex flex-col items-center justify-center transition-opacity duration-300 opacity-100 group-hover:opacity-0 pointer-events-none">
+                                    <div className="w-12 h-12 mb-3 rounded-full bg-slate-800 flex items-center justify-center border-2 border-slate-700 shadow-inner">
+                                        <Circle className="w-6 h-6 text-slate-600" />
+                                    </div>
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center leading-tight">
+                                        {badge.name}
+                                    </h3>
+                                </div>
+
+                                {/* Hover View (Description) */}
+                                <div className="absolute inset-0 p-4 flex flex-col items-center justify-center transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none bg-slate-900 rounded-2xl">
+                                    <p className="text-[10px] font-bold text-slate-300 text-center leading-relaxed flex items-center justify-center h-full break-words">
+                                        {badge.req}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
+}
+
 // --- Settings Modal Component ---
-function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, currentUserProfile, teamMembers, updateTeamMember, updateProfileDetails }) {
+function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, currentUserProfile, teamMembers, updateTeamMember, updateProfileDetails, userRole }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'profile');
     const [prefTab, setPrefTab] = React.useState('Notification');
+    const [isBadgesModalOpen, setIsBadgesModalOpen] = React.useState(false);
     const [nameInput, setNameInput] = React.useState(currentUserRosterName || '');
     const [firstName, setFirstName] = React.useState(currentUserProfile?.first_name || '');
     const [lastName, setLastName] = React.useState(currentUserProfile?.last_name || '');
@@ -2218,6 +2326,18 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                                 <p className="text-[10px] text-slate-500 mt-3 uppercase tracking-widest font-black text-center">
                                     Profile Photo
                                 </p>
+
+                                <button 
+                                    onClick={() => setIsBadgesModalOpen(true)}
+                                    className="mt-8 flex flex-col items-center justify-center gap-2 group hover:scale-[1.02] active:scale-95 transition-all outline-none"
+                                >
+                                    <div className="w-12 h-12 rounded-full border border-yellow-500/30 bg-yellow-500/10 flex items-center justify-center group-hover:bg-yellow-500/20 group-hover:border-yellow-500 transition-all shadow-[0_0_15px_-3px_rgba(234,179,8,0.2)] group-hover:shadow-[0_0_20px_-3px_rgba(234,179,8,0.4)]">
+                                        <Award className="w-6 h-6 text-yellow-500 group-hover:text-yellow-400 transition-colors" />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-yellow-400 transition-colors">
+                                        Badges
+                                    </span>
+                                </button>
                             </div>
 
                             {/* Right Column: Inputs */}
@@ -2321,6 +2441,12 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                     </div>
                 )}
             </div>
+
+            <BadgesModal 
+                isOpen={isBadgesModalOpen} 
+                onClose={() => setIsBadgesModalOpen(false)} 
+                userRole={userRole} 
+            />
         </div>
     );
 }
