@@ -133,6 +133,7 @@ export default function App() {
         permanentlyDeleteTask,
         updateProfileRole,
         terminateProfile,
+        updateProfileDetails,
         resetData,
         loading
     } = useTasks();
@@ -142,6 +143,7 @@ export default function App() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [modalFilter, setModalFilter] = useState(null); // 'P1', 'P2', 'P3', 'Completed', 'Overdue', 'Backburner'
     const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
+
     const [showAllTasksBoard, setShowAllTasksBoard] = useState(false);
     const [showMyTasksBoard, setShowMyTasksBoard] = useState(false);
     const [allTasksCategoryFilter, setAllTasksCategoryFilter] = useState('All');
@@ -186,6 +188,8 @@ export default function App() {
     const [isOnboarding, setIsOnboarding] = useState(
         window.location.hash.includes('type=invite') || window.location.hash.includes('type=recovery')
     );
+
+    const currentUserProfile = profiles.find(p => p.id === session?.user?.id) || {};
 
     const teamDropdownRef = React.useRef(null);
 
@@ -1301,8 +1305,10 @@ export default function App() {
                 onClose={() => setIsSettingsModalOpen(false)}
                 initialTab={settingsModalTab}
                 currentUserRosterName={currentUserRosterName}
+                currentUserProfile={currentUserProfile}
                 teamMembers={teamMembers}
                 updateTeamMember={updateTeamMember}
+                updateProfileDetails={updateProfileDetails}
             />
 
             {/* Admin Settings Modal */}
@@ -2137,39 +2143,51 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
 }
 
 // --- Settings Modal Component ---
-function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, teamMembers, updateTeamMember }) {
+function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, currentUserProfile, teamMembers, updateTeamMember, updateProfileDetails }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'profile');
     const [prefTab, setPrefTab] = React.useState('Notification');
     const [nameInput, setNameInput] = React.useState(currentUserRosterName || '');
+    const [firstName, setFirstName] = React.useState(currentUserProfile?.first_name || '');
+    const [lastName, setLastName] = React.useState(currentUserProfile?.last_name || '');
+    const [title, setTitle] = React.useState(currentUserProfile?.title || '');
     const [isSaving, setIsSaving] = React.useState(false);
 
     React.useEffect(() => {
         if (isOpen) {
             setActiveTab(initialTab || 'profile');
             setNameInput(currentUserRosterName || '');
+            setFirstName(currentUserProfile?.first_name || '');
+            setLastName(currentUserProfile?.last_name || '');
+            setTitle(currentUserProfile?.title || '');
             setPrefTab('Notification');
         }
-    }, [isOpen, initialTab, currentUserRosterName]);
+    }, [isOpen, initialTab, currentUserRosterName, currentUserProfile]);
 
     if (!isOpen) return null;
 
     const handleSaveProfile = async () => {
+        setIsSaving(true);
+        
+        // 1. Save metadata to profiles table
+        if (currentUserProfile?.id) {
+            await updateProfileDetails(currentUserProfile.id, {
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
+                title: title.trim()
+            });
+        }
+
+        // 2. Save roster preferred name (Legacy)
         const trimmed = nameInput.trim();
-        if (!trimmed || trimmed === currentUserRosterName) {
-            onClose();
-            return;
+        if (trimmed && trimmed !== currentUserRosterName) {
+            const memberRecord = teamMembers.find(m => m.name === currentUserRosterName);
+            if (memberRecord) {
+                await updateTeamMember(memberRecord.id, trimmed);
+            }
         }
         
-        const memberRecord = teamMembers.find(m => m.name === currentUserRosterName);
-        if (memberRecord) {
-            setIsSaving(true);
-            await updateTeamMember(memberRecord.id, trimmed);
-            setIsSaving(false);
-            onClose();
-        } else {
-            alert("No linked team member found to rename!");
-            onClose();
-        }
+        setIsSaving(false);
+        onClose();
     };
 
     return (
@@ -2182,29 +2200,79 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, tea
                 </button>
 
                 {activeTab === 'profile' ? (
-                    // PROFILE TAB VIEW
                     <div className="w-full flex flex-col p-8">
                         <h2 className="text-xl font-black uppercase text-white mb-6 tracking-widest flex items-center gap-3">
                             <User className="w-6 h-6 text-blue-500" /> My Profile
                         </h2>
                         
-                        <div className="space-y-6 flex-1">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Preferred Name</label>
-                                <input 
-                                    type="text"
-                                    value={nameInput}
-                                    onChange={(e) => setNameInput(e.target.value)}
-                                    className="w-full bg-slate-800/80 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-colors"
-                                    placeholder="Enter your name..."
-                                />
-                                <p className="text-[10px] text-slate-500 mt-2 font-mono">
-                                    Updating your name will automatically update all tasks assigned to you.
+                        <div className="flex flex-col md:flex-row gap-8 flex-1">
+                            {/* Left Column: Photo Area */}
+                            <div className="flex flex-col items-center justify-start pt-4 w-full md:w-1/3">
+                                <button 
+                                    className="w-24 h-24 rounded-full border-2 border-dashed border-slate-600 hover:border-blue-400 bg-slate-800/80 flex items-center justify-center group relative overflow-hidden shadow-lg transition-all"
+                                    onClick={() => alert('Profile Photo uploading is under construction.')}
+                                >
+                                    <Pencil className="w-6 h-6 text-slate-500 group-hover:text-blue-400 transition-colors absolute z-10" />
+                                    <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </button>
+                                <p className="text-[10px] text-slate-500 mt-3 uppercase tracking-widest font-black text-center">
+                                    Profile Photo
                                 </p>
+                            </div>
+
+                            {/* Right Column: Inputs */}
+                            <div className="space-y-4 w-full md:w-2/3">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">First Name</label>
+                                        <input 
+                                            type="text"
+                                            value={firstName}
+                                            onChange={(e) => setFirstName(e.target.value)}
+                                            className="w-full bg-slate-800/80 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-colors text-sm"
+                                            placeholder="First Name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Last Name</label>
+                                        <input 
+                                            type="text"
+                                            value={lastName}
+                                            onChange={(e) => setLastName(e.target.value)}
+                                            className="w-full bg-slate-800/80 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-colors text-sm"
+                                            placeholder="Last Name"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Professional Title</label>
+                                    <input 
+                                        type="text"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        className="w-full bg-slate-800/80 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-colors text-sm"
+                                        placeholder="e.g. Lead Editor, Project Manager..."
+                                    />
+                                </div>
+
+                                <div className="pt-4 mt-4 border-t border-slate-800/50">
+                                    <label className="block text-[10px] font-black text-blue-400/80 uppercase tracking-widest mb-1.5 ml-1">System Preferred Name</label>
+                                    <input 
+                                        type="text"
+                                        value={nameInput}
+                                        onChange={(e) => setNameInput(e.target.value)}
+                                        className="w-full bg-slate-800/40 border border-blue-900/30 text-slate-300 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-colors text-sm"
+                                        placeholder="Enter your display name..."
+                                    />
+                                    <p className="text-[9px] text-slate-500 mt-2 font-mono ml-1">
+                                        Changing your system preferred name will automatically mass-update all tasks assigned to you.
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="flex justify-end pt-6 border-t border-slate-800">
+                        <div className="flex justify-end pt-6 border-t border-slate-800 mt-6">
                             <button 
                                 onClick={handleSaveProfile}
                                 disabled={isSaving || !nameInput.trim()}
@@ -2325,8 +2393,10 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-slate-800/80 sticky top-0 z-10 backdrop-blur-md pb-4">
                                     <tr className="text-[10px] text-slate-400 uppercase tracking-widest font-bold border-b border-slate-700/50">
-                                        <th className="py-3 px-4">Email</th>
-                                        <th className="py-3 px-4">Team Member Name</th>
+                                        <th className="py-3 px-4">Display Name</th>
+                                        <th className="py-3 px-4">First Name</th>
+                                        <th className="py-3 px-4">Last Name</th>
+                                        <th className="py-3 px-4">Title</th>
                                         <th className="py-3 px-4 text-center">Role</th>
                                         <th className="py-3 px-4 text-right">Actions</th>
                                     </tr>
@@ -2334,8 +2404,12 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                                 <tbody className="divide-y divide-slate-800/50">
                                     {profiles.map(p => (
                                         <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
-                                            <td className="py-3 px-4 text-xs font-mono text-blue-300">{p.email}</td>
-                                            <td className="py-3 px-4 text-xs text-slate-300">{teamMembers?.find(m => m.user_id === p.id)?.name || '-'}</td>
+                                            <td className="py-3 px-4 text-xs font-bold text-blue-300">
+                                                {teamMembers?.find(m => m.user_id === p.id)?.name || p.email}
+                                            </td>
+                                            <td className="py-3 px-4 text-xs text-slate-300">{p.first_name || '-'}</td>
+                                            <td className="py-3 px-4 text-xs text-slate-300">{p.last_name || '-'}</td>
+                                            <td className="py-3 px-4 text-xs text-slate-400 italic">{p.title || '-'}</td>
                                             <td className="py-3 px-4 text-center">
                                                 <select
                                                     value={p.role}

@@ -41,7 +41,7 @@ export function useTasks() {
                 supabase.from('tasks').select('*').order('id', { ascending: false }),
                 supabase.from('team_members').select('*').order('name', { ascending: true }),
                 supabase.from('categories').select('*').order('name', { ascending: true }),
-                supabase.from('profiles').select('id, email, role, first_name, last_name') 
+                supabase.from('profiles').select('id, email, role, first_name, last_name, title') 
             ]);
 
             if (tasksResult.error) throw tasksResult.error;
@@ -280,6 +280,24 @@ export function useTasks() {
 
     const stats = useMemo(() => calculateStats(tasks), [tasks]);
 
+    // --- NEW: Update User Profile Metadata ---
+    const updateProfileDetails = async (id, { first_name, last_name, title }) => {
+        const payload = { first_name, last_name, title };
+        
+        // Optimistic UI Update
+        setProfiles(prev => prev.map(p => p.id === id ? { ...p, ...payload } : p));
+
+        const { error } = await supabase
+            .from('profiles')
+            .update(payload)
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error updating profile metadata:', error);
+            fetchData(); // rollback
+        }
+    };
+
     return {
         tasks,
         teamMembers,
@@ -297,6 +315,7 @@ export function useTasks() {
         permanentlyDeleteTask,
         updateProfileRole,
         terminateProfile,
+        updateProfileDetails,
         resetData,
         loading
     };
