@@ -1,7 +1,7 @@
 {
   "name": "taskker.io",
   "private": true,
-  "version": "0.018",
+  "version": "0.019",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -28,7 +28,11 @@ import {
     Minus,
     MoreHorizontal,
     FileText,
-    AlertTriangle
+    AlertTriangle,
+    Bell,
+    Palette,
+    Shield,
+    LogOut
 } from 'lucide-react';
 import { useTasks } from './hooks/useTasks';
 import { STATUS_OPTIONS, DUE_BY_OPTIONS } from './constants';
@@ -144,6 +148,24 @@ export default function App() {
     const [calendarMode, setCalendarMode] = useState('week'); // 'day', 'month' or 'week'
     const [isBottomBarOpen, setIsBottomBarOpen] = useState(false);
     const [isGlobalAddTaskOpen, setIsGlobalAddTaskOpen] = useState(false);
+    
+    // Profile & Settings State
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [settingsModalTab, setSettingsModalTab] = useState('profile');
+
+    const handleSignOut = async () => {
+        setIsProfileMenuOpen(false);
+        const { error } = await supabase.auth.signOut();
+        if (error) console.error("Error signing out:", error);
+    };
+
+    const openSettings = (tab) => {
+        setSettingsModalTab(tab);
+        setIsSettingsModalOpen(true);
+        setIsProfileMenuOpen(false);
+        setIsBottomBarOpen(false);
+    };
 
     // Auth State
     const [session, setSession] = useState(null);
@@ -423,15 +445,40 @@ export default function App() {
             <div
                 className={`fixed top-0 bottom-0 right-0 w-20 md:w-24 bg-slate-900/40 backdrop-blur-xl border-l border-slate-700/50 shadow-[-10px_0_40px_rgba(0,0,0,0.5)] z-[90] flex flex-col items-center pt-24 pb-8 px-2 md:px-4 gap-6 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isBottomBarOpen ? 'translate-x-0' : 'translate-x-full'}`}
             >
-                <div className="flex flex-col items-center gap-4 shrink-0 overflow-y-auto no-scrollbar w-full">
-                    <button
-                        onClick={() => alert("Profile Setting is under construction")}
-                        className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl md:rounded-2xl transition-colors shadow-lg group relative"
-                        title="User Profile"
-                    >
-                        <User className="w-5 h-5 transition-transform duration-300 group-hover:scale-125" />
-                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 md:w-3 md:h-3 bg-emerald-500 border border-[#2b2b36] rounded-full"></div>
-                    </button>
+                <div className="flex flex-col items-center gap-4 shrink-0 overflow-visible w-full">
+                    {/* USER PROFILE BUTTON & DROPDOWN */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                            className={`w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center border rounded-xl md:rounded-2xl transition-colors shadow-lg group relative ${isProfileMenuOpen ? 'bg-emerald-500/30 border-emerald-400 text-emerald-300' : 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400'}`}
+                            title="User Profile"
+                        >
+                            <User className="w-5 h-5 transition-transform duration-300 group-hover:scale-125" />
+                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 md:w-3 md:h-3 bg-emerald-500 border border-[#2b2b36] rounded-full"></div>
+                        </button>
+
+                        {isProfileMenuOpen && (
+                            <div className="absolute right-full top-0 mr-4 w-48 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-right-4 z-[110]">
+                                <div className="p-2 border-b border-white/5 bg-slate-800/50">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase text-center truncate">
+                                        {currentUserRosterName || 'My Account'}
+                                    </p>
+                                </div>
+                                <div className="flex flex-col p-1">
+                                    <button onClick={() => openSettings('profile')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
+                                        <User className="w-4 h-4" /> Profile
+                                    </button>
+                                    <button onClick={() => openSettings('preferences')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
+                                        <Settings className="w-4 h-4" /> Preferences
+                                    </button>
+                                    <div className="h-px bg-slate-800 my-1 mx-2" />
+                                    <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-colors">
+                                        <LogOut className="w-4 h-4" /> Sign Out
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     <button className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl md:rounded-2xl overflow-hidden border-2 border-slate-700 hover:border-slate-500 transition-colors shadow-lg group">
                         <img src={`${import.meta.env.BASE_URL}avatars/RooxterFilms_Avatar.jpg`} alt="RooxterFilms" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
@@ -1197,6 +1244,16 @@ export default function App() {
                 updateTask={updateTask}
                 addCategory={addCategory}
                 deleteCategory={deleteCategory}
+            />
+
+            {/* Settings Modal */}
+            <SettingsModal 
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+                initialTab={settingsModalTab}
+                currentUserRosterName={currentUserRosterName}
+                teamMembers={teamMembers}
+                updateTeamMember={updateTeamMember}
             />
 
             {/* Versioning */}
@@ -2013,6 +2070,127 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
                         Add Task
                     </button>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Settings Modal Component ---
+function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, teamMembers, updateTeamMember }) {
+    const [activeTab, setActiveTab] = React.useState(initialTab || 'profile');
+    const [prefTab, setPrefTab] = React.useState('Notification');
+    const [nameInput, setNameInput] = React.useState(currentUserRosterName || '');
+    const [isSaving, setIsSaving] = React.useState(false);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setActiveTab(initialTab || 'profile');
+            setNameInput(currentUserRosterName || '');
+            setPrefTab('Notification');
+        }
+    }, [isOpen, initialTab, currentUserRosterName]);
+
+    if (!isOpen) return null;
+
+    const handleSaveProfile = async () => {
+        const trimmed = nameInput.trim();
+        if (!trimmed || trimmed === currentUserRosterName) {
+            onClose();
+            return;
+        }
+        
+        const memberRecord = teamMembers.find(m => m.name === currentUserRosterName);
+        if (memberRecord) {
+            setIsSaving(true);
+            await updateTeamMember(memberRecord.id, trimmed);
+            setIsSaving(false);
+            onClose();
+        } else {
+            alert("No linked team member found to rename!");
+            onClose();
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
+            <div className="w-full max-w-2xl bg-slate-900 overflow-hidden rounded-[2rem] border border-slate-700/50 flex shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] relative min-h-[400px]" onClick={e => e.stopPropagation()}>
+                
+                {/* Close Button */}
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-red-400 transition-colors p-1 z-10">
+                    <X className="w-5 h-5" />
+                </button>
+
+                {activeTab === 'profile' ? (
+                    // PROFILE TAB VIEW
+                    <div className="w-full flex flex-col p-8">
+                        <h2 className="text-xl font-black uppercase text-white mb-6 tracking-widest flex items-center gap-3">
+                            <User className="w-6 h-6 text-blue-500" /> My Profile
+                        </h2>
+                        
+                        <div className="space-y-6 flex-1">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Preferred Name</label>
+                                <input 
+                                    type="text"
+                                    value={nameInput}
+                                    onChange={(e) => setNameInput(e.target.value)}
+                                    className="w-full bg-slate-800/80 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="Enter your name..."
+                                />
+                                <p className="text-[10px] text-slate-500 mt-2 font-mono">
+                                    Updating your name will automatically update all tasks assigned to you.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-6 border-t border-slate-800">
+                            <button 
+                                onClick={handleSaveProfile}
+                                disabled={isSaving || !nameInput.trim()}
+                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold py-2.5 px-6 rounded-xl transition-all active:scale-95 shadow-lg flex items-center gap-2 text-sm"
+                            >
+                                {isSaving ? "Saving..." : "Save Profile"}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    // PREFERENCES TAB VIEW (Dual Column)
+                    <div className="w-full flex h-full min-h-[450px]">
+                        {/* Sidebar */}
+                        <div className="w-48 bg-slate-800/50 border-r border-slate-800 p-4 shrink-0 flex flex-col gap-2">
+                            <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2 pl-2 mt-4">Preferences</h3>
+                            
+                            {[
+                                { id: 'Notification', icon: Bell },
+                                { id: 'Home', icon: LayoutDashboard },
+                                { id: 'Appearance', icon: Palette },
+                                { id: 'Advanced', icon: Shield }
+                            ].map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setPrefTab(item.id)}
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${prefTab === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+                                >
+                                    <item.icon className="w-4 h-4" /> {item.id}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        {/* Main Content Pane */}
+                        <div className="flex-1 p-8 flex flex-col bg-slate-900/80">
+                            <h2 className="text-xl font-black uppercase text-white mb-6 tracking-widest flex items-center gap-3">
+                                {prefTab}
+                            </h2>
+                            <div className="flex-1 border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center p-6 text-center">
+                                <p className="text-slate-500 font-mono text-xs leading-relaxed">
+                                    <span className="text-blue-400 font-bold">{prefTab}</span> is under construction.
+                                    <br/><br/>
+                                    Check back soon for customizable settings.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
