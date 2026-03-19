@@ -41,7 +41,7 @@ export function useTasks() {
                 supabase.from('tasks').select('*').order('id', { ascending: false }),
                 supabase.from('team_members').select('*').order('name', { ascending: true }),
                 supabase.from('categories').select('*').order('name', { ascending: true }),
-                supabase.from('profiles').select('id, email, role, first_name, last_name, title') 
+                supabase.from('profiles').select('id, email, role, first_name, last_name, title, theme') 
             ]);
 
             if (tasksResult.error) throw tasksResult.error;
@@ -298,6 +298,22 @@ export function useTasks() {
         }
     };
 
+    // --- NEW: Update User Theme Preference ---
+    const updateProfileTheme = async (id, newTheme) => {
+        // Optimistic UI Update
+        setProfiles(prev => prev.map(p => p.id === id ? { ...p, theme: newTheme } : p));
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({ theme: newTheme })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error updating profile theme:', error);
+            fetchData(); // rollback
+        }
+    };
+
     return {
         tasks,
         teamMembers,
@@ -316,6 +332,7 @@ export function useTasks() {
         updateProfileRole,
         terminateProfile,
         updateProfileDetails,
+        updateProfileTheme,
         resetData,
         loading
     };

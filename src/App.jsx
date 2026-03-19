@@ -136,6 +136,7 @@ export default function App() {
         updateProfileRole,
         terminateProfile,
         updateProfileDetails,
+        updateProfileTheme,
         resetData,
         loading
     } = useTasks();
@@ -501,8 +502,10 @@ export default function App() {
         return filtered;
     };
 
+    const globalTheme = currentUserProfile?.theme || 'dark';
+
     return (
-        <div className="min-h-screen bg-black text-slate-50 p-4 md:p-8 font-sans antialiased selection:bg-blue-500/30">
+        <div className={`min-h-screen bg-black text-slate-50 p-4 md:p-8 font-sans antialiased selection:bg-blue-500/30 theme-${globalTheme} transition-colors duration-500`}>
             {/* RIGHT SIDE BAR TOGGLE */}
             <button
                 onClick={() => setIsBottomBarOpen(!isBottomBarOpen)}
@@ -1326,6 +1329,7 @@ export default function App() {
                 teamMembers={teamMembers}
                 updateTeamMember={updateTeamMember}
                 updateProfileDetails={updateProfileDetails}
+                updateProfileTheme={updateProfileTheme}
                 userRole={userRole}
             />
 
@@ -1575,7 +1579,7 @@ function StatCard({ label, shortLabel, value, icon: Icon, color, bgColor, onClic
     return (
         <div
             onClick={onClick}
-            className={`flex-1 min-w-0 glass p-2 sm:p-3 md:p-4 rounded-xl border border-transparent hover:border-slate-500/30 cursor-pointer transition-all group relative overflow-hidden flex flex-col justify-between`}
+            className={`flex-1 min-w-0 glass p-2 sm:p-3 md:p-4 rounded-xl border border-transparent hover:border-slate-500/30 cursor-pointer transition-all group relative overflow-hidden flex flex-col justify-between stat-card-widget`}
             title={label}
         >
             <div className={`absolute -right-3 -bottom-3 sm:-right-4 sm:-bottom-4 opacity-10 md:opacity-20 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12 pointer-events-none`}>
@@ -2250,7 +2254,7 @@ function BadgesModal({ isOpen, onClose, userRole }) {
 }
 
 // --- Settings Modal Component ---
-function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, currentUserProfile, teamMembers, updateTeamMember, updateProfileDetails, userRole }) {
+function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, currentUserProfile, teamMembers, updateTeamMember, updateProfileDetails, updateProfileTheme, userRole }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'profile');
     const [prefTab, setPrefTab] = React.useState('Notification');
     const [isBadgesModalOpen, setIsBadgesModalOpen] = React.useState(false);
@@ -2430,13 +2434,59 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                             <h2 className="text-xl font-black uppercase text-white mb-6 tracking-widest flex items-center gap-3">
                                 {prefTab}
                             </h2>
-                            <div className="flex-1 border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center p-6 text-center">
-                                <p className="text-slate-500 font-mono text-xs leading-relaxed">
-                                    <span className="text-blue-400 font-bold">{prefTab}</span> is under construction.
-                                    <br/><br/>
-                                    Check back soon for customizable settings.
-                                </p>
-                            </div>
+                            {prefTab === 'Appearance' ? (
+                                <div className="flex-1 flex flex-col gap-6">
+                                    <p className="text-slate-500 font-mono text-xs leading-relaxed mb-4">
+                                        Select your preferred aesthetic. Your choice is saved globally across all platforms.
+                                    </p>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button 
+                                            onClick={() => updateProfileTheme(currentUserProfile.id, 'dark')}
+                                            className={`p-4 rounded-2xl border-2 text-left transition-all ${currentUserProfile?.theme === 'dark' || !currentUserProfile?.theme ? 'border-blue-500 bg-blue-500/10' : 'border-slate-800 bg-slate-800/30 hover:border-slate-600'}`}
+                                        >
+                                            <h3 className="text-white font-bold tracking-widest uppercase text-sm mb-1">Dark Mode</h3>
+                                            <p className="text-slate-500 text-[10px] uppercase font-bold">Midnight Blue & Charcoal</p>
+                                        </button>
+
+                                        <button 
+                                            onClick={() => updateProfileTheme(currentUserProfile.id, 'oatmeal')}
+                                            className={`p-4 rounded-2xl border-2 text-left transition-all ${currentUserProfile?.theme === 'oatmeal' ? 'border-blue-500 bg-blue-500/10' : 'border-slate-800 bg-slate-800/30 hover:border-slate-600'}`}
+                                        >
+                                            <h3 className="text-white font-bold tracking-widest uppercase text-sm mb-1">Oatmeal</h3>
+                                            <p className="text-slate-500 text-[10px] uppercase font-bold">Calm, Warm Stone, Professional</p>
+                                        </button>
+
+                                        <button 
+                                            onClick={() => updateProfileTheme(currentUserProfile.id, 'noir')}
+                                            className={`p-4 rounded-2xl border-2 text-left transition-all ${currentUserProfile?.theme === 'noir' ? 'border-blue-500 bg-blue-500/10' : 'border-slate-800 bg-slate-800/30 hover:border-slate-600'}`}
+                                        >
+                                            <h3 className="text-white font-bold tracking-widest uppercase text-sm mb-1">Noir</h3>
+                                            <p className="text-slate-500 text-[10px] uppercase font-bold">Absolute Black & Pure White</p>
+                                        </button>
+
+                                        <button 
+                                            onClick={() => updateProfileTheme(currentUserProfile.id, 'cool-yellow')}
+                                            className={`p-4 rounded-2xl border-2 text-left transition-all ${currentUserProfile?.theme === 'cool-yellow' ? 'border-blue-500 bg-blue-500/10' : 'border-slate-800 bg-slate-800/30 hover:border-slate-600'}`}
+                                        >
+                                            <h3 className="text-white font-bold tracking-widest uppercase text-sm mb-1">Cool Yellow</h3>
+                                            <p className="text-slate-500 text-[10px] uppercase font-bold">Yellow, Royal Blue Tint</p>
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="mt-8 border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center p-6 text-center text-slate-500 font-mono text-xs">
+                                        Check back soon for MORE customizable settings.
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex-1 border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center p-6 text-center">
+                                    <p className="text-slate-500 font-mono text-xs leading-relaxed">
+                                        <span className="text-blue-400 font-bold">{prefTab}</span> is under construction.
+                                        <br/><br/>
+                                        Check back soon for customizable settings.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
