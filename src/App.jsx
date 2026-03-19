@@ -34,7 +34,7 @@ import {
     Shield,
     LogOut
 } from 'lucide-react';
-import { useTasks } from './hooks/useTasks';
+import { useTasks, calculateStats } from './hooks/useTasks';
 import { STATUS_OPTIONS, DUE_BY_OPTIONS } from './constants';
 import { formatDate, isTaskOverdue } from './utils/dateUtils';
 import {
@@ -122,7 +122,6 @@ export default function App() {
         teamMembers,
         categories,
         profiles,
-        stats,
         addTask,
         addTeamMember,
         deleteTeamMember,
@@ -259,13 +258,33 @@ export default function App() {
         const rosterNameSafe = currentUserRosterName?.toLowerCase().trim();
 
         if (userRole === 'admin') {
-            const workerNamesSafe = teamMembers
-                .filter(m => m.role === 'worker' && m.name)
-                .map(m => m.name.toLowerCase().trim());
+            const loggedInId = session?.user?.id;
+            
+            // Build a set of forbidden assignee IDs (super_admins, and admins who are NOT me)
+            const forbiddenProfileIds = new Set(
+                profiles
+                    .filter(p => p.role === 'super_admin' || (p.role === 'admin' && p.id !== loggedInId))
+                    .map(p => p.id)
+            );
+            
+            // Precalculate forbidden names for legacy tasks missing assignee_id
+            const forbiddenNamesSafe = new Set(
+                teamMembers
+                    .filter(m => forbiddenProfileIds.has(m.user_id))
+                    .map(m => m.name.toLowerCase().trim())
+            );
                 
             return tasks.filter(t => {
-                const assigneeSafe = t.assignee?.toLowerCase().trim();
-                return assigneeSafe === rosterNameSafe || workerNamesSafe.includes(assigneeSafe);
+                // If the task has an explicit assignee_id that is forbidden, hide it.
+                if (t.assignee_id && forbiddenProfileIds.has(t.assignee_id)) return false;
+                
+                // Fallback check against name if assignee_id is somehow missing
+                if (t.assignee && !t.assignee_id) {
+                    const assigneeSafe = t.assignee.toLowerCase().trim();
+                    if (forbiddenNamesSafe.has(assigneeSafe)) return false;
+                }
+                
+                return true;
             });
         }
 
@@ -275,7 +294,24 @@ export default function App() {
         }
 
         return tasks;
-    }, [tasks, userRole, teamMembers, currentUserRosterName]);
+    }, [tasks, userRole, teamMembers, profiles, currentUserRosterName, session?.user?.id]);
+
+    // Derived Display Stats correctly isolated by Role (prevents Admin from seeing Super Admin numbers)
+    const displayStats = React.useMemo(() => calculateStats(visibleTasks), [visibleTasks]);
+
+    // Strictly filtered array for the "My Tasks" board
+    const myTasks = React.useMemo(() => {
+        const rosterNameSafe = currentUserRosterName?.toLowerCase().trim();
+        const loggedInId = session?.user?.id;
+        
+        if (!rosterNameSafe && !loggedInId) return [];
+        
+        return tasks.filter(t => {
+            if (loggedInId && t.assignee_id === loggedInId) return true;
+            if (t.assignee && rosterNameSafe && t.assignee.toLowerCase().trim() === rosterNameSafe) return true;
+            return false;
+        });
+    }, [tasks, currentUserRosterName, session?.user?.id]);
 
     // Calendar Tasks Logic
     const calendarDays = React.useMemo(() => {
@@ -870,11 +906,11 @@ export default function App() {
                 {activeTab === 'dashboard' && (
                     <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                         <div className="flex w-full gap-2 md:gap-4 overflow-hidden">
-                            <StatCard label="P1 (HIGH)" shortLabel="P1" value={stats.p1} icon={Zap} color="text-red-500" bgColor="bg-red-500/10" onClick={() => setModalFilter('P1')} />
-                            <StatCard label="P2 (NORMAL)" shortLabel="P2" value={stats.p2} icon={AlertTriangle} color="text-orange-500" bgColor="bg-orange-500/10" onClick={() => setModalFilter('P2')} />
-                            <StatCard label="P3 (LOW)" shortLabel="P3" value={stats.p3} icon={Calendar} color="text-yellow-500" bgColor="bg-yellow-500/10" onClick={() => setModalFilter('P3')} />
-                            <StatCard label="BACKBURNER" shortLabel="BACKBURNER" value={stats.backburner} icon={Coffee} color="text-slate-400" bgColor="bg-slate-400/10" onClick={() => setModalFilter('Backburner')} />
-                            <StatCard label="Done (7 Days)" shortLabel="DONE" value={stats.completed} icon={CheckCircle2} color="text-emerald-500" bgColor="bg-emerald-500/10" onClick={() => setModalFilter('Completed')} />
+                            <StatCard label="P1 (HIGH)" shortLabel="P1" value={displayStats.p1} icon={Zap} color="text-red-500" bgColor="bg-red-500/10" onClick={() => setModalFilter('P1')} />
+                            <StatCard label="P2 (NORMAL)" shortLabel="P2" value={displayStats.p2} icon={AlertTriangle} color="text-orange-500" bgColor="bg-orange-500/10" onClick={() => setModalFilter('P2')} />
+                            <StatCard label="P3 (LOW)" shortLabel="P3" value={displayStats.p3} icon={Calendar} color="text-yellow-500" bgColor="bg-yellow-500/10" onClick={() => setModalFilter('P3')} />
+                            <StatCard label="BACKBURNER" shortLabel="BACKBURNER" value={displayStats.backburner} icon={Coffee} color="text-slate-400" bgColor="bg-slate-400/10" onClick={() => setModalFilter('Backburner')} />
+                            <StatCard label="Done (7 Days)" shortLabel="DONE" value={displayStats.completed} icon={CheckCircle2} color="text-emerald-500" bgColor="bg-emerald-500/10" onClick={() => setModalFilter('Completed')} />
                         </div>
 
                         {/* Unified All Tasks / Production Board Container */}
@@ -930,7 +966,7 @@ export default function App() {
                             {/* Board Content */}
                             {showMyTasksBoard && (
                                 <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                    <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} />
+                                    <AllTasksBoard tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} />
                                 </div>
                             )}
                         </div>

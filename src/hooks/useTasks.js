@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { calculateTargetDeadline, getPriorityFromDueByType, isTaskOverdue } from '../utils/dateUtils';
 
 // Helper to calculate stats from tasks array
-const calculateStats = (tasks) => {
+export const calculateStats = (tasks) => {
     const todayStr = new Date().toISOString().split('T')[0];
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -41,7 +41,7 @@ export function useTasks() {
                 supabase.from('tasks').select('*').order('id', { ascending: false }),
                 supabase.from('team_members').select('*').order('name', { ascending: true }),
                 supabase.from('categories').select('*').order('name', { ascending: true }),
-                supabase.from('profiles').select('id, email') 
+                supabase.from('profiles').select('id, email, role, first_name, last_name') 
             ]);
 
             if (tasksResult.error) throw tasksResult.error;
