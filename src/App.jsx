@@ -158,7 +158,6 @@ export default function App() {
     const [settingsModalTab, setSettingsModalTab] = useState('profile');
 
     // Admin Settings State
-    const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
     const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
     const [adminModalTab, setAdminModalTab] = useState('Invite Team');
 
@@ -178,7 +177,6 @@ export default function App() {
     const openAdminSettings = (tab) => {
         setAdminModalTab(tab);
         setIsAdminModalOpen(true);
-        setIsAdminMenuOpen(false);
         setIsBottomBarOpen(false);
     };
 
@@ -514,52 +512,12 @@ export default function App() {
                 <RoleGate allowed={['super_admin', 'admin']} userRole={userRole}>
                     <div className="relative mt-auto">
                         <button
-                            onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
-                            className={`w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center border border-slate-700 rounded-xl md:rounded-2xl transition-colors shadow-lg group ${isAdminMenuOpen ? 'bg-blue-500/30 border-blue-400 text-blue-300' : 'bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white'}`}
+                            onClick={() => openAdminSettings('Invite Team')}
+                            className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center border border-slate-700 rounded-xl md:rounded-2xl transition-colors shadow-lg group bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white"
                             title="Admin Module"
                         >
-                            <Settings className={`w-5 h-5 transition-transform ${isAdminMenuOpen ? 'rotate-90' : 'group-hover:rotate-45'}`} />
+                            <Settings className="w-5 h-5 transition-transform group-hover:rotate-45" />
                         </button>
-
-                        {isAdminMenuOpen && (
-                            <div className="absolute right-full bottom-0 mr-4 w-56 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-right-4 z-[110] mb-2">
-                                <div className="p-2 border-b border-white/5 bg-slate-800/50 flex flex-col items-center">
-                                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-center truncate w-full">
-                                        SYSTEM MODULE
-                                    </p>
-                                    <p className="text-[9px] font-mono text-slate-500 uppercase mt-0.5">
-                                        {userRole === 'super_admin' ? 'Super Admin' : 'Admin'} Access
-                                    </p>
-                                </div>
-                                <div className="flex flex-col p-1">
-                                    <button onClick={() => openAdminSettings('Invite Team')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
-                                        <UserPlus className="w-4 h-4" /> Invite Team
-                                    </button>
-                                    {userRole === 'super_admin' && (
-                                        <button onClick={() => openAdminSettings('Users and Roles')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
-                                            <Users className="w-4 h-4" /> Users and Roles
-                                        </button>
-                                    )}
-                                    {userRole === 'admin' && (
-                                        <button onClick={() => openAdminSettings('Team Management')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
-                                            <Users className="w-4 h-4" /> Team Management
-                                        </button>
-                                    )}
-                                    <button onClick={() => openAdminSettings('System Settings')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
-                                        <Settings className="w-4 h-4" /> System Settings
-                                    </button>
-                                    {userRole === 'super_admin' && (
-                                        <button onClick={() => openAdminSettings('Billing Management')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-blue-600 hover:text-white rounded-xl transition-colors">
-                                            <FileText className="w-4 h-4" /> Billing Management
-                                        </button>
-                                    )}
-                                    <div className="h-px bg-slate-800 my-1 mx-2" />
-                                    <button onClick={() => openAdminSettings('Reward System')} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-yellow-500 hover:bg-yellow-600 hover:text-white rounded-xl transition-colors">
-                                        <Zap className="w-4 h-4" /> Reward System
-                                    </button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </RoleGate>
             </div>
@@ -1318,6 +1276,7 @@ export default function App() {
                 initialTab={adminModalTab}
                 userRole={userRole}
                 profiles={profiles}
+                teamMembers={teamMembers}
                 updateProfileRole={updateProfileRole}
                 terminateProfile={terminateProfile}
             />
@@ -2263,7 +2222,7 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, tea
 }
 
 // --- Admin Settings Modal Component ---
-function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, updateProfileRole, terminateProfile }) {
+function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'Invite Team');
 
     React.useEffect(() => {
@@ -2317,7 +2276,7 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, u
                                 <thead className="bg-slate-800/80 sticky top-0 z-10 backdrop-blur-md pb-4">
                                     <tr className="text-[10px] text-slate-400 uppercase tracking-widest font-bold border-b border-slate-700/50">
                                         <th className="py-3 px-4">Email</th>
-                                        <th className="py-3 px-4">Name Mapping</th>
+                                        <th className="py-3 px-4">Team Member Name</th>
                                         <th className="py-3 px-4 text-center">Role</th>
                                         <th className="py-3 px-4 text-right">Actions</th>
                                     </tr>
@@ -2326,7 +2285,7 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, u
                                     {profiles.map(p => (
                                         <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
                                             <td className="py-3 px-4 text-xs font-mono text-blue-300">{p.email}</td>
-                                            <td className="py-3 px-4 text-xs text-slate-300">{p.first_name || p.last_name ? `${p.first_name || ''} ${p.last_name || ''}` : '-'}</td>
+                                            <td className="py-3 px-4 text-xs text-slate-300">{teamMembers?.find(m => m.user_id === p.id)?.name || '-'}</td>
                                             <td className="py-3 px-4 text-center">
                                                 <select
                                                     value={p.role}
