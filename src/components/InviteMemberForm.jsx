@@ -4,7 +4,6 @@ import { UserPlus, Mail, Type, Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function InviteMemberForm() {
     const [email, setEmail] = useState('');
-    const [fullName, setFullName] = useState('');
     const [preferredName, setPreferredName] = useState('');
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
@@ -41,7 +40,6 @@ export default function InviteMemberForm() {
 
             setSuccessMsg(`Successfully invited ${preferredName}!`);
             setEmail('');
-            setFullName('');
             setPreferredName('');
         } catch (error) {
             setErrorMsg(error.message || 'An error occurred during invitation.');
@@ -96,7 +94,7 @@ export default function InviteMemberForm() {
                         <Type className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <input
                             type="text"
-                            placeholder="Preferred Name (Required for Assignee dropdown)"
+                            placeholder="Display Name (Required)"
                             value={preferredName}
                             onChange={(e) => setPreferredName(e.target.value)}
                             className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm"
@@ -104,16 +102,7 @@ export default function InviteMemberForm() {
                         />
                     </div>
 
-                    <div className="relative">
-                        <Type className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input
-                            type="text"
-                            placeholder="Full Name (Optional)"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-all text-sm"
-                        />
-                    </div>
+
 
                     <button
                         type="submit"

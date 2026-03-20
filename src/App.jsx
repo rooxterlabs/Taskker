@@ -34,7 +34,8 @@ import {
     Bell,
     Palette,
     Shield,
-    LogOut
+    LogOut,
+    Search
 } from 'lucide-react';
 import { useTasks, calculateStats } from './hooks/useTasks';
 import { STATUS_OPTIONS, DUE_BY_OPTIONS } from './constants';
@@ -143,6 +144,8 @@ export default function App() {
 
     const [activeTab, setActiveTab] = useState('dashboard');
     const [selectedMember, setSelectedMember] = useState(null);
+    const [rosterSearchQuery, setRosterSearchQuery] = useState('');
+    const [isRosterSearchOpen, setIsRosterSearchOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [modalFilter, setModalFilter] = useState(null); // 'P1', 'P2', 'P3', 'Completed', 'Overdue', 'Backburner'
     const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
@@ -996,17 +999,43 @@ export default function App() {
                         </div>
 
                         <RoleGate userRole={userRole} allowed={['admin', 'super_admin']}>
-                            <div className="col-span-full glass p-4 md:p-5 rounded-2xl mt-4 border border-slate-700/50">
-                                <h3 className="uppercase transition-all text-xs md:text-sm font-medium tracking-widest text-slate-500 mb-1">ACTIVE TEAM ROSTER</h3>
-                                <div className="flex flex-wrap gap-3">
+                            <div className="col-span-full glass p-4 md:p-5 rounded-2xl mt-4 border border-slate-700/50 flex flex-col gap-3">
+                                <div className="flex items-center gap-4 flex-wrap">
+                                    <h3 className="uppercase transition-all text-xs md:text-sm font-medium tracking-widest text-slate-500 shrink-0">ACTIVE TEAM ROSTER</h3>
+                                    
+                                    {/* Permanently Open Search Pill */}
+                                    <div className="flex-1 max-w-[200px] relative">
+                                        <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search names..."
+                                            value={rosterSearchQuery}
+                                            onChange={(e) => setRosterSearchQuery(e.target.value)}
+                                            className="w-full bg-slate-900/50 border border-slate-700/50 hover:border-slate-500 rounded-full py-1.5 pl-9 pr-4 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="flex flex-wrap gap-4 md:gap-6 mt-1">
                                     {teamMembers.length === 0 ? (
                                         <span className="text-slate-500 italic text-xs">No team members initialized. Check Admin Tools to invite members.</span>
                                     ) : (
-                                        teamMembers.map(m => (
-                                            <div key={m.id} onClick={() => handleMemberSelect(m)} className="cursor-pointer text-xs font-mono text-blue-300/60 hover:text-blue-400 transition-colors">
-                                                {m.name}
-                                            </div>
-                                        ))
+                                        teamMembers
+                                            .filter(m => {
+                                                if (!rosterSearchQuery) return true;
+                                                const query = rosterSearchQuery.toLowerCase();
+                                                return m.name.toLowerCase().split(' ').some(part => part.startsWith(query));
+                                            })
+                                            .map(m => (
+                                                <div key={m.id} onClick={() => handleMemberSelect(m)} className="cursor-pointer text-xs font-mono text-blue-300/60 hover:text-blue-400 transition-colors">
+                                                    {m.name}
+                                                </div>
+                                            ))
+                                    )}
+                                    {teamMembers.length > 0 && rosterSearchQuery && teamMembers.filter(m =>
+                                        m.name.toLowerCase().split(' ').some(part => part.startsWith(rosterSearchQuery.toLowerCase()))
+                                    ).length === 0 && (
+                                        <span className="text-slate-500 italic text-xs">No team members match "{rosterSearchQuery}".</span>
                                     )}
                                 </div>
                             </div>
