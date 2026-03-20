@@ -2258,7 +2258,7 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
     const [activeTab, setActiveTab] = React.useState(initialTab || 'profile');
     const [prefTab, setPrefTab] = React.useState('Notification');
     const [isBadgesModalOpen, setIsBadgesModalOpen] = React.useState(false);
-    const [nameInput, setNameInput] = React.useState(currentUserRosterName || '');
+    const [nameInput, setNameInput] = React.useState(currentUserProfile?.name || currentUserRosterName || '');
     const [firstName, setFirstName] = React.useState(currentUserProfile?.first_name || '');
     const [lastName, setLastName] = React.useState(currentUserProfile?.last_name || '');
     const [title, setTitle] = React.useState(currentUserProfile?.title || '');
@@ -2267,7 +2267,7 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
     React.useEffect(() => {
         if (isOpen) {
             setActiveTab(initialTab || 'profile');
-            setNameInput(currentUserRosterName || '');
+            setNameInput(currentUserProfile?.name || currentUserRosterName || '');
             setFirstName(currentUserProfile?.first_name || '');
             setLastName(currentUserProfile?.last_name || '');
             setTitle(currentUserProfile?.title || '');
@@ -2283,6 +2283,7 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
         // 1. Save metadata to profiles table
         if (currentUserProfile?.id) {
             await updateProfileDetails(currentUserProfile.id, {
+                name: nameInput.trim(),
                 first_name: firstName.trim(),
                 last_name: lastName.trim(),
                 title: title.trim()
@@ -2560,7 +2561,7 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
             return (
                 <div className="w-full h-full flex flex-col">
                     <h2 className="text-xl font-black uppercase text-white mb-6 tracking-widest flex items-center gap-3">
-                        <Users className="w-6 h-6 text-blue-500" /> Users & Roles Master List
+                        <Users className="w-6 h-6 text-blue-500" /> USERS & ROLES
                     </h2>
                     <div className="flex-1 overflow-y-auto no-scrollbar pt-2 pr-2">
                         {(!profiles || profiles.length === 0) ? (
@@ -2574,14 +2575,17 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                                         <th className="py-3 px-4">Last Name</th>
                                         <th className="py-3 px-4">Title</th>
                                         <th className="py-3 px-4 text-center">Role</th>
-                                        <th className="py-3 px-4 text-right">Actions</th>
+                                        <th className="py-3 px-4">Email</th>
+                                        {userRole === 'super_admin' && (
+                                            <th className="py-3 px-4 text-right">Action</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800/50">
                                     {profiles.map(p => (
                                         <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
                                             <td className="py-3 px-4 text-xs font-bold text-blue-300">
-                                                {teamMembers?.find(m => m.user_id === p.id)?.name || p.email}
+                                                {p.name || teamMembers?.find(m => m.user_id === p.id)?.name || p.email}
                                             </td>
                                             <td className="py-3 px-4 text-xs text-slate-300">{p.first_name || '-'}</td>
                                             <td className="py-3 px-4 text-xs text-slate-300">{p.last_name || '-'}</td>
@@ -2598,8 +2602,11 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                                                     <option value="super_admin" disabled>Super Admin</option>
                                                 </select>
                                             </td>
-                                            <td className="py-3 px-4 text-right">
-                                                {userRole === 'super_admin' && (
+                                            <td className="py-3 px-4 text-xs text-slate-500 font-mono">
+                                                {p.email}
+                                            </td>
+                                            {userRole === 'super_admin' && (
+                                                <td className="py-3 px-4 text-right">
                                                     <button
                                                         onClick={() => terminateProfile(p.id, p.email)}
                                                         disabled={p.role === 'super_admin'}
@@ -2607,8 +2614,8 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                                                     >
                                                         Terminate
                                                     </button>
-                                                )}
-                                            </td>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>

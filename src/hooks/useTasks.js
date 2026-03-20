@@ -41,7 +41,7 @@ export function useTasks() {
                 supabase.from('tasks').select('*').order('id', { ascending: false }),
                 supabase.from('team_members').select('*').order('name', { ascending: true }),
                 supabase.from('categories').select('*').order('name', { ascending: true }),
-                supabase.from('profiles').select('id, email, role, first_name, last_name, title, theme') 
+                supabase.from('profiles').select('id, email, role, first_name, last_name, title, theme, name') 
             ]);
 
             if (tasksResult.error) throw tasksResult.error;
