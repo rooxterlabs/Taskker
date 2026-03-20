@@ -494,7 +494,7 @@ export default function App() {
                 });
                 break;
             case 'Overdue':
-                filtered = visibleTasks.filter(t => t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived && isTaskOverdue(t.target_deadline));
+                filtered = visibleTasks.filter(t => t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived && t.priority && t.priority.includes('P1') && isTaskOverdue(t.target_deadline));
                 break;
             case 'Archive':
                 filtered = visibleTasks.filter(t => t.status === 'Done' || t.is_archived);
@@ -1206,7 +1206,7 @@ export default function App() {
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
                                             {getModalTasks().map(task => {
-                                                const isOverdue = isTaskOverdue(task.target_deadline) && task.status !== 'Done';
+                                                const isOverdue = isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1');
                                                 return (
                                                     <tr key={task.id} className={`hover:bg-slate-800/30 transition-colors group relative overflow-hidden ${isOverdue ? 'bg-red-900/10' : ''}`}>
                                                         <td className="px-3 md:px-4 py-3 md:py-4 text-xs md:text-sm font-light text-slate-300 relative z-10 w-[15%]">
@@ -1638,13 +1638,13 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
     }, [task.action]);
 
     return (
-        <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'bg-red-900/10' : ''} ${task.created_by_role === 'worker' ? 'bg-slate-900/40' : ''}`}>
+        <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'bg-red-900/10' : ''} ${task.created_by_role === 'worker' ? 'bg-slate-900/40' : ''}`}>
             <td className="px-4 py-3 text-center">
                 <DoneCheckbox task={task} updateTask={updateTask} className="w-5 h-5 mx-auto shrink-0" />
             </td>
             <td className="px-4 py-3 min-w-[250px] w-full max-w-sm relative">
                 {/* BIG BACKGROUND OVERDUE TEXT */}
-                {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && (
+                {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden z-0">
                         <span className="text-red-500/10 font-black text-5xl md:text-6xl tracking-[0.2em] uppercase -rotate-6 select-none whitespace-nowrap">
                             OVERDUE!
@@ -1711,10 +1711,10 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
     }, [task.action]);
 
     return (
-        <div className={`p-2 md:p-2.5 rounded-xl border flex flex-col gap-1.5 relative shadow-sm transition-colors ${task.created_by_role === 'worker' ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-800/40 border-slate-700/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'border-red-900/50 bg-red-900/10' : ''}`}>
+        <div className={`p-2 md:p-2.5 rounded-xl border flex flex-col gap-1.5 relative shadow-sm transition-colors ${task.created_by_role === 'worker' ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-800/40 border-slate-700/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : ''}`}>
 
             {/* BIG BACKGROUND OVERDUE TEXT */}
-            {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && (
+            {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') && (
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-0 overflow-hidden rounded-xl">
                     <span className="text-red-500/10 font-black text-5xl tracking-[0.2em] uppercase -rotate-12 select-none whitespace-nowrap">
                         OVERDUE!
@@ -1795,10 +1795,10 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
             {...attributes}
             {...listeners}
         >
-            <div className={`p-1.5 rounded-xl border transition-colors group flex flex-col gap-1 relative ${task.created_by_role === 'worker' ? 'bg-slate-900/80 hover:border-slate-800' : 'bg-slate-800/60 hover:border-slate-500/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'}`}>
+            <div className={`p-1.5 rounded-xl border transition-colors group flex flex-col gap-1 relative ${task.created_by_role === 'worker' ? 'bg-slate-900/80 hover:border-slate-800' : 'bg-slate-800/60 hover:border-slate-500/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'}`}>
 
                 {/* BIG BACKGROUND OVERDUE TEXT */}
-                {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && (
+                {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-0 overflow-hidden rounded-xl">
                         <span className="text-red-500/10 font-black text-4xl md:text-5xl tracking-widest uppercase -rotate-12 select-none whitespace-nowrap">
                             OVERDUE!

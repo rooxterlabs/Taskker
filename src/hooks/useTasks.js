@@ -18,7 +18,8 @@ export const calculateStats = (tasks) => {
             const compDate = t.deletion_date || t.submitted_on || t.created_at || t.date;
             return new Date(compDate) >= sevenDaysAgo;
         }).length,
-        overdue: tasks.filter(t => t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived && isTaskOverdue(t.target_deadline)).length
+        // UPDATED: Only P1 tasks can be overdue
+        overdue: tasks.filter(t => t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived && t.priority && t.priority.includes('P1') && isTaskOverdue(t.target_deadline)).length
     };
 };
 
@@ -73,6 +74,64 @@ export function useTasks() {
             setLoading(false);
         }
     };
+
+    // --- AUTO PRIORITY ESCALATION ENGINE ---
+    // Scans all active P2/P3 tasks and promotes them to P1 (Critical) if their
+    // deadline is within 24 hours. This runs on every data fetch and on a 60s interval.
+    const escalatePriorities = async (taskList) => {
+        const now = new Date();
+        const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const tasksToEscalate = [];
+
+        for (const t of taskList) {
+            // Only escalate active P2 or P3 tasks that have a deadline
+            if (t.status === 'Done' || t.status === 'Deleted' || t.is_archived) continue;
+            if (!t.target_deadline) continue;
+            if (!t.priority || (!t.priority.includes('P2') && !t.priority.includes('P3'))) continue;
+
+            const deadline = new Date(t.target_deadline);
+            // If the deadline is within the next 24 hours (or has already passed), escalate to P1
+            if (deadline <= oneDayFromNow) {
+                tasksToEscalate.push(t.id);
+            }
+        }
+
+        if (tasksToEscalate.length > 0) {
+            // Optimistic local update
+            setTasks(prev => prev.map(t => 
+                tasksToEscalate.includes(t.id) 
+                    ? { ...t, priority: 'P1 (Critical)', due_by_type: 'Today' } 
+                    : t
+            ));
+
+            // Batch update to database
+            const { error } = await supabase
+                .from('tasks')
+                .update({ priority: 'P1 (Critical)', due_by_type: 'Today' })
+                .in('id', tasksToEscalate);
+
+            if (error) {
+                console.error('Error escalating priorities:', error);
+            }
+        }
+    };
+
+    // Run escalation after initial fetch completes and on an interval
+    useEffect(() => {
+        if (!loading && tasks.length > 0) {
+            escalatePriorities(tasks);
+        }
+    }, [loading]);
+
+    // Periodic check every 60 seconds to catch tasks crossing the threshold
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (tasks.length > 0) {
+                escalatePriorities(tasks);
+            }
+        }, 60000);
+        return () => clearInterval(interval);
+    }, [tasks]);
 
     // NEW: Safe helper to get the TRUE assignee data without crashing
     const getAssigneeData = (assigneeName) => {
