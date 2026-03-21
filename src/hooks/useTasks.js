@@ -29,6 +29,7 @@ export function useTasks() {
     const [categories, setCategories] = useState([]);
     const [profiles, setProfiles] = useState([]); // Store actual user profiles
     const [rewards, setRewards] = useState([]); // Reward definitions from admin
+    const [userSettings, setUserSettings] = useState({ kanban_enabled: false }); // User preferences
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -39,12 +40,13 @@ export function useTasks() {
         try {
             setLoading(true);
             // NEW: Added profiles to the initial fetch to get real Auth UUIDs
-            const [tasksResult, teamsResult, categoriesResult, profilesResult, rewardsResult] = await Promise.all([
+            const [tasksResult, teamsResult, categoriesResult, profilesResult, rewardsResult, settingsResult] = await Promise.all([
                 supabase.from('tasks').select('*').order('id', { ascending: false }),
                 supabase.from('team_members').select('*').order('name', { ascending: true }),
                 supabase.from('categories').select('*').order('name', { ascending: true }),
                 supabase.from('profiles').select('id, email, role, first_name, last_name, title, theme, name'),
-                supabase.from('rewards').select('*').order('slot', { ascending: true })
+                supabase.from('rewards').select('*').order('slot', { ascending: true }),
+                supabase.from('user_settings').select('kanban_enabled').limit(1)
             ]);
 
             if (tasksResult.error) throw tasksResult.error;
@@ -53,11 +55,19 @@ export function useTasks() {
             if (profilesResult.error) throw profilesResult.error;
             // Rewards table may not exist yet, so don't throw
             if (rewardsResult.error) console.warn('Rewards fetch error (run the SQL migration):', rewardsResult.error);
+            // Settings table might not exist yet or have no row for current user
+            if (settingsResult.error) console.warn('Settings fetch error (run the SQL migration):', settingsResult.error);
 
             setTasks(tasksResult.data || []);
             setTeamMembers(teamsResult.data || []);
             setCategories(categoriesResult.data || []);
             setProfiles(profilesResult.data || []);
+            
+            if (settingsResult.data && settingsResult.data.length > 0) {
+                setUserSettings(settingsResult.data[0]);
+            } else {
+                setUserSettings({ kanban_enabled: false }); // default
+            }
             
             // Map rewards to 10 slots (fill missing slots with defaults)
             const fetchedRewards = rewardsResult.data || [];
@@ -407,12 +417,28 @@ export function useTasks() {
         }
     };
 
+    // --- Update User Settings ---
+    const updateUserSetting = async (userId, key, value) => {
+        // Optimistic UI Update
+        setUserSettings(prev => ({ ...prev, [key]: value }));
+
+        const { error } = await supabase
+            .from('user_settings')
+            .upsert({ user_id: userId, [key]: value, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+
+        if (error) {
+            console.error('Error updating user setting:', error);
+            fetchData(); // rollback
+        }
+    };
+
     return {
         tasks,
         teamMembers,
         categories,
         profiles,
         rewards,
+        userSettings,
         stats,
         addTask,
         addTeamMember,
@@ -428,6 +454,7 @@ export function useTasks() {
         updateProfileDetails,
         updateProfileTheme,
         updateReward,
+        updateUserSetting,
         resetData,
         loading
     };

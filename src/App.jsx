@@ -126,6 +126,7 @@ export default function App() {
         categories,
         profiles,
         rewards,
+        userSettings,
         addTask,
         addTeamMember,
         deleteTeamMember,
@@ -140,6 +141,7 @@ export default function App() {
         updateProfileDetails,
         updateProfileTheme,
         updateReward,
+        updateUserSetting,
         resetData,
         loading
     } = useTasks();
@@ -975,7 +977,7 @@ export default function App() {
                                 {/* Board Content */}
                                 {showAllTasksBoard && (
                                     <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                        <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} />
+                                        <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.kanban_enabled} />
                                     </div>
                                 )}
                             </div>
@@ -996,7 +998,7 @@ export default function App() {
                             {/* Board Content */}
                             {showMyTasksBoard && (
                                 <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                    <AllTasksBoard tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} />
+                                    <AllTasksBoard tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.kanban_enabled} />
                                 </div>
                             )}
                         </div>
@@ -1365,6 +1367,8 @@ export default function App() {
                 updateProfileTheme={updateProfileTheme}
                 userRole={userRole}
                 rewards={rewards}
+                userSettings={userSettings}
+                updateUserSetting={updateUserSetting}
             />
 
             {/* Admin Settings Modal */}
@@ -1783,10 +1787,11 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
 }
 
 // --- Kanban Helpers ---
-function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCategory, hideLabels, userRole }) {
+function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCategory, hideLabels, userRole, isDraggable = true }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: task.id,
-        data: { task }
+        data: { task },
+        disabled: !isDraggable
     });
 
     const style = {
@@ -1928,7 +1933,7 @@ function DroppableColumn({ id, title, colorClass, bgClass, borderClass, activeBo
 }
 
 // --- All Tasks Rolldown Board Component ---
-function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories, addCategory, deleteCategory }) {
+function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories, addCategory, deleteCategory, deleteTask, kanbanEnabled }) {
     const [activeId, setActiveId] = React.useState(null);
     const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
 
@@ -2014,6 +2019,7 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
             }
         }
     }
+
     return (
         <DndContext
             sensors={sensors}
@@ -2043,6 +2049,7 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
                                         addCategory={addCategory}
                                         deleteCategory={deleteCategory}
                                         hideLabels={true}
+                                        isDraggable={kanbanEnabled}
                                     />
                                 ))
                             )}
@@ -2406,7 +2413,7 @@ function BadgesModal({ isOpen, onClose, userRole, rewards }) {
 }
 
 // --- Settings Modal Component ---
-function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, currentUserProfile, teamMembers, updateTeamMember, updateProfileDetails, updateProfileTheme, userRole, rewards }) {
+function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, currentUserProfile, teamMembers, updateTeamMember, updateProfileDetails, updateProfileTheme, userRole, rewards, userSettings, updateUserSetting }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'profile');
     const [prefTab, setPrefTab] = React.useState('Notification');
     const [isBadgesModalOpen, setIsBadgesModalOpen] = React.useState(false);
@@ -2657,6 +2664,31 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                                     
                                     <div className="mt-8 border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center p-6 text-center text-slate-500 font-mono text-xs">
                                         Check back soon for MORE customizable settings.
+                                    </div>
+                                </div>
+                            ) : prefTab === 'Advanced' ? (
+                                <div className="flex-1 flex flex-col items-center justify-center px-6">
+                                    <div className="w-full max-w-md bg-slate-800/30 border border-slate-700/50 rounded-2xl p-6 transition-all hover:bg-slate-800/50 mb-8">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="text-white font-black tracking-widest uppercase text-sm mb-1">Kanban Board Mode</h3>
+                                                <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Enable drag-and-drop visual sprint board</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => updateUserSetting(currentUserProfile.id, 'kanban_enabled', !(userSettings?.kanban_enabled))}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${userSettings?.kanban_enabled ? "bg-blue-500" : "bg-slate-600"}`}
+                                            >
+                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${userSettings?.kanban_enabled ? "translate-x-6" : "translate-x-1"}`} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mt-auto border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center w-full max-w-md p-6 text-center">
+                                        <p className="text-slate-500 font-mono text-xs leading-relaxed">
+                                            <span className="text-slate-400 font-bold uppercase tracking-widest">Notification Config</span> is under construction.
+                                            <br/><br/>
+                                            Check back soon for customizable settings.
+                                        </p>
                                     </div>
                                 </div>
                             ) : (
