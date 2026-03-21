@@ -2625,6 +2625,34 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                                             <h3 className="text-white font-bold tracking-widest uppercase text-sm mb-1">Cool Yellow</h3>
                                             <p className="text-slate-500 text-[10px] uppercase font-bold">Yellow, Royal Blue Tint</p>
                                         </button>
+
+                                        {/* Theme 5 — Futuristic (LOCKED) */}
+                                        <div className="group relative p-4 rounded-2xl border-2 border-dashed border-slate-700/50 bg-slate-800/20 text-left transition-all cursor-not-allowed overflow-hidden">
+                                            <h3 className="text-slate-500 font-bold tracking-widest uppercase text-sm mb-1">Futuristic</h3>
+                                            <p className="text-slate-600 text-[10px] uppercase font-bold">Bright, Minimal, Clean</p>
+                                            {/* Default LOCKED overlay */}
+                                            <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-300 opacity-100 group-hover:opacity-0 pointer-events-none">
+                                                <span className="text-2xl font-black uppercase tracking-[0.3em] text-white/15 select-none">LOCKED</span>
+                                            </div>
+                                            {/* Hover unlock requirement overlay */}
+                                            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/90 rounded-2xl transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none">
+                                                <span className="text-[11px] font-bold uppercase tracking-widest text-blue-400 text-center px-4">Complete 50 Tasks to Unlock</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Theme 6 — 90's Vibe (LOCKED) */}
+                                        <div className="group relative p-4 rounded-2xl border-2 border-dashed border-slate-700/50 bg-slate-800/20 text-left transition-all cursor-not-allowed overflow-hidden">
+                                            <h3 className="text-slate-500 font-bold tracking-widest uppercase text-sm mb-1">90's Vibe</h3>
+                                            <p className="text-slate-600 text-[10px] uppercase font-bold">Nostalgic & Colorful</p>
+                                            {/* Default LOCKED overlay */}
+                                            <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-300 opacity-100 group-hover:opacity-0 pointer-events-none">
+                                                <span className="text-2xl font-black uppercase tracking-[0.3em] text-white/15 select-none">LOCKED</span>
+                                            </div>
+                                            {/* Hover unlock requirement overlay */}
+                                            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/90 rounded-2xl transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none">
+                                                <span className="text-[11px] font-bold uppercase tracking-widest text-blue-400 text-center px-4">Complete 100 Tasks to Unlock</span>
+                                            </div>
+                                        </div>
                                     </div>
                                     
                                     <div className="mt-8 border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center p-6 text-center text-slate-500 font-mono text-xs">
