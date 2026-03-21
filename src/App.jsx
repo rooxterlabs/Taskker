@@ -125,6 +125,7 @@ export default function App() {
         teamMembers,
         categories,
         profiles,
+        rewards,
         addTask,
         addTeamMember,
         deleteTeamMember,
@@ -138,6 +139,7 @@ export default function App() {
         terminateProfile,
         updateProfileDetails,
         updateProfileTheme,
+        updateReward,
         resetData,
         loading
     } = useTasks();
@@ -167,6 +169,7 @@ export default function App() {
     // Admin Settings State
     const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
     const [adminModalTab, setAdminModalTab] = useState('Invite Team');
+
 
     const handleSignOut = async () => {
         setIsProfileMenuOpen(false);
@@ -1341,6 +1344,7 @@ export default function App() {
                 userRole={userRole}
                 currentUserRosterName={currentUserRosterName}
                 teamMembers={teamMembers}
+                profiles={profiles}
                 categories={categories}
                 addTask={addTask}
                 updateTask={updateTask}
@@ -1360,6 +1364,7 @@ export default function App() {
                 updateProfileDetails={updateProfileDetails}
                 updateProfileTheme={updateProfileTheme}
                 userRole={userRole}
+                rewards={rewards}
             />
 
             {/* Admin Settings Modal */}
@@ -1372,6 +1377,9 @@ export default function App() {
                 teamMembers={teamMembers}
                 updateProfileRole={updateProfileRole}
                 terminateProfile={terminateProfile}
+                rewards={rewards}
+                updateReward={updateReward}
+                session={session}
             />
 
             {/* Versioning */}
@@ -2074,7 +2082,7 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
 }
 
 // --- Global Add Task Modal Component ---
-function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, teamMembers, categories, addTask, updateTask, addCategory, deleteCategory }) {
+function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, teamMembers, profiles, categories, addTask, updateTask, addCategory, deleteCategory }) {
     const [action, setAction] = React.useState('');
     const [assignee, setAssignee] = React.useState('');
     const [category, setCategory] = React.useState('');
@@ -2133,7 +2141,20 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
                             >
                                 <option value="" disabled>Assigned To</option>
                                 {teamMembers
-                                    .filter(m => userRole === 'super_admin' || m.role === 'worker' || m.name === currentUserRosterName)
+                                    .filter(m => {
+                                        if (userRole === 'super_admin') return true;
+                                        if (m.name === currentUserRosterName) return true;
+                                        // Cross-reference with profiles by user_id first, then email fallback
+                                        const memberProfile = m.user_id
+                                            ? profiles.find(p => p.id === m.user_id)
+                                            : m.email
+                                                ? profiles.find(p => p.email?.toLowerCase().trim() === m.email.toLowerCase().trim())
+                                                : null;
+                                        const memberRole = memberProfile?.role;
+                                        // Admins can only assign to workers (not other admins/super_admins)
+                                        if (memberRole === 'admin' || memberRole === 'super_admin') return false;
+                                        return true;
+                                    })
                                     .map(m => <option key={m.id} value={m.name} className="bg-slate-900">{m.name}</option>)
                                 }
                             </select>
@@ -2193,8 +2214,18 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
     );
 }
 
-// --- Badges Modal Component ---
-function BadgesModal({ isOpen, onClose, userRole }) {
+// --- Badges & Rewards Modal Component ---
+function BadgesModal({ isOpen, onClose, userRole, rewards }) {
+    const [activeView, setActiveView] = React.useState('badges');
+    const [clickedRewardId, setClickedRewardId] = React.useState(null);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setActiveView('badges');
+            setClickedRewardId(null);
+        }
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     const WORKER_BADGES = [
@@ -2233,48 +2264,140 @@ function BadgesModal({ isOpen, onClose, userRole }) {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
             <div className="w-full max-w-4xl bg-slate-900 overflow-hidden rounded-[2rem] border border-slate-700/50 shadow-2xl relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
                 
-                {/* Header */}
+                {/* Header with Toggle */}
                 <div className="p-6 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900/95 backdrop-blur z-10">
                     <div className="flex flex-col">
                         <h2 className="text-xl font-black uppercase text-white tracking-widest flex items-center gap-3">
-                            <Award className="w-6 h-6 text-yellow-500" /> My Badges
+                            {activeView === 'badges' ? (
+                                <><Award className="w-6 h-6 text-yellow-500" /> My Badges</>
+                            ) : (
+                                <><Zap className="w-6 h-6 text-yellow-500" /> My Rewards</>
+                            )}
                         </h2>
                         <p className="text-[10px] text-slate-500 font-mono mt-1 uppercase tracking-widest">
-                            Badges Gamification System is Under Construction
+                            {activeView === 'badges' 
+                                ? 'Badges Gamification System is Under Construction'
+                                : 'Rewards System is Under Construction'
+                            }
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-all">
-                        <X className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {activeView === 'badges' ? (
+                            <button 
+                                onClick={() => { setActiveView('rewards'); setClickedRewardId(null); }}
+                                className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 hover:border-yellow-500 transition-all active:scale-95"
+                            >
+                                My Rewards
+                            </button>
+                        ) : (
+                            <button 
+                                onClick={() => setActiveView('badges')}
+                                className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 hover:border-blue-500 transition-all active:scale-95"
+                            >
+                                My Badges
+                            </button>
+                        )}
+                        <button onClick={onClose} className="p-2 text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-all">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto no-scrollbar">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {badgesToRender.map(badge => (
-                            <div 
-                                key={badge.id} 
-                                className="group bg-slate-800/20 hover:bg-slate-900 border border-slate-800/50 hover:border-blue-500 rounded-2xl transition-all relative overflow-hidden h-36 cursor-pointer"
-                            >
-                                {/* Default View (Icon + Title) */}
-                                <div className="absolute inset-0 p-4 flex flex-col items-center justify-center transition-opacity duration-300 opacity-100 group-hover:opacity-0 pointer-events-none">
-                                    <div className="w-12 h-12 mb-3 rounded-full bg-slate-800 flex items-center justify-center border-2 border-slate-700 shadow-inner">
-                                        <Circle className="w-6 h-6 text-slate-600" />
+                <div className="p-6 overflow-y-auto no-scrollbar relative">
+                    {activeView === 'badges' ? (
+                        /* === MY BADGES VIEW === */
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {badgesToRender.map(badge => (
+                                <div 
+                                    key={badge.id} 
+                                    className="group bg-slate-800/20 hover:bg-slate-900 border border-slate-800/50 hover:border-blue-500 rounded-2xl transition-all relative overflow-hidden h-36 cursor-pointer"
+                                >
+                                    {/* Default View (Icon + Title) */}
+                                    <div className="absolute inset-0 p-4 flex flex-col items-center justify-center transition-opacity duration-300 opacity-100 group-hover:opacity-0 pointer-events-none">
+                                        <div className="w-12 h-12 mb-3 rounded-full bg-slate-800 flex items-center justify-center border-2 border-slate-700 shadow-inner">
+                                            <Circle className="w-6 h-6 text-slate-600" />
+                                        </div>
+                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center leading-tight">
+                                            {badge.name}
+                                        </h3>
                                     </div>
-                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center leading-tight">
-                                        {badge.name}
-                                    </h3>
-                                </div>
 
-                                {/* Hover View (Description) */}
-                                <div className="absolute inset-0 p-4 flex flex-col items-center justify-center transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none bg-slate-900 rounded-2xl">
-                                    <p className="text-[10px] font-bold text-slate-300 text-center leading-relaxed flex items-center justify-center h-full break-words">
-                                        {badge.req}
-                                    </p>
+                                    {/* Hover View (Description) */}
+                                    <div className="absolute inset-0 p-4 flex flex-col items-center justify-center transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none bg-slate-900 rounded-2xl">
+                                        <p className="text-[10px] font-bold text-slate-300 text-center leading-relaxed flex items-center justify-center h-full break-words">
+                                            {badge.req}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        /* === MY REWARDS VIEW === */
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {rewards.map((reward, idx) => {
+                                const isSecond = idx === 1;
+                                const hasTitle = reward.title && reward.title.trim();
+                                const hasReq = reward.requirement && reward.requirement.trim();
+                                const hasRewardName = reward.reward && reward.reward.trim();
+                                
+                                return (
+                                    <div 
+                                        key={reward.slot} 
+                                        className={`group bg-slate-800/20 hover:bg-slate-900 border rounded-2xl transition-all relative overflow-hidden h-36 ${isSecond ? 'cursor-pointer border-yellow-500/30 hover:border-yellow-500' : 'border-slate-800/50 hover:border-slate-600'}`}
+                                        onClick={() => {
+                                            if (isSecond && hasRewardName) {
+                                                setClickedRewardId(clickedRewardId === reward.slot ? null : reward.slot);
+                                            }
+                                        }}
+                                    >
+                                        {/* Default View (Icon + Title) */}
+                                        <div className="absolute inset-0 p-4 flex flex-col items-center justify-center transition-opacity duration-300 opacity-100 group-hover:opacity-0 pointer-events-none">
+                                            <div className={`w-12 h-12 mb-3 rounded-full flex items-center justify-center border-2 shadow-inner ${isSecond ? 'bg-yellow-500/10 border-yellow-500/40' : 'bg-slate-800 border-slate-700'}`}>
+                                                <Zap className={`w-6 h-6 ${isSecond ? 'text-yellow-500' : 'text-slate-600'}`} />
+                                            </div>
+                                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center leading-tight">
+                                                {hasTitle ? reward.title : '—'}
+                                            </h3>
+                                        </div>
+
+                                        {/* Hover View (Requirement) */}
+                                        <div className="absolute inset-0 p-4 flex flex-col items-center justify-center transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none bg-slate-900 rounded-2xl">
+                                            <p className="text-[10px] font-bold text-slate-300 text-center leading-relaxed flex items-center justify-center h-full break-words">
+                                                {hasReq ? reward.requirement : 'No requirement set.'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {clickedRewardId && (() => {
+                        const reward = rewards.find(r => r.slot === clickedRewardId);
+                        if (!reward || !reward.reward?.trim()) return null;
+                        return (
+                            <div 
+                                className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+                                onClick={() => setClickedRewardId(null)}
+                            >
+                                <div 
+                                    className="bg-slate-800 border border-yellow-500/40 rounded-2xl px-8 py-6 shadow-2xl shadow-yellow-500/10 animate-in zoom-in-95 duration-300 max-w-sm text-center"
+                                    onClick={e => e.stopPropagation()}
+                                >
+                                    <Zap className="w-8 h-8 text-yellow-500 mx-auto mb-3" />
+                                    <h3 className="text-lg font-black uppercase tracking-widest text-yellow-400 mb-1">Reward</h3>
+                                    <p className="text-white font-bold text-sm">{reward.reward}</p>
+                                    <button 
+                                        onClick={() => setClickedRewardId(null)}
+                                        className="mt-4 px-4 py-1.5 text-[10px] font-bold uppercase text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors"
+                                    >
+                                        Close
+                                    </button>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                        );
+                    })()}
                 </div>
 
             </div>
@@ -2283,7 +2406,7 @@ function BadgesModal({ isOpen, onClose, userRole }) {
 }
 
 // --- Settings Modal Component ---
-function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, currentUserProfile, teamMembers, updateTeamMember, updateProfileDetails, updateProfileTheme, userRole }) {
+function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, currentUserProfile, teamMembers, updateTeamMember, updateProfileDetails, updateProfileTheme, userRole, rewards }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'profile');
     const [prefTab, setPrefTab] = React.useState('Notification');
     const [isBadgesModalOpen, setIsBadgesModalOpen] = React.useState(false);
@@ -2368,8 +2491,8 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                                     <div className="w-12 h-12 rounded-full border border-yellow-500/30 bg-yellow-500/10 flex items-center justify-center group-hover:bg-yellow-500/20 group-hover:border-yellow-500 transition-all shadow-[0_0_15px_-3px_rgba(234,179,8,0.2)] group-hover:shadow-[0_0_20px_-3px_rgba(234,179,8,0.4)]">
                                         <Award className="w-6 h-6 text-yellow-500 group-hover:text-yellow-400 transition-colors" />
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-yellow-400 transition-colors">
-                                        Badges
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-yellow-400 transition-colors text-center leading-tight">
+                                        Badges and Rewards
                                     </span>
                                 </button>
                             </div>
@@ -2525,14 +2648,15 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
             <BadgesModal 
                 isOpen={isBadgesModalOpen} 
                 onClose={() => setIsBadgesModalOpen(false)} 
-                userRole={userRole} 
+                userRole={userRole}
+                rewards={rewards}
             />
         </div>
     );
 }
 
 // --- Admin Settings Modal Component ---
-function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile }) {
+function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile, rewards, updateReward, session }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'Invite Team');
 
     React.useEffect(() => {
@@ -2650,6 +2774,69 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                                 </tbody>
                             </table>
                         )}
+                    </div>
+                </div>
+            );
+        }
+
+        if (activeTab === 'Reward System') {
+            const handleRewardChange = (slot, field, value) => {
+                updateReward(slot, field, value, session?.user?.email, userRole);
+            };
+
+            return (
+                <div className="w-full h-full flex flex-col">
+                    <h2 className="text-xl font-black uppercase text-white mb-2 tracking-widest flex items-center gap-3">
+                        <Zap className="w-6 h-6 text-yellow-500" /> Reward System
+                    </h2>
+                    <p className="text-[10px] text-slate-500 font-mono mb-6 uppercase tracking-widest">
+                        Reward System for {userRole === 'super_admin' ? 'SUPER ADMIN' : 'ADMIN'} is under construction. This is just a sample.
+                    </p>
+                    <div className="flex-1 overflow-y-auto no-scrollbar">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-slate-800/80 sticky top-0 z-10 backdrop-blur-md">
+                                <tr className="text-[10px] text-slate-400 uppercase tracking-widest font-bold border-b border-slate-700/50">
+                                    <th className="py-3 px-3 w-8 text-center">#</th>
+                                    <th className="py-3 px-3">Reward Title</th>
+                                    <th className="py-3 px-3">Requirements</th>
+                                    <th className="py-3 px-3">Reward</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/50">
+                                {rewards.map((reward, idx) => (
+                                    <tr key={reward.slot} className="hover:bg-slate-800/30 transition-colors">
+                                        <td className="py-2 px-3 text-[10px] font-bold text-slate-500 text-center">{idx + 1}</td>
+                                        <td className="py-2 px-3">
+                                            <input
+                                                type="text"
+                                                value={reward.title}
+                                                onChange={(e) => handleRewardChange(reward.slot, 'title', e.target.value)}
+                                                placeholder={idx === 0 ? 'e.g. Critical Chief' : ''}
+                                                className="w-full bg-slate-800/60 border border-slate-700 text-white rounded-lg px-3 py-2 outline-none focus:border-yellow-500 transition-colors text-xs placeholder:text-slate-600"
+                                            />
+                                        </td>
+                                        <td className="py-2 px-3">
+                                            <input
+                                                type="text"
+                                                value={reward.requirement}
+                                                onChange={(e) => handleRewardChange(reward.slot, 'requirement', e.target.value)}
+                                                placeholder={idx === 0 ? 'e.g. Resolve 10 "P1" tasks' : ''}
+                                                className="w-full bg-slate-800/60 border border-slate-700 text-white rounded-lg px-3 py-2 outline-none focus:border-yellow-500 transition-colors text-xs placeholder:text-slate-600"
+                                            />
+                                        </td>
+                                        <td className="py-2 px-3">
+                                            <input
+                                                type="text"
+                                                value={reward.reward}
+                                                onChange={(e) => handleRewardChange(reward.slot, 'reward', e.target.value)}
+                                                placeholder={idx === 0 ? 'e.g. Large Cup of Coffee' : ''}
+                                                className="w-full bg-slate-800/60 border border-slate-700 text-white rounded-lg px-3 py-2 outline-none focus:border-yellow-500 transition-colors text-xs placeholder:text-slate-600"
+                                            />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             );

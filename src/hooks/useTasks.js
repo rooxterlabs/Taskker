@@ -27,7 +27,8 @@ export function useTasks() {
     const [tasks, setTasks] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
     const [categories, setCategories] = useState([]);
-    const [profiles, setProfiles] = useState([]); // NEW: Store actual user profiles
+    const [profiles, setProfiles] = useState([]); // Store actual user profiles
+    const [rewards, setRewards] = useState([]); // Reward definitions from admin
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -38,21 +39,33 @@ export function useTasks() {
         try {
             setLoading(true);
             // NEW: Added profiles to the initial fetch to get real Auth UUIDs
-            const [tasksResult, teamsResult, categoriesResult, profilesResult] = await Promise.all([
+            const [tasksResult, teamsResult, categoriesResult, profilesResult, rewardsResult] = await Promise.all([
                 supabase.from('tasks').select('*').order('id', { ascending: false }),
                 supabase.from('team_members').select('*').order('name', { ascending: true }),
                 supabase.from('categories').select('*').order('name', { ascending: true }),
-                supabase.from('profiles').select('id, email, role, first_name, last_name, title, theme, name') 
+                supabase.from('profiles').select('id, email, role, first_name, last_name, title, theme, name'),
+                supabase.from('rewards').select('*').order('slot', { ascending: true })
             ]);
 
             if (tasksResult.error) throw tasksResult.error;
             if (teamsResult.error) throw teamsResult.error;
             if (categoriesResult.error) throw categoriesResult.error;
+            if (profilesResult.error) throw profilesResult.error;
+            // Rewards table may not exist yet, so don't throw
+            if (rewardsResult.error) console.warn('Rewards fetch error (run the SQL migration):', rewardsResult.error);
 
             setTasks(tasksResult.data || []);
             setTeamMembers(teamsResult.data || []);
             setCategories(categoriesResult.data || []);
             setProfiles(profilesResult.data || []);
+            
+            // Map rewards to 10 slots (fill missing slots with defaults)
+            const fetchedRewards = rewardsResult.data || [];
+            const rewardSlots = Array.from({ length: 10 }, (_, i) => {
+                const existing = fetchedRewards.find(r => r.slot === i + 1);
+                return existing || { slot: i + 1, title: '', requirement: '', reward: '' };
+            });
+            setRewards(rewardSlots);
 
             // 30-Day Trash Cleanup Logic
             const thirtyDaysAgo = new Date();
@@ -373,11 +386,33 @@ export function useTasks() {
         }
     };
 
+    // --- Update Reward Slot ---
+    const updateReward = async (slot, field, value, userEmail, userRole) => {
+        // Optimistic update
+        setRewards(prev => prev.map(r => r.slot === slot ? { ...r, [field]: value } : r));
+
+        const { error } = await supabase
+            .from('rewards')
+            .upsert({
+                slot,
+                [field]: value,
+                created_by_email: userEmail,
+                created_by_role: userRole,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'slot' });
+
+        if (error) {
+            console.error('Error updating reward:', error);
+            fetchData();
+        }
+    };
+
     return {
         tasks,
         teamMembers,
         categories,
         profiles,
+        rewards,
         stats,
         addTask,
         addTeamMember,
@@ -392,6 +427,7 @@ export function useTasks() {
         terminateProfile,
         updateProfileDetails,
         updateProfileTheme,
+        updateReward,
         resetData,
         loading
     };
