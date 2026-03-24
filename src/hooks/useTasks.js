@@ -325,7 +325,7 @@ export function useTasks() {
         const validSchemaKeys = [
             'action', 'assignee', 'category', 'due_by_type', 'priority',
             'status', 'is_archived', 'target_deadline', 'submitted_on', 'deletion_date',
-            'assignee_id', 'assignee_email'
+            'assignee_id', 'assignee_email', 'is_notified', 'notes'
         ];
         
         const dbUpdates = {};
