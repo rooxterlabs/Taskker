@@ -520,7 +520,7 @@ export default function App() {
     const globalTheme = currentUserProfile?.theme || 'dark';
 
     return (
-        <div className={`min-h-screen bg-black text-slate-50 p-4 md:p-8 pt-20 md:pt-24 font-sans antialiased selection:bg-blue-500/30 theme-${globalTheme} transition-colors duration-500`}>
+        <div className={`min-h-screen bg-black text-slate-50 p-4 md:p-8 pt-12 md:pt-14 font-sans antialiased selection:bg-blue-500/30 theme-${globalTheme} transition-colors duration-500`}>
             {/* GLOBAL TOP HEADER */}
             <div className={`fixed top-0 left-0 right-0 w-full h-06 md:h-08 bg-slate-950/80 backdrop-blur-md border-b border-white/5 z-[60] px-4 md:px-8 flex items-center shadow-lg transition-colors duration-500`}>
                 <div className="w-full max-w-7xl mx-auto pl-0 lg:pl-4">

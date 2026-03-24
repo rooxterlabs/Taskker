@@ -29,7 +29,7 @@
 
 /* --- OATMEAL THEME (Mocha & Vanilla) --- */
 .theme-oatmeal.min-h-screen,
-.theme-oatmeal .bg-black { background-color: #f4eee6 !important; color: #52473f !important; }
+.theme-oatmeal .bg-black { background-color: #ebe4d5 !important; color: #52473f !important; }
 
 /* Pure White Backgrounds (Kanban / Modals / Stat Cards) */
 .theme-oatmeal .bg-slate-900, .theme-oatmeal .bg-slate-800 { background-color: #ffffff !important; }
@@ -44,12 +44,20 @@
 /* Oatmeal Text Colors */
 .theme-oatmeal .text-white, .theme-oatmeal .text-slate-50 { color: #52473f !important; }
 .theme-oatmeal .text-slate-300, .theme-oatmeal .text-slate-400 { color: #71675f !important; }
-.theme-oatmeal .text-slate-500 { color: #8f857d !important; }
+.theme-oatmeal .text-slate-100, .theme-oatmeal .text-slate-500 { color: #8f857d !important; }
 /* Roster Names Darkish Greyish Brown */
 .theme-oatmeal .text-blue-300\/60 { color: #7d6c5e !important; }
 
-/* Dropdown Hover States (Vanilla Grey Tone) */
-.theme-oatmeal .hover\:bg-blue-600:hover, .theme-oatmeal .hover\:bg-blue-900\/30:hover { background-color: rgba(0,0,0,0.06) !important; color: #52473f !important; }
+/* Global Interactive Vanilla Grey Tone */
+.theme-oatmeal .hover\:bg-blue-600:hover, 
+.theme-oatmeal .hover\:bg-blue-900\/30:hover,
+.theme-oatmeal .hover\:bg-slate-800:hover,
+.theme-oatmeal .hover\:bg-slate-800\/50:hover, 
+.theme-oatmeal .hover\:bg-slate-800\/80:hover,
+.theme-oatmeal .bg-slate-900\/50 { 
+    background-color: rgba(0,0,0,0.06) !important; 
+    color: #52473f !important; 
+}
 
 /* Oatmeal Borders */
 .theme-oatmeal .border-slate-800 { border-color: #e6dfd5 !important; }
