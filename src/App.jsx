@@ -38,7 +38,8 @@ import {
     Search,
     Flame,
     ThumbsUp,
-    PartyPopper
+    PartyPopper,
+    FolderKanban
 } from 'lucide-react';
 import { useTasks, calculateStats } from './hooks/useTasks';
 import { STATUS_OPTIONS, DUE_BY_OPTIONS } from './constants';
@@ -145,6 +146,8 @@ export default function App() {
         updateProfileTheme,
         updateReward,
         updateUserSetting,
+        companyName,
+        updateCompanyName,
         resetData,
         loading
     } = useTasks();
@@ -519,16 +522,18 @@ export default function App() {
     return (
         <div className={`min-h-screen bg-black text-slate-50 p-4 md:p-8 pt-20 md:pt-24 font-sans antialiased selection:bg-blue-500/30 theme-${globalTheme} transition-colors duration-500`}>
             {/* GLOBAL TOP HEADER */}
-            <div className={`fixed top-0 left-0 right-0 w-full h-16 md:h-20 bg-slate-950/80 backdrop-blur-md border-b border-white/5 z-[60] px-4 md:px-8 flex items-center shadow-lg transition-colors duration-500`}>
-                <h1 className="text-2xl md:text-3xl font-extralight tracking-widest text-slate-200 logo-text">
-                    TASKKER.IO
-                </h1>
+            <div className={`fixed top-0 left-0 right-0 w-full h-06 md:h-08 bg-slate-950/80 backdrop-blur-md border-b border-white/5 z-[60] px-4 md:px-8 flex items-center shadow-lg transition-colors duration-500`}>
+                <div className="w-full max-w-7xl mx-auto pl-0 lg:pl-4">
+                    <h1 className="text-2xl md:text-3xl font-extralight tracking-widest text-slate-200 logo-text">
+                        TASKKER.IO
+                    </h1>
+                </div>
             </div>
 
             {/* RIGHT SIDE BAR TOGGLE */}
             <button
                 onClick={() => setIsBottomBarOpen(!isBottomBarOpen)}
-                className={`fixed top-4 right-4 md:top-6 md:right-6 w-10 h-10 md:w-10 md:h-10 flex items-center justify-center z-[100] bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md border border-slate-700 rounded-xl md:rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95 group ${isBottomBarOpen ? 'bg-slate-700 shadow-inner' : ''}`}
+                className={`fixed top-2 right-4 md:top-3 md:right-7 w-10 h-4 flex items-center justify-center z-[100] bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md border border-slate-700 rounded-xl shadow-xl transition-all hover:scale-105 active:scale-95 group ${isBottomBarOpen ? 'bg-slate-700 shadow-inner' : ''}`}
             >
                 <MoreHorizontal className="w-5 h-5 text-slate-300 group-hover:text-white" />
             </button>
@@ -613,14 +618,14 @@ export default function App() {
             <div className="max-w-7xl mx-auto relative pl-0 lg:pl-4 transition-transform duration-500">
 
                 {/* Header Section */}
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 md:mb-4 gap-6">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 md:mb-6 gap-6">
                     <div className="flex flex-col items-start w-fit">
-                        <h1 className="text-2xl md:text-3xl font-extralight tracking-widest text-slate-200 logo-text">
-                            TASKKER.IO
-                        </h1>
-                        <div className="flex items-center gap-3 mt-2">
-                            <img src={`${import.meta.env.BASE_URL}avatars/RooxterFilms_Avatar.jpg`} alt="Team Avatar" className="w-8 h-8 md:w-10 md:h-10 object-cover rounded-xl border-2 border-blue-500 shadow-sm shadow-blue-500/20" />
-                            <span className="text-slate-300 font-light tracking-widest uppercase text-xs md:text-sm">TEAM ROOXTER</span>
+                        <div className="flex items-start gap-3">
+                            <img src={`${import.meta.env.BASE_URL}avatars/RooxterFilms_Avatar.jpg`} alt="Team Avatar" className="w-11 h-11 md:w-11 md:h-11 object-cover rounded-[14px] border-2 border-blue-500 shadow-sm shadow-blue-500/20" />
+                            <div className="flex flex-col items-start leading-none pt-0.5 md:pt-1">
+                                <span className="text-slate-300 font-light tracking-widest uppercase text-base md:text-lg leading-none">{companyName || 'TEAM ROOXTER'}</span>
+                                <span className="text-slate-100 font-bold tracking-widest uppercase text-[10px] md:text-xs mt-1 md:mt-1.5">{currentUserProfile?.name || currentUserRosterName || currentUserProfile?.first_name || 'GUEST'}</span>
+                            </div>
                         </div>
                     </div>
                 </header>
@@ -1069,7 +1074,7 @@ export default function App() {
                         {userRole && (
                             <div className="w-full text-center mt-4 mb-2 flex justify-center">
                                 <span className="text-[10px] text-slate-500 opacity-60 uppercase font-mono tracking-widest">
-                                    {userRole} mode {currentUserRosterName ? `| Roster Name: ${currentUserRosterName}` : '| UNLINKED ACCOUNT'}
+                                    {userRole} mode
                                 </span>
                             </div>
                         )}
@@ -1404,6 +1409,8 @@ export default function App() {
                 rewards={rewards}
                 updateReward={updateReward}
                 session={session}
+                companyName={companyName}
+                updateCompanyName={updateCompanyName}
             />
 
             {/* FUN POPUP MODAL */}
@@ -2776,8 +2783,14 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
 }
 
 // --- Admin Settings Modal Component ---
-function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile, rewards, updateReward, session }) {
+function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile, rewards, updateReward, session, companyName, updateCompanyName }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'Invite Team');
+    const [localName, setLocalName] = React.useState(companyName || 'TEAM ROOXTER');
+    const [isSavingName, setIsSavingName] = React.useState(false);
+
+    React.useEffect(() => {
+        setLocalName(companyName || 'TEAM ROOXTER');
+    }, [companyName, isOpen]);
 
     React.useEffect(() => {
         if (isOpen && initialTab) {
@@ -2796,11 +2809,59 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
     }
     sidebarTabs.push({ id: 'System Settings', icon: Settings });
     if (userRole === 'super_admin') {
+        sidebarTabs.push({ id: 'Project Management', icon: FolderKanban });
         sidebarTabs.push({ id: 'Billing Management', icon: FileText });
     }
     sidebarTabs.push({ id: 'Reward System', icon: Zap });
 
     const renderMainContent = () => {
+        if (activeTab === 'Project Management' && userRole === 'super_admin') {
+            const handleSaveName = async () => {
+                const trimmed = localName.trim();
+                if (!trimmed || trimmed === companyName) return;
+                setIsSavingName(true);
+                await updateCompanyName(trimmed, session?.user?.id);
+                setIsSavingName(false);
+            };
+
+            return (
+                <div className="w-full h-full flex flex-col p-8 bg-slate-900 rounded-r-3xl relative">
+                    <h2 className="text-xl font-black uppercase tracking-widest text-white mb-6 flex items-center gap-3">
+                        <FolderKanban className="w-6 h-6 text-indigo-400" /> Project Management
+                    </h2>
+                    
+                    <div className="flex-1 overflow-y-auto no-scrollbar pt-4 flex flex-col">
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 mb-8 text-amber-200/80 font-medium">
+                            Project Management for SUPER ADMIN is under construction.
+                        </div>
+
+                        <div className="bg-slate-800/50 border border-slate-700/50 rounded-3xl p-6 mt-auto">
+                            <h3 className="text-sm font-black uppercase text-slate-300 tracking-widest pl-2 border-l-2 border-indigo-500 mb-2">Global Team Name</h3>
+                            <p className="text-xs text-slate-500 mb-6">Edit the organizational Team Name displayed at the top of the application for all users across the platform.</p>
+                            
+                            <div className="flex items-center gap-4">
+                                <input 
+                                    type="text" 
+                                    value={localName} 
+                                    onChange={e => setLocalName(e.target.value)}
+                                    maxLength={30}
+                                    placeholder="Enter your team or company name..."
+                                    className="flex-1 bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-indigo-500 transition-colors text-sm font-medium"
+                                />
+                                <button 
+                                    onClick={handleSaveName}
+                                    disabled={isSavingName || !localName.trim() || localName === companyName}
+                                    className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 min-w-[120px]"
+                                >
+                                    {isSavingName ? "Saving..." : "Save Name"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         if (activeTab === 'Invite Team') {
             return (
                 <div className="w-full h-full flex flex-col">

@@ -30,6 +30,7 @@ export function useTasks() {
     const [profiles, setProfiles] = useState([]); // Store actual user profiles
     const [rewards, setRewards] = useState([]); // Reward definitions from admin
     const [userSettings, setUserSettings] = useState({ kanban_enabled: false }); // User preferences
+    const [companyName, setCompanyName] = useState('TEAM ROOXTER'); // Global App Setting
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -40,13 +41,14 @@ export function useTasks() {
         try {
             setLoading(true);
             // NEW: Added profiles to the initial fetch to get real Auth UUIDs
-            const [tasksResult, teamsResult, categoriesResult, profilesResult, rewardsResult, settingsResult] = await Promise.all([
+            const [tasksResult, teamsResult, categoriesResult, profilesResult, rewardsResult, settingsResult, appSettingsResult] = await Promise.all([
                 supabase.from('tasks').select('*').order('id', { ascending: false }),
                 supabase.from('team_members').select('*').order('name', { ascending: true }),
                 supabase.from('categories').select('*').order('name', { ascending: true }),
                 supabase.from('profiles').select('id, email, role, first_name, last_name, title, theme, name'),
                 supabase.from('rewards').select('*').order('slot', { ascending: true }),
-                supabase.from('user_settings').select('kanban_enabled').limit(1)
+                supabase.from('user_settings').select('kanban_enabled').limit(1),
+                supabase.from('app_settings').select('*')
             ]);
 
             if (tasksResult.error) throw tasksResult.error;
@@ -62,6 +64,13 @@ export function useTasks() {
             setTeamMembers(teamsResult.data || []);
             setCategories(categoriesResult.data || []);
             setProfiles(profilesResult.data || []);
+            
+            if (appSettingsResult && !appSettingsResult.error && appSettingsResult.data) {
+                const cnRow = appSettingsResult.data.find(r => r.setting_key === 'company_name');
+                if (cnRow?.setting_value) {
+                    setCompanyName(cnRow.setting_value);
+                }
+            }
             
             if (settingsResult.data && settingsResult.data.length > 0) {
                 setUserSettings(settingsResult.data[0]);
@@ -432,6 +441,24 @@ export function useTasks() {
         }
     };
 
+    // --- Update Global Company Name ---
+    const updateCompanyName = async (newName, userId) => {
+        setCompanyName(newName);
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({ 
+                setting_key: 'company_name', 
+                setting_value: newName, 
+                updated_by: userId, 
+                updated_at: new Date().toISOString() 
+            }, { onConflict: 'setting_key' });
+        
+        if (error) {
+            console.error("Error saving company name:", error);
+            fetchData();
+        }
+    };
+
     return {
         tasks,
         teamMembers,
@@ -439,6 +466,7 @@ export function useTasks() {
         profiles,
         rewards,
         userSettings,
+        companyName,
         stats,
         addTask,
         addTeamMember,
@@ -455,6 +483,7 @@ export function useTasks() {
         updateProfileTheme,
         updateReward,
         updateUserSetting,
+        updateCompanyName,
         resetData,
         loading
     };
