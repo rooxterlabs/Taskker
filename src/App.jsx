@@ -1808,7 +1808,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
     const isWorker = userRole === 'worker';
 
     return (
-        <div className={`p-2 md:p-2.5 rounded-xl border flex flex-col gap-1.5 relative shadow-sm transition-colors ${task.created_by_role === 'worker' ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-800/40 border-slate-700/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : ''} overflow-hidden`}>
+        <div className={`p-2 md:p-2.5 rounded-xl border flex flex-col gap-1.5 relative shadow-sm transition-colors ${task.created_by_role === 'worker' ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-800/40 border-slate-700/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : ''}`}>
 
             {/* BIG BACKGROUND OVERDUE TEXT */}
             {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') && (
@@ -1903,9 +1903,9 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                 </div>
             </div>
 
-            {/* Inline Notes Overlay for TaskCard */}
+            {/* Expanded Inline Notes Overlay for TaskCard */}
             {isNotesOpen && (
-                <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm z-[50] flex flex-col p-2 md:p-2.5 animate-in fade-in duration-200" onClick={e => e.stopPropagation()}>
+                <div className="absolute top-0 left-0 w-full min-h-[180px] bg-slate-900/98 backdrop-blur-md z-[120] flex flex-col p-3 md:p-4 animate-in fade-in duration-200 rounded-2xl border border-slate-600 shadow-[0_20px_60px_-15px_rgba(0,0,0,1)]" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-between items-center px-1 mb-2">
                         <div className="flex items-center gap-2">
                             <h3 className="text-emerald-500 text-[10px] md:text-xs font-black tracking-widest uppercase">Notes</h3>
@@ -1913,13 +1913,13 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                                 <span className={`text-[8px] font-bold ${draftNotes.length >= 200 ? 'text-red-500' : 'text-slate-500'}`}>{draftNotes.length}/200</span>
                             )}
                         </div>
-                        <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }} className="text-slate-500 hover:text-slate-300 p-1">
+                        <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }} className="text-slate-500 hover:text-slate-300 p-1 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
                             <X className="w-4 h-4" />
                         </button>
                     </div>
                     
                     {isWorker ? (
-                        <div className="flex-1 w-full bg-slate-800/40 rounded-lg p-2 md:p-3 border border-slate-700/50 text-slate-300 text-xs md:text-sm overflow-y-auto leading-relaxed">
+                        <div className="flex-1 w-full min-h-[100px] bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 text-slate-300 text-xs md:text-sm overflow-y-auto leading-relaxed shadow-inner">
                             {task.notes || <span className="text-slate-500 italic">No notes provided.</span>}
                         </div>
                     ) : (
@@ -1928,20 +1928,20 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                             value={draftNotes}
                             onChange={(e) => setDraftNotes(e.target.value)}
                             maxLength={200}
-                            className="flex-1 w-full bg-slate-800/40 rounded-lg p-2 md:p-3 border border-slate-700/50 text-white text-xs md:text-sm font-bold resize-none outline-none focus:border-blue-500/50 transition-colors leading-relaxed"
-                            placeholder="Task notes..."
+                            className="flex-1 w-full min-h-[100px] bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 text-white text-xs md:text-sm font-bold resize-none outline-none focus:border-blue-500/50 transition-colors leading-relaxed shadow-inner"
+                            placeholder="Task notes... (max 200 characters)"
                         />
                     )}
                     
                     {!isWorker && (
-                        <div className="flex justify-end items-center mt-2 px-1">
+                        <div className="flex justify-end items-center mt-3 px-1">
                             <button 
                                 onClick={(e) => { 
                                     e.stopPropagation(); 
                                     updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
                                     setIsNotesOpen(false);
                                 }} 
-                                className="text-slate-400 hover:text-emerald-500 text-[10px] md:text-xs font-bold uppercase tracking-wider transition-colors px-3 md:px-4 py-1.5 md:py-2 bg-slate-800 border border-slate-700/50 hover:border-emerald-500/50 rounded-lg shadow-sm"
+                                className="text-slate-200 hover:text-emerald-400 text-[10px] md:text-xs font-bold uppercase tracking-wider transition-colors px-4 py-2 bg-slate-800 border border-slate-600 hover:border-emerald-500/50 rounded-lg shadow-md hover:shadow-emerald-500/10 active:scale-95"
                             >
                                 Save
                             </button>
@@ -1983,7 +1983,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
             {...attributes}
             {...listeners}
         >
-            <div className={`p-1.5 rounded-xl border transition-colors group flex flex-col gap-1 relative ${task.created_by_role === 'worker' ? 'bg-slate-900/80 hover:border-slate-800' : 'bg-slate-800/60 hover:border-slate-500/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'} overflow-hidden`}>
+            <div className={`p-1.5 rounded-xl border transition-colors group flex flex-col gap-1 relative ${task.created_by_role === 'worker' ? 'bg-slate-900/80 hover:border-slate-800' : 'bg-slate-800/60 hover:border-slate-500/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'}`}>
 
                 {/* BIG BACKGROUND OVERDUE TEXT */}
                 {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') && (
@@ -2080,23 +2080,23 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                 </div>
             </div>
 
-            {/* Inline Notes Overlay for DraggableTaskCard */}
+            {/* Expanded Inline Notes Overlay for DraggableTaskCard */}
             {isNotesOpen && (
-                <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm z-[50] flex flex-col p-1.5 md:p-2 animate-in fade-in duration-200 rounded-xl" onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-between items-center px-1 mb-1.5">
+                <div className="absolute top-0 left-0 w-full md:w-[105%] md:-left-[2.5%] min-h-[170px] bg-slate-900/98 backdrop-blur-md z-[120] flex flex-col p-2.5 md:p-3 animate-in fade-in duration-200 rounded-2xl border border-slate-600 shadow-[0_20px_60px_-15px_rgba(0,0,0,1)]" onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center px-1 mb-2">
                         <div className="flex items-center gap-2">
-                            <h3 className="text-emerald-500 text-[9px] md:text-[10px] font-black tracking-widest uppercase">Notes</h3>
+                            <h3 className="text-emerald-500 text-[10px] md:text-xs font-black tracking-widest uppercase">Notes</h3>
                             {!isWorker && (
                                 <span className={`text-[8px] font-bold ${draftNotes.length >= 200 ? 'text-red-500' : 'text-slate-500'}`}>{draftNotes.length}/200</span>
                             )}
                         </div>
-                        <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }} className="text-slate-500 hover:text-slate-300 p-1">
-                            <X className="w-3.5 h-3.5" />
+                        <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }} className="text-slate-500 hover:text-slate-300 p-1 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
                     
                     {isWorker ? (
-                        <div className="flex-1 w-full bg-slate-800/40 rounded border border-slate-700/50 p-2 text-slate-300 text-[10px] md:text-xs overflow-y-auto leading-relaxed">
+                        <div className="flex-1 w-full min-h-[90px] bg-slate-800/50 rounded-xl border border-slate-700/50 p-2.5 text-slate-300 text-[10px] md:text-xs overflow-y-auto leading-relaxed shadow-inner">
                             {task.notes || <span className="text-slate-500 italic">No notes provided.</span>}
                         </div>
                     ) : (
@@ -2105,20 +2105,20 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                             value={draftNotes}
                             onChange={(e) => setDraftNotes(e.target.value)}
                             maxLength={200}
-                            className="flex-1 w-full bg-slate-800/40 rounded border border-slate-700/50 p-2 text-white text-[10px] md:text-xs font-bold resize-none outline-none focus:border-blue-500/50 transition-colors leading-relaxed"
-                            placeholder="Task notes..."
+                            className="flex-1 w-full min-h-[90px] bg-slate-800/50 rounded-xl border border-slate-700/50 p-2.5 text-white text-[10px] md:text-xs font-bold resize-none outline-none focus:border-blue-500/50 transition-colors leading-relaxed shadow-inner"
+                            placeholder="Task notes... (max 200 character limit)"
                         />
                     )}
                     
                     {!isWorker && (
-                        <div className="flex justify-end items-center mt-1.5 px-1">
+                        <div className="flex justify-end items-center mt-2.5 px-1">
                             <button 
                                 onClick={(e) => { 
                                     e.stopPropagation(); 
                                     updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
                                     setIsNotesOpen(false);
                                 }} 
-                                className="text-slate-400 hover:text-emerald-500 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-colors px-2 py-1 bg-slate-800 border border-slate-700/50 hover:border-emerald-500/50 rounded shadow-sm"
+                                className="text-slate-200 hover:text-emerald-400 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-colors px-3 py-1.5 bg-slate-800 border border-slate-600 hover:border-emerald-500/50 rounded-lg shadow-md hover:shadow-emerald-500/10 active:scale-95"
                             >
                                 Save
                             </button>
