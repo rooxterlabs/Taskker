@@ -15,6 +15,7 @@ import {
     Activity,
     BarChart3,
     CheckSquare,
+    Square,
     ChevronDown,
     UserPlus,
     Pencil,
@@ -1127,6 +1128,12 @@ export default function App() {
                                                 <th className="px-4 py-3 font-bold whitespace-nowrap">TASKS</th>
                                                 <th className="px-4 py-3 font-bold whitespace-nowrap">CATEGORY</th>
                                                 <th className="px-4 py-3 font-bold whitespace-nowrap">DUE BY</th>
+                                                {['admin', 'super_admin'].includes(userRole) && (
+                                                    <>
+                                                        <th className="px-4 py-3 font-bold text-center whitespace-nowrap">NOTIFIED!</th>
+                                                        <th className="px-4 py-3 font-bold text-center whitespace-nowrap">NOTES</th>
+                                                    </>
+                                                )}
                                                 <th className="px-4 py-3 font-bold text-center whitespace-nowrap">DELETE</th>
                                             </tr>
                                         </thead>
@@ -1143,6 +1150,7 @@ export default function App() {
                                                         deleteCategory={deleteCategory}
                                                         deleteTask={deleteTask}
                                                         showAssignee={false}
+                                                        userRole={userRole}
                                                     />
                                                 ))}
                                         </tbody>
@@ -1716,14 +1724,57 @@ function StatCard({ label, shortLabel, value, icon: Icon, color, bgColor, onClic
 }
 
 // --- Responsive Task Components ---
-function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, deleteTask, showAssignee }) {
+function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, deleteTask, showAssignee, userRole }) {
     const textareaRef = React.useRef(null);
+    const notesTextareaRef = React.useRef(null);
+    const [isNotesOpen, setIsNotesOpen] = React.useState(false);
+    const [draftNotes, setDraftNotes] = React.useState(task.notes || '');
 
     React.useEffect(() => {
-        if (task.action === '' && textareaRef.current) {
+        if (task.action === '' && textareaRef.current && !isNotesOpen) {
             textareaRef.current.focus();
         }
-    }, [task.action]);
+    }, [task.action, isNotesOpen]);
+
+    if (isNotesOpen && ['admin', 'super_admin'].includes(userRole)) {
+        return (
+            <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'bg-red-900/10' : ''}`}>
+                <td colSpan={100} className="p-0 border-y border-emerald-500/30">
+                    <div className="w-full bg-slate-800/95 flex flex-col focus-within:border-blue-500/50 transition-colors overflow-hidden shrink-0">
+                        <div className="flex justify-between items-center px-4 pt-4 pb-2">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-emerald-500 text-[10px] md:text-xs font-black tracking-widest uppercase">Notes</h3>
+                                <span className={`text-[8px] font-bold ${draftNotes.length >= 200 ? 'text-red-500' : 'text-slate-500'}`}>{draftNotes.length}/200</span>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }} className="text-slate-500 hover:text-slate-300 p-1 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <textarea 
+                            ref={notesTextareaRef}
+                            value={draftNotes}
+                            onChange={(e) => setDraftNotes(e.target.value)}
+                            maxLength={200}
+                            className="w-full h-[140px] px-4 py-2 bg-transparent text-slate-300 text-[10px] md:text-xs resize-none outline-none leading-relaxed"
+                            placeholder="Task notes... (max 200 character limit)"
+                        />
+                        <div className="bg-slate-900/60 px-4 py-3 flex justify-end shrink-0 border-t border-slate-700/50">
+                            <button 
+                                onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
+                                    setIsNotesOpen(false);
+                                }} 
+                                className="text-slate-300 hover:text-emerald-400 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-colors px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-emerald-500/50 rounded-lg shadow-md hover:shadow-emerald-500/10 active:scale-95"
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        );
+    }
 
     return (
         <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'bg-red-900/10' : ''} ${task.created_by_role === 'worker' ? 'bg-slate-900/40' : ''}`}>
@@ -1776,6 +1827,34 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                     />
                 </div>
             </td>
+            {['admin', 'super_admin'].includes(userRole) && (
+                <>
+                    <td className="px-4 py-3 text-center">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
+                            className="flex justify-center w-full transition-transform hover:scale-110"
+                        >
+                            {task.is_notified ? (
+                                <CheckSquare className="w-4 h-4 text-red-500" />
+                            ) : (
+                                <Square className="w-4 h-4 text-slate-600 hover:text-slate-400 transition-colors" />
+                            )}
+                        </button>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                        <button
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setIsNotesOpen(true); 
+                                setTimeout(() => notesTextareaRef.current?.focus(), 50);
+                            }}
+                            className={`text-[10px] font-black uppercase tracking-wider transition-colors pt-0.5 ${task.notes && task.notes.trim() !== '' ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-400'}`}
+                        >
+                            Notes
+                        </button>
+                    </td>
+                </>
+            )}
             <td className="px-4 py-3 text-center">
                 <button
                     onClick={() => deleteTask(task.id)}
