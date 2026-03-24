@@ -35,7 +35,10 @@ import {
     Palette,
     Shield,
     LogOut,
-    Search
+    Search,
+    Flame,
+    ThumbsUp,
+    PartyPopper
 } from 'lucide-react';
 import { useTasks, calculateStats } from './hooks/useTasks';
 import { STATUS_OPTIONS, DUE_BY_OPTIONS } from './constants';
@@ -162,6 +165,7 @@ export default function App() {
     const [calendarMode, setCalendarMode] = useState('week'); // 'day', 'month' or 'week'
     const [isBottomBarOpen, setIsBottomBarOpen] = useState(false);
     const [isGlobalAddTaskOpen, setIsGlobalAddTaskOpen] = useState(false);
+    const [isFunModalOpen, setIsFunModalOpen] = useState(false);
     
     // Profile & Settings State
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -576,9 +580,18 @@ export default function App() {
 
                 <div className="flex-1 min-h-[20px]"></div>
 
+                {/* FUN BUTTON */}
+                <button
+                    onClick={() => setIsFunModalOpen(true)}
+                    className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center border border-slate-700/50 rounded-xl md:rounded-2xl transition-all shadow-lg group bg-slate-800/30 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/50 mt-auto mb-2"
+                    title="FUN BUTTON"
+                >
+                    <Zap className="w-5 h-5 transition-transform duration-300 group-hover:scale-125" />
+                </button>
+
                 {/* ADMIN SYSTEM MODULE BUTTON */}
                 <RoleGate allowed={['super_admin', 'admin']} userRole={userRole}>
-                    <div className="relative mt-auto">
+                    <div className="relative">
                         <button
                             onClick={() => openAdminSettings('Invite Team')}
                             className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center border border-slate-700 rounded-xl md:rounded-2xl transition-colors shadow-lg group bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white"
@@ -1385,6 +1398,46 @@ export default function App() {
                 updateReward={updateReward}
                 session={session}
             />
+
+            {/* FUN POPUP MODAL */}
+            {isFunModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-slate-900 border border-slate-700/50 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+                        <button
+                            onClick={() => setIsFunModalOpen(false)}
+                            className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors p-1"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                        
+                        <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mb-6">
+                            <Zap className="w-8 h-8 text-yellow-500" />
+                        </div>
+                        
+                        <p className="text-sm text-slate-300 mb-8 leading-relaxed font-medium">
+                            This is the fun panel! - the idea is you can send nudges, icons and other fun whatnots to people. For now, this is placeholder.
+                        </p>
+                        
+                        <div className="flex gap-4 justify-center">
+                            <button className="w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 rounded-xl flex items-center justify-center transition-all hover:scale-110 group">
+                                <Zap className="w-5 h-5 text-yellow-400 group-hover:scale-110 transition-transform" />
+                            </button>
+                            <button className="w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 rounded-xl flex items-center justify-center transition-all hover:scale-110 group">
+                                <Flame className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                            </button>
+                            <button className="w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 rounded-xl flex items-center justify-center transition-all hover:scale-110 group">
+                                <ThumbsUp className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" />
+                            </button>
+                            <button className="w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 rounded-xl flex items-center justify-center transition-all hover:scale-110 group">
+                                <Bell className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                            </button>
+                            <button className="w-12 h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 rounded-xl flex items-center justify-center transition-all hover:scale-110 group">
+                                <PartyPopper className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Versioning */}
             <div className="fixed bottom-2 right-2 text-[10px] font-thin text-white/50 pointer-events-none z-0">
@@ -2757,19 +2810,30 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
 
         if (activeTab === 'Users and Roles' && (userRole === 'super_admin' || userRole === 'admin')) {
             const handleRoleChange = (p, newRole) => {
-                if (userRole === 'super_admin') {
-                    updateProfileRole(p.id, newRole);
-                } else if (userRole === 'admin') {
-                    // Admin intercepts to send request
-                    const superAdmins = profiles.filter(pr => pr.role === 'super_admin').map(pr => pr.email).join(',');
-                    const teamMemberName = teamMembers?.find(m => m.user_id === p.id)?.name || p.email;
-                    const actionText = newRole === 'admin' ? 'Promote to Admin' : 'Demote to Worker';
-                    const subject = encodeURIComponent(`Role Change Request: ${teamMemberName}`);
-                    const body = encodeURIComponent(`Hi Super Admin,\n\nI am requesting a role change for the following user:\n\nName: ${teamMemberName}\nEmail: ${p.email}\nCurrent Role: ${p.role}\nRequested Action: ${actionText}\n\nPlease review and adjust their role at your convenience.\n\nThank you.`);
-                    
-                    window.open(`mailto:${superAdmins}?subject=${subject}&body=${body}`, '_blank');
-                }
+                updateProfileRole(p.id, newRole);
             };
+
+            const sortedProfiles = [...profiles].sort((a, b) => {
+                const roleWeight = { 'super_admin': 1, 'admin': 2, 'worker': 3 };
+                const weightA = roleWeight[a.role] || 99;
+                const weightB = roleWeight[b.role] || 99;
+                
+                if (weightA !== weightB) {
+                    return weightA - weightB;
+                }
+                
+                const getDisplayName = (p) => {
+                    const name = p.name || teamMembers?.find(m => m.user_id === p.id)?.name || p.email || '';
+                    return name.toLowerCase();
+                };
+                
+                const nameA = getDisplayName(a);
+                const nameB = getDisplayName(b);
+                
+                if (nameA < nameB) return -1;
+                if (nameA > nameB) return 1;
+                return 0;
+            });
 
             return (
                 <div className="w-full h-full flex flex-col">
@@ -2783,31 +2847,31 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-slate-800/80 sticky top-0 z-10 backdrop-blur-md pb-4">
                                     <tr className="text-[10px] text-slate-400 uppercase tracking-widest font-bold border-b border-slate-700/50">
-                                        <th className="py-3 px-4">Display Name</th>
-                                        <th className="py-3 px-4">First Name</th>
-                                        <th className="py-3 px-4">Last Name</th>
-                                        <th className="py-3 px-4">Title</th>
-                                        <th className="py-3 px-4 text-center">Role</th>
-                                        <th className="py-3 px-4">Email</th>
-                                        {userRole === 'super_admin' && (
-                                            <th className="py-3 px-4 text-right">Action</th>
+                                        <th className="py-1.5 px-2">Display Name</th>
+                                        <th className="py-1.5 px-2">First Name</th>
+                                        <th className="py-1.5 px-2">Last Name</th>
+                                        <th className="py-1.5 px-2">Title</th>
+                                        <th className="py-1.5 px-2 text-center">Role</th>
+                                        <th className="py-1.5 px-2">Email</th>
+                                        {(userRole === 'super_admin' || userRole === 'admin') && (
+                                            <th className="py-1.5 px-2 text-right">Delete</th>
                                         )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800/50">
-                                    {profiles.map(p => (
+                                    {sortedProfiles.map(p => (
                                         <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
-                                            <td className="py-3 px-4 text-xs font-bold text-blue-300">
+                                            <td className="py-1.5 px-2 text-xs font-bold text-blue-300">
                                                 {p.name || teamMembers?.find(m => m.user_id === p.id)?.name || p.email}
                                             </td>
-                                            <td className="py-3 px-4 text-xs text-slate-300">{p.first_name || '-'}</td>
-                                            <td className="py-3 px-4 text-xs text-slate-300">{p.last_name || '-'}</td>
-                                            <td className="py-3 px-4 text-xs text-slate-400 italic">{p.title || '-'}</td>
-                                            <td className="py-3 px-4 text-center">
+                                            <td className="py-1.5 px-2 text-xs text-slate-300">{p.first_name || '-'}</td>
+                                            <td className="py-1.5 px-2 text-xs text-slate-300">{p.last_name || '-'}</td>
+                                            <td className="py-1.5 px-2 text-xs text-slate-400 italic">{p.title || '-'}</td>
+                                            <td className="py-1.5 px-2 text-center">
                                                 <select
                                                     value={p.role}
                                                     onChange={(e) => handleRoleChange(p, e.target.value)}
-                                                    className={`bg-slate-900 border appearance-none text-center px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer outline-none transition-colors ${p.role === 'super_admin' ? 'text-purple-400 border-purple-500/30' : p.role === 'admin' ? 'text-emerald-400 border-emerald-500/30' : 'text-slate-400 border-slate-700'}`}
+                                                    className={`bg-slate-900 border appearance-none text-center px-2 py-1 rounded-lg text-[10px] font-bold cursor-pointer outline-none transition-colors ${p.role === 'super_admin' ? 'text-purple-400 border-purple-500/30' : p.role === 'admin' ? 'text-emerald-400 border-emerald-500/30' : 'text-slate-400 border-slate-700'}`}
                                                     disabled={p.role === 'super_admin'}
                                                 >
                                                     <option value="worker">Worker</option>
@@ -2815,17 +2879,18 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                                                     <option value="super_admin" disabled>Super Admin</option>
                                                 </select>
                                             </td>
-                                            <td className="py-3 px-4 text-xs text-slate-500 font-mono">
+                                            <td className="py-1.5 px-2 text-xs text-slate-500 font-mono">
                                                 {p.email}
                                             </td>
-                                            {userRole === 'super_admin' && (
-                                                <td className="py-3 px-4 text-right">
+                                            {(userRole === 'super_admin' || userRole === 'admin') && (
+                                                <td className="py-1.5 px-2 text-right">
                                                     <button
                                                         onClick={() => terminateProfile(p.id, p.email)}
                                                         disabled={p.role === 'super_admin'}
-                                                        className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 border border-red-500/30 rounded-lg text-[10px] font-bold uppercase transition-colors disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-red-500"
+                                                        className="p-1.5 text-slate-500 hover:text-red-500 transition-colors disabled:opacity-20 disabled:hover:text-slate-500 rounded-lg hover:bg-red-500/10"
+                                                        title="Terminate Profile"
                                                     >
-                                                        Terminate
+                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </td>
                                             )}
