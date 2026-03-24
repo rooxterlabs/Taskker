@@ -1937,7 +1937,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
     );
 }
 
-function DroppableColumn({ id, title, colorClass, bgClass, borderClass, activeBorderClass, tasks, children }) {
+function DroppableColumn({ id, title, colorClass, bgClass, borderClass, activeBorderClass, orderClass, tasks, children }) {
     const { isOver, setNodeRef } = useDroppable({ id });
     const currentBorder = isOver ? activeBorderClass : borderClass;
 
@@ -1971,7 +1971,7 @@ function DroppableColumn({ id, title, colorClass, bgClass, borderClass, activeBo
     };
 
     return (
-        <div ref={setNodeRef} className={`flex flex-col h-auto min-h-[150px] max-h-[60vh] md:h-[70vh] md:min-h-[400px] md:max-h-[800px] bg-slate-900/40 rounded-2xl border ${currentBorder} transition-all duration-300 relative overflow-hidden group`}>
+        <div ref={setNodeRef} className={`flex flex-col h-auto min-h-[150px] max-h-[60vh] md:h-[70vh] md:min-h-[400px] md:max-h-[800px] bg-slate-900/40 rounded-2xl border ${currentBorder} transition-all duration-300 relative overflow-hidden group ${orderClass || ''}`}>
             {/* Column Header */}
             <div className={`${bgClass} p-3 border-b ${currentBorder} flex justify-between items-center transition-all duration-300 rounded-t-2xl z-10 shrink-0`}>
                 <h3 className={`text-xs font-black uppercase tracking-wider ${colorClass}`}>{title}</h3>
@@ -2051,11 +2051,11 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
     };
 
     const columns = [
-        { id: 'P1', title: 'P1 (HIGH)', colorClass: 'text-red-500', bgClass: 'bg-red-500/10', borderClass: 'border-red-500/20', activeBorderClass: 'border-red-400 ring-2 ring-red-500 shadow-[inset_0_0_20px_rgba(239,68,68,0.2)]', newPriority: 'P1', newDueBy: 'Today' },
-        { id: 'P2', title: 'P2 (NORMAL)', colorClass: 'text-orange-500', bgClass: 'bg-orange-500/10', borderClass: 'border-orange-500/20', activeBorderClass: 'border-orange-400 ring-2 ring-orange-500 shadow-[inset_0_0_20px_rgba(249,115,22,0.2)]', newPriority: 'P2', newDueBy: 'This Week' },
-        { id: 'P3', title: 'P3 (LOW)', colorClass: 'text-yellow-500', bgClass: 'bg-yellow-500/10', borderClass: 'border-yellow-500/20', activeBorderClass: 'border-yellow-400 ring-2 ring-yellow-500 shadow-[inset_0_0_20px_rgba(234,179,8,0.2)]', newPriority: 'P3', newDueBy: 'This Month' },
-        { id: 'Backburner', title: 'Backburner', colorClass: 'text-slate-400', bgClass: 'bg-slate-500/10', borderClass: 'border-slate-500/20', activeBorderClass: 'border-slate-300 ring-2 ring-slate-400 shadow-[inset_0_0_20px_rgba(148,163,184,0.2)]', newPriority: 'Backburner', newDueBy: 'Backburner' },
-        { id: 'Completed', title: 'Done (7 Days)', colorClass: 'text-emerald-500', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20', activeBorderClass: 'border-emerald-400 ring-2 ring-emerald-500 shadow-[inset_0_0_20px_rgba(16,185,129,0.2)]', isDone: true },
+        { id: 'P1', title: 'P1 (HIGH)', colorClass: 'text-red-500', bgClass: 'bg-red-500/10', borderClass: 'border-red-500/20', activeBorderClass: 'border-red-400 ring-2 ring-red-500 shadow-[inset_0_0_20px_rgba(239,68,68,0.2)]', newPriority: 'P1', newDueBy: 'Today', orderClass: 'order-1 md:order-4' },
+        { id: 'P2', title: 'P2 (NORMAL)', colorClass: 'text-orange-500', bgClass: 'bg-orange-500/10', borderClass: 'border-orange-500/20', activeBorderClass: 'border-orange-400 ring-2 ring-orange-500 shadow-[inset_0_0_20px_rgba(249,115,22,0.2)]', newPriority: 'P2', newDueBy: 'This Week', orderClass: 'order-2 md:order-3' },
+        { id: 'P3', title: 'P3 (LOW)', colorClass: 'text-yellow-500', bgClass: 'bg-yellow-500/10', borderClass: 'border-yellow-500/20', activeBorderClass: 'border-yellow-400 ring-2 ring-yellow-500 shadow-[inset_0_0_20px_rgba(234,179,8,0.2)]', newPriority: 'P3', newDueBy: 'This Month', orderClass: 'order-3 md:order-2' },
+        { id: 'Backburner', title: 'Backburner', colorClass: 'text-slate-400', bgClass: 'bg-slate-500/10', borderClass: 'border-slate-500/20', activeBorderClass: 'border-slate-300 ring-2 ring-slate-400 shadow-[inset_0_0_20px_rgba(148,163,184,0.2)]', newPriority: 'Backburner', newDueBy: 'Backburner', orderClass: 'order-4 md:order-1' },
+        { id: 'Completed', title: 'Done (7 Days)', colorClass: 'text-emerald-500', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20', activeBorderClass: 'border-emerald-400 ring-2 ring-emerald-500 shadow-[inset_0_0_20px_rgba(16,185,129,0.2)]', isDone: true, orderClass: 'order-5 md:order-5' },
     ];
 
     function handleDragStart(event) {

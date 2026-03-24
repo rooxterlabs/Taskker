@@ -108,44 +108,62 @@ export function useTasks() {
     };
 
     // --- AUTO PRIORITY ESCALATION ENGINE ---
-    // Scans all active P2/P3 tasks and promotes them to P1 (Critical) if their
-    // deadline is within 24 hours. This runs on every data fetch and on a 60s interval.
+    // Scans active tasks and promotes them to tighter deadlines as their 
+    // absolute end-date approaches. Runs on fetch and 60s intervals.
     const escalatePriorities = async (taskList) => {
-        const now = new Date();
-        const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        const tasksToEscalate = [];
+        const now = new Date().getTime();
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+        
+        const tasksToP1Today = [];
+        const tasksToP2ThreeDays = [];
+        const tasksToP2ThisWeek = [];
 
         for (const t of taskList) {
-            // Only escalate active P2 or P3 tasks that have a deadline
+            // Only escalate active tasks that have an explicit deadline
             if (t.status === 'Done' || t.status === 'Deleted' || t.is_archived) continue;
             if (!t.target_deadline) continue;
-            if (!t.priority || (!t.priority.includes('P2') && !t.priority.includes('P3'))) continue;
+            
+            // Backburners are explicitly frozen and NEVER auto-escalate
+            if (t.due_by_type === 'Backburner' || t.priority === 'Backburner') continue;
 
-            const deadline = new Date(t.target_deadline);
-            // If the deadline is within the next 24 hours (or has already passed), escalate to P1
-            if (deadline <= oneDayFromNow) {
-                tasksToEscalate.push(t.id);
+            const timeRemaining = new Date(t.target_deadline).getTime() - now;
+
+            // 1. Escalate to P1 (Today) - ≤ 1 day remaining
+            // Automatically promote everything missing this deadline
+            if (timeRemaining <= ONE_DAY) {
+                if (t.priority !== 'P1 (Critical)' || t.due_by_type !== 'Today') {
+                    tasksToP1Today.push(t.id);
+                }
+            } 
+            // 2. Escalate to P2 (3 days) - > 1 day AND ≤ 3 days
+            else if (timeRemaining <= 3 * ONE_DAY) {
+                // Only escalate upwards (From "This Month" or "This Week")
+                if (t.due_by_type === 'This Month' || t.due_by_type === 'This Week') {
+                    tasksToP2ThreeDays.push(t.id);
+                }
+            }
+            // 3. Escalate to P2 (This Week) - > 3 days AND ≤ 7 days
+            else if (timeRemaining <= 7 * ONE_DAY) {
+                // Only escalate upwards (From "This Month")
+                if (t.due_by_type === 'This Month') {
+                    tasksToP2ThisWeek.push(t.id);
+                }
             }
         }
 
-        if (tasksToEscalate.length > 0) {
+        const runTierUpdate = async (ids, payload) => {
+            if (ids.length === 0) return;
             // Optimistic local update
-            setTasks(prev => prev.map(t => 
-                tasksToEscalate.includes(t.id) 
-                    ? { ...t, priority: 'P1 (Critical)', due_by_type: 'Today' } 
-                    : t
-            ));
-
+            setTasks(prev => prev.map(t => ids.includes(t.id) ? { ...t, ...payload } : t));
+            
             // Batch update to database
-            const { error } = await supabase
-                .from('tasks')
-                .update({ priority: 'P1 (Critical)', due_by_type: 'Today' })
-                .in('id', tasksToEscalate);
+            const { error } = await supabase.from('tasks').update(payload).in('id', ids);
+            if (error) console.error('Error escalating priorities:', error);
+        };
 
-            if (error) {
-                console.error('Error escalating priorities:', error);
-            }
-        }
+        await runTierUpdate(tasksToP1Today, { priority: 'P1 (Critical)', due_by_type: 'Today' });
+        await runTierUpdate(tasksToP2ThreeDays, { priority: 'P2', due_by_type: '3 days' });
+        await runTierUpdate(tasksToP2ThisWeek, { priority: 'P2', due_by_type: 'This Week' });
     };
 
     // Run escalation after initial fetch completes and on an interval
