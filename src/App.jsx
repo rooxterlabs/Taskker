@@ -1836,22 +1836,12 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
 
                         {/* CENTER: Notified! */}
                         <div className="flex-1 flex justify-center shrink-0">
-                            {['admin', 'super_admin'].includes(userRole) ? (
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
-                                    className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.is_notified ? 'text-red-500' : 'text-slate-500 hover:text-slate-400'}`}
-                                >
-                                    Notified!
-                                </button>
-                            ) : (
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: false }); }}
-                                    className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.is_notified ? 'text-red-500' : 'text-slate-500 hover:text-slate-400'}`}
-                                    disabled={!task.is_notified}
-                                >
-                                    Notified!
-                                </button>
-                            )}
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
+                                className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.is_notified ? 'text-red-500' : 'text-slate-500 hover:text-slate-400'}`}
+                            >
+                                Notified!
+                            </button>
                         </div>
 
                         {/* RIGHT: Notes & Trash */}
@@ -1919,32 +1909,31 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                     </div>
                     
                     {isWorker ? (
-                        <div className="flex-1 w-full min-h-[100px] bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 text-slate-300 text-xs md:text-sm overflow-y-auto leading-relaxed shadow-inner">
+                        <div className="flex-1 w-full min-h-[130px] bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 text-slate-300 text-xs md:text-sm overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed shadow-inner">
                             {task.notes || <span className="text-slate-500 italic">No notes provided.</span>}
                         </div>
                     ) : (
-                        <textarea 
-                            ref={notesTextareaRef}
-                            value={draftNotes}
-                            onChange={(e) => setDraftNotes(e.target.value)}
-                            maxLength={200}
-                            className="flex-1 w-full min-h-[100px] bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 text-white text-xs md:text-sm font-bold resize-none outline-none focus:border-blue-500/50 transition-colors leading-relaxed shadow-inner"
-                            placeholder="Task notes... (max 200 characters)"
-                        />
-                    )}
-                    
-                    {!isWorker && (
-                        <div className="flex justify-end items-center mt-3 px-1">
-                            <button 
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
-                                    setIsNotesOpen(false);
-                                }} 
-                                className="text-slate-200 hover:text-emerald-400 text-[10px] md:text-xs font-bold uppercase tracking-wider transition-colors px-4 py-2 bg-slate-800 border border-slate-600 hover:border-emerald-500/50 rounded-lg shadow-md hover:shadow-emerald-500/10 active:scale-95"
-                            >
-                                Save
-                            </button>
+                        <div className="flex-1 w-full min-h-[130px] bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden flex flex-col relative focus-within:border-blue-500/50 transition-colors shadow-inner">
+                            <textarea 
+                                ref={notesTextareaRef}
+                                value={draftNotes}
+                                onChange={(e) => setDraftNotes(e.target.value)}
+                                maxLength={200}
+                                className="flex-1 w-full h-[140px] px-3 pt-3 pb-1 bg-transparent text-slate-300 text-xs md:text-sm resize-none outline-none leading-relaxed"
+                                placeholder="Task notes... (max 200 characters)"
+                            />
+                            <div className="bg-slate-900/40 p-2 flex justify-end shrink-0 border-t border-slate-700/30">
+                                <button 
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
+                                        setIsNotesOpen(false);
+                                    }} 
+                                    className="text-slate-300 hover:text-emerald-400 text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-colors px-4 py-1 bg-slate-800 border border-slate-600 hover:border-emerald-500/50 rounded-lg shadow-md hover:shadow-emerald-500/10 active:scale-95 z-10"
+                                >
+                                    Save
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -2007,24 +1996,13 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                             
                             {/* CENTER: Notified! */}
                             <div className="flex-1 flex justify-center shrink-0">
-                                {['admin', 'super_admin'].includes(userRole) ? (
-                                    <button 
-                                        onPointerDown={(e) => e.stopPropagation()}
-                                        onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
-                                        className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.is_notified ? 'text-red-500' : 'text-slate-500 hover:text-slate-400'}`}
-                                    >
-                                        Notified!
-                                    </button>
-                                ) : (
-                                    <button 
-                                        onPointerDown={(e) => e.stopPropagation()}
-                                        onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: false }); }}
-                                        className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.is_notified ? 'text-red-500' : 'text-slate-500 hover:text-slate-400'}`}
-                                        disabled={!task.is_notified}
-                                    >
-                                        Notified!
-                                    </button>
-                                )}
+                                <button 
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
+                                    className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.is_notified ? 'text-red-500' : 'text-slate-500 hover:text-slate-400'}`}
+                                >
+                                    Notified!
+                                </button>
                             </div>
 
                             {/* RIGHT: Notes */}
@@ -2096,32 +2074,31 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                     </div>
                     
                     {isWorker ? (
-                        <div className="flex-1 w-full min-h-[90px] bg-slate-800/50 rounded-xl border border-slate-700/50 p-2.5 text-slate-300 text-[10px] md:text-xs overflow-y-auto leading-relaxed shadow-inner">
+                        <div className="w-full min-h-[120px] bg-slate-800/50 rounded-xl border border-slate-700/50 p-2.5 text-slate-300 text-[10px] md:text-xs overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed shadow-inner">
                             {task.notes || <span className="text-slate-500 italic">No notes provided.</span>}
                         </div>
                     ) : (
-                        <textarea 
-                            ref={notesTextareaRef}
-                            value={draftNotes}
-                            onChange={(e) => setDraftNotes(e.target.value)}
-                            maxLength={200}
-                            className="flex-1 w-full min-h-[90px] bg-slate-800/50 rounded-xl border border-slate-700/50 p-2.5 text-white text-[10px] md:text-xs font-bold resize-none outline-none focus:border-blue-500/50 transition-colors leading-relaxed shadow-inner"
-                            placeholder="Task notes... (max 200 character limit)"
-                        />
-                    )}
-                    
-                    {!isWorker && (
-                        <div className="flex justify-end items-center mt-2.5 px-1">
-                            <button 
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
-                                    setIsNotesOpen(false);
-                                }} 
-                                className="text-slate-200 hover:text-emerald-400 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-colors px-3 py-1.5 bg-slate-800 border border-slate-600 hover:border-emerald-500/50 rounded-lg shadow-md hover:shadow-emerald-500/10 active:scale-95"
-                            >
-                                Save
-                            </button>
+                        <div className="w-full bg-slate-800/50 rounded-xl border border-slate-700/50 flex flex-col focus-within:border-blue-500/50 transition-colors shadow-inner overflow-hidden shrink-0">
+                            <textarea 
+                                ref={notesTextareaRef}
+                                value={draftNotes}
+                                onChange={(e) => setDraftNotes(e.target.value)}
+                                maxLength={200}
+                                className="w-full h-[140px] px-2.5 pt-2.5 pb-1 bg-transparent text-slate-300 text-[10px] md:text-xs resize-none outline-none leading-relaxed"
+                                placeholder="Task notes... (max 200 character limit)"
+                            />
+                            <div className="bg-slate-900/40 p-1.5 flex justify-end shrink-0 border-t border-slate-700/30">
+                                <button 
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
+                                        setIsNotesOpen(false);
+                                    }} 
+                                    className="text-slate-300 hover:text-emerald-400 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-colors px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-emerald-500/50 rounded-lg shadow-md hover:shadow-emerald-500/10 active:scale-95 z-10"
+                                >
+                                    Save
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
