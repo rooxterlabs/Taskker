@@ -3066,9 +3066,6 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                             </h2>
                             {prefTab === 'Appearance' ? (
                                 <div className="flex-1 flex flex-col gap-6">
-                                    <p className="text-slate-500 font-mono text-xs leading-relaxed mb-4">
-                                        Select your preferred aesthetic. Your choice is saved globally across all platforms.
-                                    </p>
                                     
                                     <div className="grid grid-cols-2 gap-4">
                                         <button 
@@ -3173,9 +3170,7 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                                     
                                     <div className="mt-auto border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center w-full max-w-md p-6 text-center">
                                         <p className="text-slate-500 font-mono text-xs leading-relaxed">
-                                            <span className="text-slate-400 font-bold uppercase tracking-widest">Notification Config</span> is under construction.
-                                            <br/><br/>
-                                            Check back soon for customizable settings.
+                                            Advanced Settings is under construction.
                                         </p>
                                     </div>
                                 </div>

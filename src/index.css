@@ -45,8 +45,12 @@
 .theme-oatmeal .text-white, .theme-oatmeal .text-slate-50 { color: #52473f !important; }
 .theme-oatmeal .text-slate-300, .theme-oatmeal .text-slate-400 { color: #71675f !important; }
 .theme-oatmeal .text-slate-100, .theme-oatmeal .text-slate-500 { color: #8f857d !important; }
+/* Task card body text & P1-P3/Backburner descriptions - lighter brown */
+.theme-oatmeal .text-slate-200 { color: #8f857d !important; }
 /* Roster Names Darkish Greyish Brown */
 .theme-oatmeal .text-blue-300\/60 { color: #7d6c5e !important; }
+/* Version text - dark grey on oatmeal bg */
+.theme-oatmeal .text-white\/50 { color: #8f857d !important; }
 
 /* Global Interactive Vanilla Grey Tone */
 .theme-oatmeal .hover\:bg-blue-600:hover, 
@@ -66,6 +70,10 @@
 
 /* STAT CARD WIDGET ISOLATION */
 /* Strip all background tints and color classes, force absolute dark mocha brown text */
+/* Worker Add Task button - tan/grey instead of blue in oatmeal */
+.theme-oatmeal .bg-slate-600 { background-color: #d4c9bc !important; }
+.theme-oatmeal .hover\:bg-slate-500:hover { background-color: #c8bdb0 !important; }
+
 .theme-oatmeal .stat-card-widget .bg-red-500\/10,
 .theme-oatmeal .stat-card-widget .bg-orange-500\/10,
 .theme-oatmeal .stat-card-widget .bg-yellow-500\/10,
@@ -79,6 +87,10 @@
 .theme-oatmeal .stat-card-widget .text-emerald-500,
 .theme-oatmeal .stat-card-widget .text-blue-400,
 .theme-oatmeal .stat-card-widget .text-slate-400 { color: #5c4a3d !important; }
+/* Stat card numbers - lighter brown */
+.theme-oatmeal .stat-card-widget .text-white,
+.theme-oatmeal .stat-card-widget .text-slate-50,
+.theme-oatmeal .stat-card-widget .text-slate-200 { color: #8f857d !important; }
 
 
 /* --- NOIR THEME (Absolute Black & Pure White) --- */
