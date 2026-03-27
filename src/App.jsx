@@ -291,7 +291,7 @@ export default function App() {
 
     const visibleTasks = React.useMemo(() => {
         if (!userRole) return tasks;
-        if (userRole === 'super_admin') return tasks;
+        if (userRole === 'super_admin') return tasks.filter(t => t.assigned_by_role !== 'worker');
 
         const rosterNameSafe = currentUserRosterName?.toLowerCase().trim();
 
@@ -313,6 +313,9 @@ export default function App() {
             );
                 
             return tasks.filter(t => {
+                // Personal Tasks (created by workers) are hidden from Admin boards
+                if (t.assigned_by_role === 'worker') return false;
+
                 // If the task has an explicit assignee_id that is forbidden, hide it.
                 if (t.assignee_id && forbiddenProfileIds.has(t.assignee_id)) return false;
                 
@@ -694,21 +697,16 @@ export default function App() {
                         </button>
                     </nav>
 
-                    {userRole === 'worker' ? (
-                        <button
-                            onClick={() => alert("In the future, Worker User can make their own personal Task cards that doesn't show up in Admin's Production Board")}
-                            className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white bg-slate-600 hover:bg-slate-500 border border-slate-500/50 hover:border-slate-400 shadow-lg shadow-slate-500/20 whitespace-nowrap active:scale-95 min-w-0 flex-shrink"
-                        >
-                            <span className="truncate">Add Task</span>
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => setIsGlobalAddTaskOpen(true)}
-                            className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white bg-blue-600 hover:bg-blue-500 border border-blue-500/50 hover:border-blue-400 shadow-lg shadow-blue-500/20 whitespace-nowrap active:scale-95 min-w-0 flex-shrink"
-                        >
-                            <span className="truncate">Add Task</span>
-                        </button>
-                    )}
+                    <button
+                        onClick={() => setIsGlobalAddTaskOpen(true)}
+                        className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white border whitespace-nowrap active:scale-95 min-w-0 flex-shrink shadow-lg ${
+                            userRole === 'worker' 
+                            ? 'bg-slate-600 hover:bg-slate-500 border-slate-500/50 hover:border-slate-400 shadow-slate-500/20' 
+                            : 'bg-blue-600 hover:bg-blue-500 border-blue-500/50 hover:border-blue-400 shadow-blue-500/20'
+                        }`}
+                    >
+                        <span className="truncate">Add Task</span>
+                    </button>
                 </div>
 
                 {/* View: Calendar */}
@@ -1856,7 +1854,7 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
 
 
     return (
-        <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'bg-red-900/10' : ''} ${task.created_by_role === 'worker' ? 'bg-slate-900/40' : ''}`}>
+        <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'bg-red-900/10' : ''} ${task.assigned_by_role === 'worker' ? 'bg-slate-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.3)]' : ''}`}>
             <td className="px-4 py-3">
                 <StatusDropdown task={task} updateTask={updateTask} center={true} />
             </td>
@@ -1884,8 +1882,8 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                 />
             </td>
             {showAssignee && (
-                <td className="px-4 py-3 text-sm font-bold text-blue-300">
-                    {task.assignee}
+                <td className="px-4 py-3 text-[10px] font-black uppercase text-blue-400 tracking-wider">
+                    {task.assigned_by_role === 'worker' ? 'Personal Task' : task.assignee}
                 </td>
             )}
             <td className="px-4 py-3 whitespace-nowrap">
@@ -1963,7 +1961,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
     const isWorker = userRole === 'worker';
 
     return (
-        <div className={`p-2 md:p-2.5 rounded-xl border flex flex-col gap-1.5 relative shadow-sm transition-colors ${task.created_by_role === 'worker' ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-800/40 border-slate-700/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : ''}`}>
+        <div className={`p-2 md:p-2.5 rounded-xl border flex flex-col gap-1.5 relative shadow-sm transition-colors ${task.assigned_by_role === 'worker' ? 'bg-slate-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] border-slate-600' : 'bg-slate-800/40 border-slate-700/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : ''}`}>
 
             {/* BIG BACKGROUND OVERDUE TEXT */}
             {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') && (
@@ -1980,7 +1978,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                 <div className="flex-1 flex justify-start min-w-0">
                     {showAssignee && (
                         <div className="text-[8px] font-black uppercase text-blue-400 tracking-wider truncate max-w-[100px]">
-                            {task.assignee}
+                            {task.assigned_by_role === 'worker' ? 'Personal Task' : task.assignee}
                         </div>
                     )}
                 </div>
@@ -2133,7 +2131,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
             {...attributes}
             {...listeners}
         >
-            <div className={`p-1.5 rounded-xl border transition-colors group flex flex-col gap-1 relative ${task.created_by_role === 'worker' ? 'bg-slate-900/80 hover:border-slate-800' : 'bg-slate-800/60 hover:border-slate-500/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'}`}>
+            <div className={`p-1.5 rounded-xl border transition-colors group flex flex-col gap-1 relative ${task.assigned_by_role === 'worker' ? 'bg-slate-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] border-slate-600' : 'bg-slate-800/60 hover:border-slate-500/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'}`}>
 
                 {/* BIG BACKGROUND OVERDUE TEXT */}
                 {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') && (
@@ -2150,7 +2148,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                             {/* LEFT: Assignee */}
                             <div className="flex-1 flex justify-start min-w-0">
                                 <div className="text-[8px] font-black uppercase text-blue-400 tracking-wider truncate max-w-[100px]">
-                                    {task.assignee}
+                                    {task.assigned_by_role === 'worker' ? 'Personal Task' : task.assignee}
                                 </div>
                             </div>
                             
@@ -2556,7 +2554,12 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
                 </button>
 
                 <div className="flex justify-between items-start gap-2 pr-8">
-                    {userRole !== 'worker' && (
+                    {userRole === 'worker' ? (
+                        <div className="flex flex-col">
+                            <h2 className="text-lg md:text-xl font-black text-white tracking-widest uppercase italic">Personal Task</h2>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1 italic">Private to your board</p>
+                        </div>
+                    ) : (
                         <div className="relative group">
                             <select
                                 value={assignee}
@@ -2646,7 +2649,7 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
                         </div>
                         <button
                             onClick={handleCreate}
-                            disabled={!action.trim() || !assignee}
+                            disabled={!action.trim() || (userRole !== 'worker' && !assignee)}
                             className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-xl transition-all active:scale-95 shadow-lg flex items-center justify-center min-w-[120px] text-sm"
                         >
                             Add Task

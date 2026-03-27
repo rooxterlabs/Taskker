@@ -265,13 +265,17 @@ export function useTasks() {
         if (error) fetchData();
     };
 
-    const addTask = async (assignee) => {
+    const addTask = async (assignee, creatorRole) => {
         const dueByType = 'This Week'; 
         const defaultCategory = categories.length > 0 ? categories[0].name : '';
         const id = crypto.randomUUID();
 
         // Safely pull the ID and Email
         const { assignee_id, assignee_email } = getAssigneeData(assignee);
+
+        // Determine assignee's role from profiles (for DB tracking)
+        const assigneeProfile = assignee_id ? profiles.find(p => p.id === assignee_id) : null;
+        const assigneeRole = assigneeProfile?.role || 'worker';
 
         const newTask = {
             id,
@@ -285,7 +289,9 @@ export function useTasks() {
             assignee: assignee || '',
             assignee_id,
             assignee_email,
-            is_archived: false
+            is_archived: false,
+            assigned_by_role: creatorRole || 'admin',
+            assignee_role: assigneeRole,
         };
 
         setTasks(prev => [newTask, ...prev]);
@@ -299,6 +305,7 @@ export function useTasks() {
 
         return newTask;
     };
+
 
     const updateTask = async (id, fieldOrObject, value) => {
         let updates = {};
