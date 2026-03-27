@@ -1,9 +1,9 @@
 export const STATUS_OPTIONS = [
     { value: 'To Do', label: 'To Do', color: 'slate' },
     { value: 'In Progress', label: 'In Progress', color: 'blue' },
+    { value: 'At Risk', label: 'At Risk', color: 'orange' },
     { value: 'Blocked', label: 'Blocked', color: 'red' },
-    { value: 'Done', label: 'Done', color: 'emerald' },
-    { value: 'Deleted', label: 'Deleted', color: 'slate' }
+    { value: 'Done', label: 'Done', color: 'emerald' }
 ];
 
 export const DUE_BY_OPTIONS = ['1 hr', '6 hrs', 'Today', '3 days', 'This Week', 'This Month', 'Backburner'];

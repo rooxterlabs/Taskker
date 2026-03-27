@@ -534,14 +534,14 @@ export default function App() {
             {/* RIGHT SIDE BAR TOGGLE */}
             <button
                 onClick={() => setIsBottomBarOpen(!isBottomBarOpen)}
-                className={`fixed top-2 right-4 md:top-3 md:right-7 w-10 h-4 flex items-center justify-center z-[100] bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md border border-slate-700 rounded-xl shadow-xl transition-all hover:scale-105 active:scale-95 group ${isBottomBarOpen ? 'bg-slate-700 shadow-inner' : ''}`}
+                className={`fixed top-2 right-5 md:top-3 md:right-6 w-10 h-10 flex items-center justify-center z-[100] bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md border border-slate-700 rounded-xl shadow-xl transition-all hover:scale-105 active:scale-95 group ${isBottomBarOpen ? 'bg-slate-700 shadow-inner' : ''}`}
             >
                 <MoreHorizontal className="w-5 h-5 text-slate-300 group-hover:text-white" />
             </button>
 
             {/* SLIDING RIGHT SIDE BAR OVERLAY */}
             <div
-                className={`fixed top-0 bottom-0 right-0 w-20 md:w-24 bg-slate-900/40 backdrop-blur-xl border-l border-slate-700/50 shadow-[-10px_0_40px_rgba(0,0,0,0.5)] z-[90] flex flex-col items-center pt-24 pb-8 px-2 md:px-4 gap-6 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isBottomBarOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                className={`fixed top-0 bottom-0 right-0 w-20 md:w-24 bg-slate-900/40 backdrop-blur-xl border-l border-slate-700/50 shadow-[-10px_0_40px_rgba(0,0,0,0.5)] z-[90] flex flex-col items-center pt-16 pb-8 px-2 md:px-4 gap-6 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isBottomBarOpen ? 'translate-x-0' : 'translate-x-full'}`}
             >
                 <div className="flex flex-col items-center gap-4 shrink-0 overflow-visible w-full">
                     {/* USER PROFILE BUTTON & DROPDOWN */}
@@ -1003,7 +1003,7 @@ export default function App() {
                                 {/* Board Content */}
                                 {showAllTasksBoard && (
                                     <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                        <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.kanban_enabled} />
+                                        <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} />
                                     </div>
                                 )}
                             </div>
@@ -1033,7 +1033,7 @@ export default function App() {
                             {/* Board Content */}
                             {showMyTasksBoard && (
                                 <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                    <AllTasksBoard tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.kanban_enabled} />
+                                    <AllTasksBoard tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} />
                                 </div>
                             )}
                         </div>
@@ -1096,7 +1096,6 @@ export default function App() {
                     <div className="animate-in fade-in zoom-in-95 duration-500">
                         <div className="flex flex-row justify-between items-center mb-6 px-2 md:px-4 gap-2">
                             <div className="min-w-0 pr-2">
-                                <div className="text-blue-500 text-[10px] uppercase font-black tracking-widest mb-1">Active Sprint</div>
                                 <div className="flex items-center gap-2 md:gap-4 flex-wrap">
                                     <h2 className="text-2xl md:text-3xl font-black text-white truncate">{selectedMember}</h2>
                                     <div className="flex gap-1 md:gap-2 shrink-0">
@@ -1124,13 +1123,13 @@ export default function App() {
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="bg-slate-900/30 border-b border-white/5 text-slate-500 text-[10px] uppercase tracking-[0.2em]">
-                                                <th className="px-4 py-3 font-bold whitespace-nowrap">DONE</th>
+                                                <th className="px-4 py-3 font-bold whitespace-nowrap">STATUS</th>
                                                 <th className="px-4 py-3 font-bold whitespace-nowrap">TASKS</th>
                                                 <th className="px-4 py-3 font-bold whitespace-nowrap">CATEGORY</th>
                                                 <th className="px-4 py-3 font-bold whitespace-nowrap">DUE BY</th>
                                                 {['admin', 'super_admin'].includes(userRole) && (
                                                     <>
-                                                        <th className="px-4 py-3 font-bold text-center whitespace-nowrap">NOTIFIED!</th>
+                                                        <th className="px-4 py-3 font-bold text-center whitespace-nowrap">NOTIFY</th>
                                                         <th className="px-4 py-3 font-bold text-center whitespace-nowrap">NOTES</th>
                                                     </>
                                                 )}
@@ -1723,6 +1722,75 @@ function StatCard({ label, shortLabel, value, icon: Icon, color, bgColor, onClic
     );
 }
 
+// --- Status Dropdown ---
+function StatusDropdown({ task, updateTask, center, onPointerDownStop }) {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const ref = React.useRef(null);
+
+    React.useEffect(() => {
+        const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const getColor = (s) => {
+        if (s === 'Done') return 'text-emerald-400';
+        if (s === 'In Progress') return 'text-blue-400';
+        if (s === 'At Risk') return 'text-orange-400';
+        if (s === 'Blocked') return 'text-red-400';
+        return 'text-slate-400';
+    };
+
+    const handleSelect = (e, option) => {
+        e.stopPropagation();
+        setIsOpen(false);
+        if (option === 'Done') {
+            try { const audio = new Audio(doneSoundUrl); audio.play().catch(() => {}); } catch {}
+            const rect = e.currentTarget.getBoundingClientRect();
+            confetti({
+                particleCount: 15, spread: 60, startVelocity: 15,
+                colors: ['#10b981', '#34d399', '#059669', '#a7f3d0'],
+                origin: { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight },
+                zIndex: 9999, disableForReducedMotion: true, ticks: 100, gravity: 0.8, scalar: 0.8
+            });
+            setTimeout(() => updateTask(task.id, 'status', 'Done'), 700);
+        } else {
+            updateTask(task.id, 'status', option);
+        }
+    };
+
+    const current = task.status || 'To Do';
+    return (
+        <div className="relative inline-block" ref={ref}>
+            <button
+                type="button"
+                onPointerDown={onPointerDownStop ? (e) => e.stopPropagation() : undefined}
+                onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+                className="flex items-center gap-1 text-[10px] font-bold hover:text-white transition-colors whitespace-nowrap"
+            >
+                <span className={getColor(current)}>{current}</span>
+                <ChevronDown className={`w-3 h-3 transition-transform opacity-50 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isOpen && (
+                <div className={`absolute top-full mt-1.5 w-32 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[200] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 ${
+                    center ? 'left-1/2 -translate-x-1/2' : 'left-0'
+                }`}>
+                    {STATUS_OPTIONS.map(opt => (
+                        <div
+                            key={opt.value}
+                            onPointerDown={onPointerDownStop ? (e) => e.stopPropagation() : undefined}
+                            onClick={(e) => handleSelect(e, opt.value)}
+                            className={`px-4 py-2 text-[10px] font-bold cursor-pointer transition-colors hover:bg-blue-600 hover:text-white ${getColor(opt.value)} ${current === opt.value ? 'bg-slate-800/80' : ''}`}
+                        >
+                            {opt.label}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // --- Responsive Task Components ---
 function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, deleteTask, showAssignee, userRole }) {
     const textareaRef = React.useRef(null);
@@ -1738,48 +1806,59 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
 
     if (isNotesOpen && ['admin', 'super_admin'].includes(userRole)) {
         return (
-            <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'bg-red-900/10' : ''}`}>
-                <td colSpan={100} className="p-0 border-y border-emerald-500/30">
-                    <div className="w-full bg-slate-800/95 flex flex-col focus-within:border-blue-500/50 transition-colors overflow-hidden shrink-0">
-                        <div className="flex justify-between items-center px-4 pt-4 pb-2">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-emerald-500 text-[10px] md:text-xs font-black tracking-widest uppercase">Notes</h3>
-                                <span className={`text-[8px] font-bold ${draftNotes.length >= 200 ? 'text-red-500' : 'text-slate-500'}`}>{draftNotes.length}/200</span>
-                            </div>
-                            <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }} className="text-slate-500 hover:text-slate-300 p-1 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-                        <textarea 
+            <tr className="bg-slate-800/60 border-y border-blue-500/20">
+                <td colSpan={100} className="px-3 py-2">
+                    <div className="flex items-center gap-2 w-full">
+                        <input
                             ref={notesTextareaRef}
+                            type="text"
                             value={draftNotes}
-                            onChange={(e) => setDraftNotes(e.target.value)}
-                            maxLength={200}
-                            className="w-full h-[140px] px-4 py-2 bg-transparent text-slate-300 text-[10px] md:text-xs resize-none outline-none leading-relaxed"
-                            placeholder="Task notes... (max 200 character limit)"
-                        />
-                        <div className="bg-slate-900/60 px-4 py-3 flex justify-end shrink-0 border-t border-slate-700/50">
-                            <button 
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
+                            onChange={(e) => setDraftNotes(e.target.value.slice(0, 200))}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
                                     updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
                                     setIsNotesOpen(false);
-                                }} 
-                                className="text-slate-300 hover:text-emerald-400 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-colors px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-emerald-500/50 rounded-lg shadow-md hover:shadow-emerald-500/10 active:scale-95"
-                            >
-                                Save
-                            </button>
-                        </div>
+                                }
+                                if (e.key === 'Escape') {
+                                    setIsNotesOpen(false);
+                                    setDraftNotes(task.notes || '');
+                                }
+                            }}
+                            maxLength={200}
+                            className="flex-1 bg-transparent border-none outline-none text-slate-300 text-[10px] md:text-xs placeholder:text-slate-600 min-w-0"
+                            placeholder="Task notes..."
+                        />
+                        <span className={`text-[9px] font-bold shrink-0 ${draftNotes.length >= 200 ? 'text-red-500' : 'text-slate-600'}`}>
+                            {draftNotes.length}/200
+                        </span>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
+                                setIsNotesOpen(false);
+                            }}
+                            className="shrink-0 text-[9px] font-black uppercase tracking-wider px-3 py-1 bg-slate-700 hover:bg-blue-600 text-slate-300 hover:text-white rounded-lg transition-colors active:scale-95"
+                        >
+                            Save
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }}
+                            className="shrink-0 text-slate-500 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-700 transition-colors"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
                     </div>
                 </td>
             </tr>
         );
     }
 
+
     return (
         <tr className={`hover:bg-blue-600/[0.03] transition-colors group ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'bg-red-900/10' : ''} ${task.created_by_role === 'worker' ? 'bg-slate-900/40' : ''}`}>
-            <td className="px-4 py-3 text-center">
-                <DoneCheckbox task={task} updateTask={updateTask} className="w-5 h-5 mx-auto shrink-0" />
+            <td className="px-4 py-3">
+                <StatusDropdown task={task} updateTask={updateTask} center={true} />
             </td>
             <td className="px-4 py-3 min-w-[250px] w-full max-w-sm relative">
                 {/* BIG BACKGROUND OVERDUE TEXT */}
@@ -1833,12 +1912,9 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                         <button 
                             onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
                             className="flex justify-center w-full transition-transform hover:scale-110"
+                            title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
                         >
-                            {task.is_notified ? (
-                                <CheckSquare className="w-4 h-4 text-red-500" />
-                            ) : (
-                                <Square className="w-4 h-4 text-slate-600 hover:text-slate-400 transition-colors" />
-                            )}
+                            <Bell className={`w-4 h-4 transition-colors ${task.is_notified ? 'text-red-500 fill-current' : 'text-slate-600 hover:text-slate-400'}`} />
                         </button>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -1898,44 +1974,39 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                 </div>
             )}
 
-            {/* Top row: Status and Assignee */}
-            <div className="flex items-start gap-2 relative z-10">
-                <DoneCheckbox task={task} updateTask={updateTask} className="w-5 h-5 mt-0.5 shrink-0" />
-
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center w-full mb-0.5 pr-1">
-                        {/* LEFT: Assignee */}
-                        <div className="flex-1 flex justify-start min-w-0">
-                            {showAssignee && (
-                                <div className="text-[8px] font-black uppercase text-blue-400 tracking-wider truncate max-w-[100px]">
-                                    {task.assignee}
-                                </div>
-                            )}
+            {/* Top row: Assignee / Bell / Notes / Trash */}
+            <div className="flex items-center w-full mb-0.5 relative z-10">
+                {/* LEFT: Assignee */}
+                <div className="flex-1 flex justify-start min-w-0">
+                    {showAssignee && (
+                        <div className="text-[8px] font-black uppercase text-blue-400 tracking-wider truncate max-w-[100px]">
+                            {task.assignee}
                         </div>
+                    )}
+                </div>
 
-                        {/* CENTER: Notified! */}
-                        <div className="flex-1 flex justify-center shrink-0">
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
-                                className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.is_notified ? 'text-red-500' : 'text-slate-500 hover:text-slate-400'}`}
-                            >
-                                Notified!
-                            </button>
-                        </div>
+                {/* CENTER: Notified Bell */}
+                <div className="flex-1 flex justify-center shrink-0">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
+                        className="transition-transform hover:scale-110"
+                        title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
+                    >
+                        <Bell className={`w-3.5 h-3.5 transition-colors ${task.is_notified ? 'text-red-500 fill-current' : 'text-slate-500 hover:text-slate-400'}`} />
+                    </button>
+                </div>
 
-                        {/* RIGHT: Notes & Trash */}
-                        <div className="flex-1 flex justify-end items-center gap-2 shrink-0">
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); setIsNotesOpen(true); setTimeout(() => notesTextareaRef.current?.focus(), 50); }}
-                                className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.notes && task.notes.trim() !== '' ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-400'}`}
-                            >
-                                Notes
-                            </button>
-                            <button onClick={() => deleteTask(task.id)} className="text-slate-500 hover:text-red-500 transition-colors p-1 shrink-0">
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
+                {/* RIGHT: Notes & Trash */}
+                <div className="flex-1 flex justify-end items-center gap-2 shrink-0">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setIsNotesOpen(true); setTimeout(() => notesTextareaRef.current?.focus(), 50); }}
+                        className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.notes && task.notes.trim() !== '' ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-400'}`}
+                    >
+                        Notes
+                    </button>
+                    <button onClick={() => deleteTask(task.id)} className="text-slate-500 hover:text-red-500 transition-colors p-1 shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
@@ -1952,7 +2023,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                 }}
             />
 
-            {/* Bottom row: Category and Due By */}
+            {/* Bottom row: Category / Status / Due By or Done pill */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-700/50">
                 <CategoryDropdown
                     categories={categories}
@@ -1962,14 +2033,25 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                     onDelete={deleteCategory}
                 />
 
-                <div className="flex items-center gap-2">
+                {task.status === 'Done' ? (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); updateTask(task.id, 'status', 'In Progress'); }}
+                        className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors"
+                    >
+                        DONE
+                    </button>
+                ) : (
+                    <StatusDropdown task={task} updateTask={updateTask} />
+                )}
+
+                {task.status !== 'Done' && (
                     <DueByDropdown
                         value={task.due_by_type || ''}
                         priority={task.priority}
                         onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
                         hideLabels={hideLabels}
                     />
-                </div>
+                )}
             </div>
 
             {/* Expanded Inline Notes Overlay for TaskCard */}
@@ -2062,8 +2144,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                     </div>
                 )}
 
-                <div className="flex items-start gap-2 relative z-10">
-                    <DoneCheckbox task={task} updateTask={updateTask} className="w-5 h-5 mt-0.5 shrink-0" />
+                <div className="flex items-start relative z-10">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center w-full mb-0.5 pr-1">
                             {/* LEFT: Assignee */}
@@ -2073,14 +2154,15 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                                 </div>
                             </div>
                             
-                            {/* CENTER: Notified! */}
+                            {/* CENTER: Notified Bell */}
                             <div className="flex-1 flex justify-center shrink-0">
                                 <button 
                                     onPointerDown={(e) => e.stopPropagation()}
                                     onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
-                                    className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.is_notified ? 'text-red-500' : 'text-slate-500 hover:text-slate-400'}`}
+                                    className="transition-transform hover:scale-110"
+                                    title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
                                 >
-                                    Notified!
+                                    <Bell className={`w-3.5 h-3.5 transition-colors ${task.is_notified ? 'text-red-500 fill-current' : 'text-slate-500 hover:text-slate-400'}`} />
                                 </button>
                             </div>
 
@@ -2123,17 +2205,27 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                         readOnly={isWorker}
                     />
 
-                    <div className="flex items-center gap-1">
-                        {task.status !== 'Done' && (
-                            <DueByDropdown
-                                value={task.due_by_type || ''}
-                                priority={task.priority}
-                                onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
-                                hideLabels={hideLabels}
-                                readOnly={isWorker}
-                            />
-                        )}
-                    </div>
+                    {task.status === 'Done' ? (
+                        <button
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); updateTask(task.id, 'status', 'In Progress'); }}
+                            className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors"
+                        >
+                            DONE
+                        </button>
+                    ) : (
+                        <StatusDropdown task={task} updateTask={updateTask} onPointerDownStop={true} />
+                    )}
+
+                    {task.status !== 'Done' && (
+                        <DueByDropdown
+                            value={task.due_by_type || ''}
+                            priority={task.priority}
+                            onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
+                            hideLabels={hideLabels}
+                            readOnly={isWorker}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -2529,9 +2621,10 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
                             <div className="flex flex-col gap-0.5 items-start mt-2 pl-1">
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); setIsNotified(!isNotified); }}
-                                    className={`text-[9px] font-black uppercase tracking-wider transition-colors ${isNotified ? 'text-red-500' : 'text-slate-500 hover:text-slate-400'}`}
+                                    className="transition-transform hover:scale-110"
+                                    title={isNotified ? 'Remove notification' : 'Mark as notified'}
                                 >
-                                    Notified!
+                                    <Bell className={`w-4 h-4 transition-colors ${isNotified ? 'text-red-500 fill-current' : 'text-slate-500 hover:text-slate-400'}`} />
                                 </button>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); setIsNotesOpen(true); setTimeout(() => notesTextareaRef.current?.focus(), 50); }}
@@ -3042,18 +3135,36 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                                 </div>
                             ) : prefTab === 'Advanced' ? (
                                 <div className="flex-1 flex flex-col items-center justify-center px-6">
-                                    <div className="w-full max-w-md bg-slate-800/30 border border-slate-700/50 rounded-2xl p-6 transition-all hover:bg-slate-800/50 mb-8">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h3 className="text-white font-black tracking-widest uppercase text-sm mb-1">Kanban Board Mode</h3>
-                                                <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Enable drag-and-drop visual sprint board</p>
+                                    <div className="w-full max-w-md bg-slate-800/30 border border-slate-700/50 rounded-2xl p-6 transition-all hover:bg-slate-800/50 mb-4">
+                                        <h3 className="text-white font-black tracking-widest uppercase text-sm mb-4">Enable Drag &amp; Drop Task Cards</h3>
+                                        <div className="flex flex-col gap-4">
+                                            {/* Mobile toggle */}
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-slate-300 text-xs font-bold uppercase tracking-wider">Mobile</p>
+                                                    <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Touch drag on mobile devices</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => updateUserSetting(currentUserProfile.id, 'dnd_mobile_enabled', !(userSettings?.dnd_mobile_enabled ?? true))}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${(userSettings?.dnd_mobile_enabled ?? true) ? 'bg-blue-500' : 'bg-slate-600'}`}
+                                                >
+                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(userSettings?.dnd_mobile_enabled ?? true) ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                </button>
                                             </div>
-                                            <button 
-                                                onClick={() => updateUserSetting(currentUserProfile.id, 'kanban_enabled', !(userSettings?.kanban_enabled))}
-                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${userSettings?.kanban_enabled ? "bg-blue-500" : "bg-slate-600"}`}
-                                            >
-                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${userSettings?.kanban_enabled ? "translate-x-6" : "translate-x-1"}`} />
-                                            </button>
+                                            <div className="h-px bg-slate-700/50" />
+                                            {/* Desktop toggle */}
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-slate-300 text-xs font-bold uppercase tracking-wider">Desktop</p>
+                                                    <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Pointer drag on desktop</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => updateUserSetting(currentUserProfile.id, 'dnd_desktop_enabled', !(userSettings?.dnd_desktop_enabled))}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${userSettings?.dnd_desktop_enabled ? 'bg-blue-500' : 'bg-slate-600'}`}
+                                                >
+                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${userSettings?.dnd_desktop_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     

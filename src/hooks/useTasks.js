@@ -29,7 +29,7 @@ export function useTasks() {
     const [categories, setCategories] = useState([]);
     const [profiles, setProfiles] = useState([]); // Store actual user profiles
     const [rewards, setRewards] = useState([]); // Reward definitions from admin
-    const [userSettings, setUserSettings] = useState({ kanban_enabled: false }); // User preferences
+    const [userSettings, setUserSettings] = useState({ dnd_mobile_enabled: true, dnd_desktop_enabled: false }); // User preferences
     const [companyName, setCompanyName] = useState('TEAM ROOXTER'); // Global App Setting
     const [loading, setLoading] = useState(true);
 
@@ -47,7 +47,7 @@ export function useTasks() {
                 supabase.from('categories').select('*').order('name', { ascending: true }),
                 supabase.from('profiles').select('id, email, role, first_name, last_name, title, theme, name'),
                 supabase.from('rewards').select('*').order('slot', { ascending: true }),
-                supabase.from('user_settings').select('kanban_enabled').limit(1),
+                supabase.from('user_settings').select('dnd_mobile_enabled, dnd_desktop_enabled').limit(1),
                 supabase.from('app_settings').select('*')
             ]);
 
@@ -75,7 +75,7 @@ export function useTasks() {
             if (settingsResult.data && settingsResult.data.length > 0) {
                 setUserSettings(settingsResult.data[0]);
             } else {
-                setUserSettings({ kanban_enabled: false }); // default
+                setUserSettings({ dnd_mobile_enabled: true, dnd_desktop_enabled: false }); // default
             }
             
             // Map rewards to 10 slots (fill missing slots with defaults)
