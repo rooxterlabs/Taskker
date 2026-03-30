@@ -700,6 +700,16 @@ export default function App() {
                                     </div>
                                 )}
                             </div>
+
+                            <button
+                                onClick={() => alert("Board is under construction")}
+                                className={`flex items-center justify-center gap-1.5 md:gap-2 px-1.5 md:px-4 py-2 rounded-xl font-bold transition-all text-[10px] md:text-xs min-w-0 ${activeTab === 'board'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                    }`}
+                            >
+                                <FolderKanban className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Board</span>
+                            </button>
                         </RoleGate>
 
                         <button
@@ -3279,7 +3289,7 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
     sidebarTabs.push({ id: 'System Settings', icon: Settings });
     
     if (userRole === 'super_admin') {
-        sidebarTabs.push({ id: 'COMPANY Management', icon: FolderKanban }); // formerly Project Management
+        sidebarTabs.push({ id: 'Company Management', icon: FolderKanban }); // formerly Project Management
         sidebarTabs.push({ id: 'Project Management', icon: FolderKanban }); // formerly Team Management
         sidebarTabs.push({ id: 'Billing Management', icon: FileText });
     }
@@ -3287,7 +3297,7 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
     sidebarTabs.push({ id: 'Reward System', icon: Zap });
 
     const renderMainContent = () => {
-        if (activeTab === 'COMPANY Management' && userRole === 'super_admin') {
+        if (activeTab === 'Company Management' && userRole === 'super_admin') {
             const handleSaveName = async () => {
                 const trimmed = localName.trim();
                 if (!trimmed || trimmed === companyName) return;
@@ -3299,12 +3309,12 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
             return (
                 <div className="w-full h-full flex flex-col p-8 bg-slate-900 rounded-r-3xl relative">
                     <h2 className="text-xl font-black uppercase tracking-widest text-white mb-6 flex items-center gap-3">
-                        <FolderKanban className="w-6 h-6 text-indigo-400" /> COMPANY Management
+                        <FolderKanban className="w-6 h-6 text-indigo-400" /> Company Management
                     </h2>
                     
                     <div className="flex-1 overflow-y-auto no-scrollbar pt-4 flex flex-col">
                         <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 mb-8 text-amber-200/80 font-medium">
-                            COMPANY Management for SUPER ADMIN is under construction.
+                            Company Management for Super Admin is under construction.
                         </div>
 
                         <div className="bg-slate-800/50 border border-slate-700/50 rounded-3xl p-6 mt-auto">
