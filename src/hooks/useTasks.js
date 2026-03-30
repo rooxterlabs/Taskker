@@ -242,11 +242,24 @@ export function useTasks() {
         if (mErr || tErr) fetchData();
     };
 
-    const addCategory = async (name) => {
+    const addCategory = async (name, createdBy = null) => {
         const trimmed = name.trim();
         if (!trimmed) return;
+        
+        // Auto-assign createdBy if worker and no override provided
+        let assignCreator = createdBy;
+        if (assignCreator === null) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const myProfile = profiles.find(p => p.id === session.user.id);
+                if (myProfile?.role === 'worker') {
+                    assignCreator = session.user.id;
+                }
+            }
+        }
+
         const id = crypto.randomUUID();
-        const newCategory = { id, name: trimmed };
+        const newCategory = { id, name: trimmed, created_by: assignCreator };
         setCategories(prev => [...prev, newCategory]);
 
         const { data, error } = await supabase.from('categories').insert([newCategory]).select();
@@ -257,6 +270,16 @@ export function useTasks() {
             setCategories(prev => prev.map(c => c.id === id ? data[0] : c));
         }
         return data;
+    };
+
+    const updateCategory = async (id, newName) => {
+        const trimmed = newName.trim();
+        if (!trimmed) return;
+        
+        setCategories(prev => prev.map(c => c.id === id ? { ...c, name: trimmed } : c));
+        
+        const { error } = await supabase.from('categories').update({ name: trimmed }).eq('id', id);
+        if (error) fetchData();
     };
 
     const deleteCategory = async (id) => {
@@ -498,6 +521,7 @@ export function useTasks() {
         deleteTeamMember,
         updateTeamMember,
         addCategory,
+        updateCategory,
         deleteCategory,
         updateTask,
         deleteTask,

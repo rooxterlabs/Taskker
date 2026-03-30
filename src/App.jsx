@@ -137,6 +137,7 @@ export default function App() {
         deleteTeamMember,
         updateTeamMember,
         addCategory,
+        updateCategory,
         deleteCategory,
         updateTask,
         deleteTask,
@@ -235,6 +236,9 @@ export default function App() {
             else setIsAuthLoading(false);
         });
 
+        const handleOpenAdminSettingsEvent = (e) => openAdminSettings(e.detail);
+        window.addEventListener('openAdminSettings', handleOpenAdminSettingsEvent);
+
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -246,7 +250,10 @@ export default function App() {
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            window.removeEventListener('openAdminSettings', handleOpenAdminSettingsEvent);
+        };
     }, []);
 
     const fetchRole = async (userId) => {
@@ -288,6 +295,15 @@ export default function App() {
         });
         return me ? me.name : null;
     }, [session, teamMembers]);
+
+    const visibleCategories = React.useMemo(() => {
+        if (!categories) return [];
+        if (userRole === 'admin' || userRole === 'super_admin') {
+            return categories.filter(c => !c.created_by);
+        }
+        const myId = session?.user?.id;
+        return categories.filter(c => !c.created_by || c.created_by === myId);
+    }, [categories, userRole, session]);
 
     const visibleTasks = React.useMemo(() => {
         if (!userRole) return tasks;
@@ -797,7 +813,7 @@ export default function App() {
                                                             key={liveTask.id}
                                                             task={liveTask}
                                                             updateTask={updateTask}
-                                                            categories={categories}
+                                                            categories={visibleCategories}
                                                             addCategory={addCategory}
                                                             deleteCategory={deleteCategory}
                                                             deleteTask={deleteTask}
@@ -1001,7 +1017,7 @@ export default function App() {
                                 {/* Board Content */}
                                 {showAllTasksBoard && (
                                     <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                        <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} />
+                                        <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} />
                                     </div>
                                 )}
                             </div>
@@ -1031,7 +1047,7 @@ export default function App() {
                             {/* Board Content */}
                             {showMyTasksBoard && (
                                 <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                    <AllTasksBoard tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={categories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} />
+                                    <AllTasksBoard tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} />
                                 </div>
                             )}
                         </div>
@@ -1142,7 +1158,7 @@ export default function App() {
                                                         key={task.id}
                                                         task={task}
                                                         updateTask={updateTask}
-                                                        categories={categories}
+                                                        categories={visibleCategories}
                                                         addCategory={addCategory}
                                                         deleteCategory={deleteCategory}
                                                         deleteTask={deleteTask}
@@ -1163,7 +1179,7 @@ export default function App() {
                                                 key={task.id}
                                                 task={task}
                                                 updateTask={updateTask}
-                                                categories={categories}
+                                                categories={visibleCategories}
                                                 addCategory={addCategory}
                                                 deleteCategory={deleteCategory}
                                                 deleteTask={deleteTask}
@@ -1352,7 +1368,7 @@ export default function App() {
                                             key={liveTask.id}
                                             task={liveTask}
                                             updateTask={updateTask}
-                                            categories={categories}
+                                            categories={visibleCategories}
                                             addCategory={addCategory}
                                             deleteCategory={deleteCategory}
                                             deleteTask={(id) => {
@@ -1386,7 +1402,7 @@ export default function App() {
                 currentUserRosterName={currentUserRosterName}
                 teamMembers={teamMembers}
                 profiles={profiles}
-                categories={categories}
+                categories={visibleCategories}
                 addTask={addTask}
                 updateTask={updateTask}
                 addCategory={addCategory}
@@ -1425,6 +1441,10 @@ export default function App() {
                 session={session}
                 companyName={companyName}
                 updateCompanyName={updateCompanyName}
+                categories={categories}
+                addCategory={addCategory}
+                updateCategory={updateCategory}
+                deleteCategory={deleteCategory}
             />
 
             {/* FUN POPUP MODAL */}
@@ -1496,7 +1516,7 @@ export default function App() {
 }
 
 // --- Updated Category Dropdown Component ---
-function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOnly }) {
+function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOnly, userRole }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const [isCreating, setIsCreating] = React.useState(false);
     const [newName, setNewName] = React.useState('');
@@ -1558,7 +1578,7 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
                                 <button
                                     type="button"
                                     onClick={(e) => { e.stopPropagation(); onDelete(c.id); }}
-                                    className="opacity-0 group-hover/item:opacity-100 text-slate-400 hover:text-white transition-all ml-2"
+                                    className={`opacity-0 group-hover/item:opacity-100 text-slate-400 hover:text-white transition-all ml-2 ${c.created_by ? 'block' : 'hidden'}`}
                                     title="Delete category"
                                 >
                                     <X className="w-4 h-4" />
@@ -1595,7 +1615,15 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
                     ) : (
                         <button
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); setIsCreating(true); }}
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (userRole === 'admin' || userRole === 'super_admin') {
+                                    setIsOpen(false);
+                                    window.dispatchEvent(new CustomEvent('openAdminSettings', { detail: 'Project Management' }));
+                                } else {
+                                    setIsCreating(true); 
+                                }
+                            }}
                             className="w-full px-4 py-2 text-left text-[10px] font-bold text-blue-400 hover:bg-blue-900/30 transition-colors flex items-center gap-2"
                         >
                             <Plus className="w-3 h-3" /> CREATE NEW
@@ -1888,6 +1916,7 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
             )}
             <td className="px-4 py-3 whitespace-nowrap">
                 <CategoryDropdown
+                    userRole={userRole}
                     categories={categories}
                     value={task.category || ''}
                     onSelect={(name) => updateTask(task.id, 'category', name)}
@@ -1960,8 +1989,17 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
 
     const isWorker = userRole === 'worker';
 
+    const getStatusBorderClass = (status) => {
+        if (status === 'In Progress') return 'border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]';
+        if (status === 'At Risk')     return 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]';
+        if (status === 'Blocked')     return 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]';
+        return 'border-slate-700/50';
+    };
+
+    const statusBorder = getStatusBorderClass(task.status);
+
     return (
-        <div className={`p-2 md:p-2.5 rounded-xl border flex flex-col gap-1.5 relative shadow-sm transition-colors ${task.assigned_by_role === 'worker' ? 'bg-slate-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] border-slate-600' : 'bg-slate-800/40 border-slate-700/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : ''}`}>
+        <div className={`p-2 md:p-2.5 rounded-xl border flex flex-col gap-1.5 relative transition-colors ${task.assigned_by_role === 'worker' ? 'bg-slate-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] border-slate-600' : 'bg-slate-800/40'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : statusBorder}`}>
 
             {/* BIG BACKGROUND OVERDUE TEXT */}
             {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') && (
@@ -2024,6 +2062,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
             {/* Bottom row: Category / Status / Due By or Done pill */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-700/50">
                 <CategoryDropdown
+                    userRole={userRole}
                     categories={categories}
                     value={task.category || ''}
                     onSelect={(name) => updateTask(task.id, 'category', name)}
@@ -2123,15 +2162,24 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
 
     const isWorker = userRole === 'worker';
 
+    const getStatusBorderClass = (status) => {
+        if (status === 'In Progress') return 'border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]';
+        if (status === 'At Risk')     return 'border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.3)]';
+        if (status === 'Blocked')     return 'border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]';
+        return 'border-slate-700/50 hover:border-slate-500/50';
+    };
+
+    const statusBorder = getStatusBorderClass(task.status);
+
     return (
         <div
             ref={setNodeRef}
             style={style}
-            className="w-full relative touch-none" // touch-none to optimize mobile drag initiation
+            className="w-full relative touch-none"
             {...attributes}
             {...listeners}
         >
-            <div className={`p-1.5 rounded-xl border transition-colors group flex flex-col gap-1 relative ${task.assigned_by_role === 'worker' ? 'bg-slate-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] border-slate-600' : 'bg-slate-800/60 hover:border-slate-500/50'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : 'border-slate-700/50'}`}>
+            <div className={`p-1.5 rounded-xl border transition-colors group flex flex-col gap-1 relative ${task.assigned_by_role === 'worker' ? 'bg-slate-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] border-slate-600' : 'bg-slate-800/60'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : statusBorder}`}>
 
                 {/* BIG BACKGROUND OVERDUE TEXT */}
                 {isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') && (
@@ -2195,6 +2243,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                     onPointerDown={(e) => e.stopPropagation()}
                 >
                     <CategoryDropdown
+                        userRole={userRole}
                         categories={categories}
                         value={task.category || ''}
                         onSelect={(name) => updateTask(task.id, 'category', name)}
@@ -2225,53 +2274,53 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                         />
                     )}
                 </div>
-            </div>
 
-            {/* Expanded Inline Notes Overlay for DraggableTaskCard */}
-            {isNotesOpen && (
-                <div className="absolute top-0 left-0 w-full md:w-[105%] md:-left-[2.5%] min-h-[170px] bg-slate-900/98 backdrop-blur-md z-[120] flex flex-col p-2.5 md:p-3 animate-in fade-in duration-200 rounded-2xl border border-slate-600 shadow-[0_20px_60px_-15px_rgba(0,0,0,1)]" onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-between items-center px-1 mb-2">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-emerald-500 text-[10px] md:text-xs font-black tracking-widest uppercase">Notes</h3>
-                            {!isWorker && (
-                                <span className={`text-[8px] font-bold ${draftNotes.length >= 200 ? 'text-red-500' : 'text-slate-500'}`}>{draftNotes.length}/200</span>
-                            )}
-                        </div>
-                        <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }} className="text-slate-500 hover:text-slate-300 p-1 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                    
-                    {isWorker ? (
-                        <div className="w-full min-h-[120px] bg-slate-800/50 rounded-xl border border-slate-700/50 p-2.5 text-slate-300 text-[10px] md:text-xs overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed shadow-inner">
-                            {task.notes || <span className="text-slate-500 italic">No notes provided.</span>}
-                        </div>
-                    ) : (
-                        <div className="w-full bg-slate-800/50 rounded-xl border border-slate-700/50 flex flex-col focus-within:border-blue-500/50 transition-colors shadow-inner overflow-hidden shrink-0">
-                            <textarea 
-                                ref={notesTextareaRef}
-                                value={draftNotes}
-                                onChange={(e) => setDraftNotes(e.target.value)}
-                                maxLength={200}
-                                className="w-full h-[140px] px-2.5 pt-2.5 pb-1 bg-transparent text-slate-300 text-[10px] md:text-xs resize-none outline-none leading-relaxed"
-                                placeholder="Task notes... (max 200 character limit)"
-                            />
-                            <div className="bg-slate-900/40 p-1.5 flex justify-end shrink-0 border-t border-slate-700/30">
-                                <button 
-                                    onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
-                                        setIsNotesOpen(false);
-                                    }} 
-                                    className="text-slate-300 hover:text-emerald-400 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-colors px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-emerald-500/50 rounded-lg shadow-md hover:shadow-emerald-500/10 active:scale-95 z-10"
-                                >
-                                    Save
-                                </button>
+                {/* Expanded Inline Notes Overlay for DraggableTaskCard */}
+                {isNotesOpen && (
+                    <div className="absolute top-0 left-0 w-full md:w-[105%] md:-left-[2.5%] min-h-[170px] bg-slate-900/98 backdrop-blur-md z-[120] flex flex-col p-2.5 md:p-3 animate-in fade-in duration-200 rounded-2xl border border-slate-600 shadow-[0_20px_60px_-15px_rgba(0,0,0,1)]" onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center px-1 mb-2">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-emerald-500 text-[10px] md:text-xs font-black tracking-widest uppercase">Notes</h3>
+                                {!isWorker && (
+                                    <span className={`text-[8px] font-bold ${draftNotes.length >= 200 ? 'text-red-500' : 'text-slate-500'}`}>{draftNotes.length}/200</span>
+                                )}
                             </div>
+                            <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }} className="text-slate-500 hover:text-slate-300 p-1 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
                         </div>
-                    )}
-                </div>
-            )}
+                        
+                        {isWorker ? (
+                            <div className="w-full min-h-[120px] bg-slate-800/50 rounded-xl border border-slate-700/50 p-2.5 text-slate-300 text-[10px] md:text-xs overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed shadow-inner">
+                                {task.notes || <span className="text-slate-500 italic">No notes provided.</span>}
+                            </div>
+                        ) : (
+                            <div className="w-full bg-slate-800/50 rounded-xl border border-slate-700/50 flex flex-col focus-within:border-blue-500/50 transition-colors shadow-inner overflow-hidden shrink-0">
+                                <textarea 
+                                    ref={notesTextareaRef}
+                                    value={draftNotes}
+                                    onChange={(e) => setDraftNotes(e.target.value)}
+                                    maxLength={200}
+                                    className="w-full h-[140px] px-2.5 pt-2.5 pb-1 bg-transparent text-slate-300 text-[10px] md:text-xs resize-none outline-none leading-relaxed"
+                                    placeholder="Task notes... (max 200 character limit)"
+                                />
+                                <div className="bg-slate-900/40 p-1.5 flex justify-end shrink-0 border-t border-slate-700/30">
+                                    <button 
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            updateTask(task.id, { notes: draftNotes.trim() !== '' ? draftNotes.trim() : null });
+                                            setIsNotesOpen(false);
+                                        }} 
+                                        className="text-slate-300 hover:text-emerald-400 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-colors px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-emerald-500/50 rounded-lg shadow-md hover:shadow-emerald-500/10 active:scale-95 z-10"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
@@ -2612,6 +2661,7 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
                 <div className="flex flex-wrap items-start justify-between gap-3 pt-4 border-t border-slate-700/50">
                     <div className="flex flex-col gap-2 relative">
                         <CategoryDropdown
+                            userRole={userRole}
                             categories={categories}
                             value={category}
                             onSelect={setCategory}
@@ -3199,7 +3249,7 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
 }
 
 // --- Admin Settings Modal Component ---
-function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile, rewards, updateReward, session, companyName, updateCompanyName }) {
+function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile, rewards, updateReward, session, companyName, updateCompanyName, categories, addCategory, updateCategory, deleteCategory }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'Invite Team');
     const [localName, setLocalName] = React.useState(companyName || 'TEAM ROOXTER');
     const [isSavingName, setIsSavingName] = React.useState(false);
@@ -3220,18 +3270,24 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
     const sidebarTabs = [];
     sidebarTabs.push({ id: 'Invite Team', icon: UserPlus });
     sidebarTabs.push({ id: 'Users and Roles', icon: Users });
+    
+    // Project Management (formerly Team Management) is for everyone with auth rules
     if (userRole === 'admin') {
-        sidebarTabs.push({ id: 'Team Management', icon: Users });
-    }
-    sidebarTabs.push({ id: 'System Settings', icon: Settings });
-    if (userRole === 'super_admin') {
         sidebarTabs.push({ id: 'Project Management', icon: FolderKanban });
+    }
+    
+    sidebarTabs.push({ id: 'System Settings', icon: Settings });
+    
+    if (userRole === 'super_admin') {
+        sidebarTabs.push({ id: 'COMPANY Management', icon: FolderKanban }); // formerly Project Management
+        sidebarTabs.push({ id: 'Project Management', icon: FolderKanban }); // formerly Team Management
         sidebarTabs.push({ id: 'Billing Management', icon: FileText });
     }
     sidebarTabs.push({ id: 'Reward System', icon: Zap });
+    sidebarTabs.push({ id: 'Reward System', icon: Zap });
 
     const renderMainContent = () => {
-        if (activeTab === 'Project Management' && userRole === 'super_admin') {
+        if (activeTab === 'COMPANY Management' && userRole === 'super_admin') {
             const handleSaveName = async () => {
                 const trimmed = localName.trim();
                 if (!trimmed || trimmed === companyName) return;
@@ -3243,12 +3299,12 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
             return (
                 <div className="w-full h-full flex flex-col p-8 bg-slate-900 rounded-r-3xl relative">
                     <h2 className="text-xl font-black uppercase tracking-widest text-white mb-6 flex items-center gap-3">
-                        <FolderKanban className="w-6 h-6 text-indigo-400" /> Project Management
+                        <FolderKanban className="w-6 h-6 text-indigo-400" /> COMPANY Management
                     </h2>
                     
                     <div className="flex-1 overflow-y-auto no-scrollbar pt-4 flex flex-col">
                         <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 mb-8 text-amber-200/80 font-medium">
-                            Project Management for SUPER ADMIN is under construction.
+                            COMPANY Management for SUPER ADMIN is under construction.
                         </div>
 
                         <div className="bg-slate-800/50 border border-slate-700/50 rounded-3xl p-6 mt-auto">
@@ -3270,6 +3326,83 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                                     className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 min-w-[120px]"
                                 >
                                     {isSavingName ? "Saving..." : "Save Name"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        if (activeTab === 'Project Management' && (userRole === 'admin' || userRole === 'super_admin')) {
+            const handleAddCategory = () => {
+                const el = document.getElementById('new-global-category-input');
+                const val = el?.value?.trim();
+                if (val) {
+                    addCategory(val, null);
+                    el.value = '';
+                }
+            };
+
+            return (
+                <div className="w-full h-full flex flex-col p-8 bg-slate-900 rounded-r-3xl relative">
+                    <h2 className="text-xl font-black uppercase tracking-widest text-white mb-6 flex items-center gap-3">
+                        <FolderKanban className="w-6 h-6 text-indigo-400" /> Project Management
+                    </h2>
+                    
+                    <div className="flex-1 overflow-y-auto no-scrollbar pt-4 flex flex-col">
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 mb-8 text-amber-200/80 font-medium">
+                            Project Management for {userRole === 'admin' ? 'ADMIN' : 'SUPER ADMIN'} is under construction.
+                        </div>
+
+                        <div className="bg-slate-800/50 border border-slate-700/50 rounded-3xl p-6">
+                            <h3 className="text-sm font-black uppercase text-slate-300 tracking-widest pl-2 border-l-2 border-indigo-500 mb-2">Category Management</h3>
+                            <p className="text-xs text-slate-500 mb-6">Create, edit, or delete global categories. These will be available to all users across the platform.</p>
+                            
+                            <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto mb-6 p-2 bg-slate-900 rounded-xl">
+                                {categories.filter(c => !c.created_by).length === 0 ? (
+                                    <div className="text-slate-500 text-sm italic p-4 text-center">No categories found. Create one below.</div>
+                                ) : (
+                                    categories.filter(c => !c.created_by).map(cat => (
+                                        <div key={cat.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-800 border border-transparent hover:border-slate-700 transition-colors group">
+                                            <input 
+                                                type="text" 
+                                                defaultValue={cat.name} 
+                                                onBlur={(e) => {
+                                                    const val = e.target.value.trim();
+                                                    if (val && val !== cat.name) {
+                                                        updateCategory(cat.id, val);
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                                                className="bg-transparent text-slate-300 text-sm font-bold outline-none w-full focus:text-indigo-400 transition-colors px-2 py-1"
+                                                title="Click to edit"
+                                            />
+                                            <button 
+                                                onClick={() => deleteCategory(cat.id)} 
+                                                className="text-slate-600 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                title="Delete category"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                            
+                            <div className="flex items-center gap-4 border-t border-slate-700/50 pt-6">
+                                <input 
+                                    type="text" 
+                                    id="new-global-category-input"
+                                    placeholder="Enter new category name..."
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }}
+                                    className="flex-1 bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-indigo-500 transition-colors text-sm font-medium"
+                                />
+                                <button 
+                                    onClick={handleAddCategory}
+                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95 min-w-[120px]"
+                                >
+                                    + Add
                                 </button>
                             </div>
                         </div>
