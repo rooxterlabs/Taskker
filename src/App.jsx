@@ -988,10 +988,10 @@ export default function App() {
                 {activeTab === 'dashboard' && (
                     <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                         <div className="flex w-full gap-2 md:gap-4 overflow-hidden">
-                            <StatCard label="P1 (HIGH)" shortLabel="P1" value={displayStats.p1} icon={Zap} color="text-red-500" bgColor="bg-red-500/10" onClick={() => setModalFilter('P1')} />
-                            <StatCard label="P2 (NORMAL)" shortLabel="P2" value={displayStats.p2} icon={AlertTriangle} color="text-orange-500" bgColor="bg-orange-500/10" onClick={() => setModalFilter('P2')} />
-                            <StatCard label="P3 (LOW)" shortLabel="P3" value={displayStats.p3} icon={Calendar} color="text-yellow-500" bgColor="bg-yellow-500/10" onClick={() => setModalFilter('P3')} />
                             <StatCard label="BACKBURNER" shortLabel="BACKBURNER" value={displayStats.backburner} icon={Coffee} color="text-slate-400" bgColor="bg-slate-400/10" onClick={() => setModalFilter('Backburner')} />
+                            <StatCard label="P3 (LOW)" shortLabel="P3" value={displayStats.p3} icon={Calendar} color="text-yellow-500" bgColor="bg-yellow-500/10" onClick={() => setModalFilter('P3')} />
+                            <StatCard label="P2 (NORMAL)" shortLabel="P2" value={displayStats.p2} icon={AlertTriangle} color="text-orange-500" bgColor="bg-orange-500/10" onClick={() => setModalFilter('P2')} />
+                            <StatCard label="P1 (HIGH)" shortLabel="P1" value={displayStats.p1} icon={Zap} color="text-red-500" bgColor="bg-red-500/10" onClick={() => setModalFilter('P1')} />
                             <StatCard label="Done (7 Days)" shortLabel="DONE" value={displayStats.completed} icon={CheckCircle2} color="text-emerald-500" bgColor="bg-emerald-500/10" onClick={() => setModalFilter('Completed')} />
                         </div>
 
