@@ -1546,7 +1546,7 @@ export default function App() {
 }
 
 // --- Updated Category Dropdown Component ---
-function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOnly, userRole }) {
+function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOnly, userRole, isPrivateContext }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const [isCreating, setIsCreating] = React.useState(false);
     const [newName, setNewName] = React.useState('');
@@ -1647,7 +1647,7 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
                             type="button"
                             onClick={(e) => { 
                                 e.stopPropagation(); 
-                                if (userRole === 'admin' || userRole === 'super_admin') {
+                                if ((userRole === 'admin' || userRole === 'super_admin') && !isPrivateContext) {
                                     setIsOpen(false);
                                     window.dispatchEvent(new CustomEvent('openAdminSettings', { detail: 'Project Management' }));
                                 } else {
@@ -1950,8 +1950,9 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                     categories={categories}
                     value={task.category || ''}
                     onSelect={(name) => updateTask(task.id, 'category', name)}
-                    onAdd={addCategory}
+                    onAdd={(name) => addCategory(name, null, task.assigned_by_role === 'worker')}
                     onDelete={deleteCategory}
+                    isPrivateContext={task.assigned_by_role === 'worker'}
                 />
             </td>
             <td className="px-4 py-3">
@@ -2096,8 +2097,9 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                     categories={categories}
                     value={task.category || ''}
                     onSelect={(name) => updateTask(task.id, 'category', name)}
-                    onAdd={addCategory}
+                    onAdd={(name) => addCategory(name, null, task.assigned_by_role === 'worker')}
                     onDelete={deleteCategory}
+                    isPrivateContext={task.assigned_by_role === 'worker'}
                 />
 
                 {task.status === 'Done' ? (
@@ -2277,9 +2279,10 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                         categories={categories}
                         value={task.category || ''}
                         onSelect={(name) => updateTask(task.id, 'category', name)}
-                        onAdd={addCategory}
+                        onAdd={(name) => addCategory(name, null, task.assigned_by_role === 'worker')}
                         onDelete={deleteCategory}
                         readOnly={isWorker}
+                        isPrivateContext={task.assigned_by_role === 'worker'}
                     />
 
                     {task.status === 'Done' ? (
@@ -2696,8 +2699,9 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                             categories={categories}
                             value={category}
                             onSelect={setCategory}
-                            onAdd={addCategory}
+                            onAdd={(name) => addCategory(name, null, isPersonalMode)}
                             onDelete={deleteCategory}
+                            isPrivateContext={isPersonalMode}
                         />
 
                         {/* Add Task Modal Notifications Toggle */}

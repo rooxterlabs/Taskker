@@ -9,7 +9,8 @@ export const patchNotes = [
             "Added Personal Task functionality for Admins and Super Admins",
             "Renamed worker 'Add Task' button to 'Personal Task'",
             "Fixed Add Task button validation in Personal Task mode",
-            "Removed stray character from global navigation bar"
+            "Removed stray character from global navigation bar",
+            "Personal Task categories are now private to the user who created them"
         ]
     },
     {

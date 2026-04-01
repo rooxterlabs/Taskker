@@ -242,7 +242,7 @@ export function useTasks() {
         if (mErr || tErr) fetchData();
     };
 
-    const addCategory = async (name, createdBy = null) => {
+    const addCategory = async (name, createdBy = null, isPrivateOverride = false) => {
         const trimmed = name.trim();
         if (!trimmed) return;
         
@@ -252,7 +252,7 @@ export function useTasks() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 const myProfile = profiles.find(p => p.id === session.user.id);
-                if (myProfile?.role === 'worker') {
+                if (myProfile?.role === 'worker' || isPrivateOverride) {
                     assignCreator = session.user.id;
                 }
             }
