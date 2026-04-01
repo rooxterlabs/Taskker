@@ -66,6 +66,7 @@ import Login from './components/Login';
 import InviteMemberForm from './components/InviteMemberForm';
 import OnboardingGate from './components/OnboardingGate';
 import RoleGate from './components/RoleGate';
+import PatchNotesModal from './components/PatchNotesModal';
 import { supabase } from './lib/supabase';
 
 // --- Reusable Micro-interaction Components ---
@@ -170,6 +171,8 @@ export default function App() {
     const [calendarMode, setCalendarMode] = useState('week'); // 'day', 'month' or 'week'
     const [isBottomBarOpen, setIsBottomBarOpen] = useState(false);
     const [isGlobalAddTaskOpen, setIsGlobalAddTaskOpen] = useState(false);
+    const [isPersonalTaskMode, setIsPersonalTaskMode] = useState(false);
+    const [isPatchNotesOpen, setIsPatchNotesOpen] = useState(false);
     const [isFunModalOpen, setIsFunModalOpen] = useState(false);
     
     // Profile & Settings State
@@ -723,16 +726,26 @@ export default function App() {
                         </button>
                     </nav>
 
-                    <button
-                        onClick={() => setIsGlobalAddTaskOpen(true)}
-                        className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white border whitespace-nowrap active:scale-95 min-w-0 flex-shrink shadow-lg ${
-                            userRole === 'worker' 
-                            ? 'bg-slate-600 hover:bg-slate-500 border-slate-500/50 hover:border-slate-400 shadow-slate-500/20' 
-                            : 'bg-blue-600 hover:bg-blue-500 border-blue-500/50 hover:border-blue-400 shadow-blue-500/20'
-                        }`}
-                    >
-                        <span className="truncate">Add Task</span>
-                    </button>
+                    <div className="flex gap-2">
+                        {userRole !== 'worker' && (
+                            <button
+                                onClick={() => { setIsPersonalTaskMode(true); setIsGlobalAddTaskOpen(true); }}
+                                className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-slate-300 border border-slate-600 hover:bg-slate-700 bg-slate-800 whitespace-nowrap active:scale-95 min-w-0 flex-shrink shadow-lg"
+                            >
+                                <span className="truncate">Personal Task</span>
+                            </button>
+                        )}
+                        <button
+                            onClick={() => { setIsPersonalTaskMode(userRole === 'worker'); setIsGlobalAddTaskOpen(true); }}
+                            className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white border whitespace-nowrap active:scale-95 min-w-0 flex-shrink shadow-lg ${
+                                userRole === 'worker' 
+                                ? 'bg-slate-600 hover:bg-slate-500 border-slate-500/50 hover:border-slate-400 shadow-slate-500/20' 
+                                : 'bg-blue-600 hover:bg-blue-500 border-blue-500/50 hover:border-blue-400 shadow-blue-500/20'
+                            }`}
+                        >
+                            <span className="truncate">{userRole === 'worker' ? "Personal Task" : "Add Task"}</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* View: Calendar */}
@@ -1407,6 +1420,7 @@ export default function App() {
             {/* Global Add Task Modal */}
             <GlobalAddTaskModal
                 isOpen={isGlobalAddTaskOpen}
+                isPersonalMode={isPersonalTaskMode}
                 onClose={() => setIsGlobalAddTaskOpen(false)}
                 userRole={userRole}
                 currentUserRosterName={currentUserRosterName}
@@ -1457,6 +1471,9 @@ export default function App() {
                 deleteCategory={deleteCategory}
             />
 
+            {/* PATCH NOTES MODAL */}
+            <PatchNotesModal isOpen={isPatchNotesOpen} onClose={() => setIsPatchNotesOpen(false)} />
+
             {/* FUN POPUP MODAL */}
             {isFunModalOpen && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -1498,9 +1515,12 @@ export default function App() {
             )}
 
             {/* Versioning */}
-            <div className="fixed bottom-2 right-2 text-[10px] font-thin text-white/50 pointer-events-none z-0">
+            <button 
+                onClick={() => setIsPatchNotesOpen(true)}
+                className="fixed bottom-2 right-2 text-[10px] font-thin text-white/50 hover:text-white transition-colors cursor-pointer z-[60]"
+            >
                 v{import.meta.env.VITE_APP_VERSION}
-            </div>
+            </button>
 
             {/* Styles Injection */}
             <style>{`
@@ -1849,7 +1869,7 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                             ref={notesTextareaRef}
                             type="text"
                             value={draftNotes}
-                            onChange={(e) => setDraftNotes(e.target.value.slice(0, 200))}
+                            onChange={(e) => setDraftNotes(e.target.value.slice(0, 500))}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     e.preventDefault();
@@ -1861,12 +1881,12 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                                     setDraftNotes(task.notes || '');
                                 }
                             }}
-                            maxLength={200}
+                            maxLength={500}
                             className="flex-1 bg-transparent border-none outline-none text-slate-300 text-[10px] md:text-xs placeholder:text-slate-600 min-w-0"
                             placeholder="Task notes..."
                         />
-                        <span className={`text-[9px] font-bold shrink-0 ${draftNotes.length >= 200 ? 'text-red-500' : 'text-slate-600'}`}>
-                            {draftNotes.length}/200
+                        <span className={`text-[9px] font-bold shrink-0 ${draftNotes.length >= 500 ? 'text-red-500' : 'text-slate-600'}`}>
+                            {draftNotes.length}/500
                         </span>
                         <button
                             onClick={(e) => {
@@ -2108,7 +2128,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                         <div className="flex items-center gap-2">
                             <h3 className="text-emerald-500 text-[10px] md:text-xs font-black tracking-widest uppercase">Notes</h3>
                             {!isWorker && (
-                                <span className={`text-[8px] font-bold ${draftNotes.length >= 200 ? 'text-red-500' : 'text-slate-500'}`}>{draftNotes.length}/200</span>
+                                <span className={`text-[8px] font-bold ${draftNotes.length >= 500 ? 'text-red-500' : 'text-slate-500'}`}>{draftNotes.length}/500</span>
                             )}
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }} className="text-slate-500 hover:text-slate-300 p-1 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
@@ -2126,9 +2146,9 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                                 ref={notesTextareaRef}
                                 value={draftNotes}
                                 onChange={(e) => setDraftNotes(e.target.value)}
-                                maxLength={200}
+                                maxLength={500}
                                 className="flex-1 w-full h-[140px] px-3 pt-3 pb-1 bg-transparent text-slate-300 text-xs md:text-sm resize-none outline-none leading-relaxed"
-                                placeholder="Task notes... (max 200 characters)"
+                                placeholder="Task notes... (max 500 characters)"
                             />
                             <div className="bg-slate-900/40 p-2 flex justify-end shrink-0 border-t border-slate-700/30">
                                 <button 
@@ -2292,7 +2312,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                             <div className="flex items-center gap-2">
                                 <h3 className="text-emerald-500 text-[10px] md:text-xs font-black tracking-widest uppercase">Notes</h3>
                                 {!isWorker && (
-                                    <span className={`text-[8px] font-bold ${draftNotes.length >= 200 ? 'text-red-500' : 'text-slate-500'}`}>{draftNotes.length}/200</span>
+                                    <span className={`text-[8px] font-bold ${draftNotes.length >= 500 ? 'text-red-500' : 'text-slate-500'}`}>{draftNotes.length}/500</span>
                                 )}
                             </div>
                             <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); setDraftNotes(task.notes || ''); }} className="text-slate-500 hover:text-slate-300 p-1 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
@@ -2310,9 +2330,9 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                                     ref={notesTextareaRef}
                                     value={draftNotes}
                                     onChange={(e) => setDraftNotes(e.target.value)}
-                                    maxLength={200}
+                                    maxLength={500}
                                     className="w-full h-[140px] px-2.5 pt-2.5 pb-1 bg-transparent text-slate-300 text-[10px] md:text-xs resize-none outline-none leading-relaxed"
-                                    placeholder="Task notes... (max 200 character limit)"
+                                    placeholder="Task notes... (max 500 character limit)"
                                 />
                                 <div className="bg-slate-900/40 p-1.5 flex justify-end shrink-0 border-t border-slate-700/30">
                                     <button 
@@ -2554,7 +2574,7 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
 }
 
 // --- Global Add Task Modal Component ---
-function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, teamMembers, profiles, categories, addTask, updateTask, addCategory, deleteCategory }) {
+function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, currentUserRosterName, teamMembers, profiles, categories, addTask, updateTask, addCategory, deleteCategory }) {
     const [action, setAction] = React.useState('');
     const [assignee, setAssignee] = React.useState('');
     const [category, setCategory] = React.useState('');
@@ -2582,11 +2602,12 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
 
     const handleCreate = async () => {
         let finalAssignee = assignee;
-        if (userRole === 'worker') {
+        if (userRole === 'worker' || isPersonalMode) {
             finalAssignee = currentUserRosterName;
         }
         if (!action.trim() || !finalAssignee) return;
-        const newTask = await addTask(finalAssignee, userRole);
+        const submitRole = isPersonalMode ? 'worker' : userRole;
+        const newTask = await addTask(finalAssignee, submitRole);
         if (newTask) {
             updateTask(newTask.id, {
                 action: action.trim(),
@@ -2613,7 +2634,7 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
                 </button>
 
                 <div className="flex justify-between items-start gap-2 pr-8">
-                    {userRole === 'worker' ? (
+                    {userRole === 'worker' || isPersonalMode ? (
                         <div className="flex flex-col">
                             <h2 className="text-lg md:text-xl font-black text-white tracking-widest uppercase italic">Personal Task</h2>
                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1 italic">Private to your board</p>
@@ -2709,7 +2730,7 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
                         </div>
                         <button
                             onClick={handleCreate}
-                            disabled={!action.trim() || (userRole !== 'worker' && !assignee)}
+                            disabled={!action.trim() || (userRole !== 'worker' && !isPersonalMode && !assignee)}
                             className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-xl transition-all active:scale-95 shadow-lg flex items-center justify-center min-w-[120px] text-sm"
                         >
                             Add Task
@@ -2723,7 +2744,7 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
                         <div className="flex justify-between items-center px-1">
                             <div className="flex items-center gap-2">
                                 <h3 className="text-emerald-500 text-xs font-black tracking-widest uppercase">Notes</h3>
-                                <span className={`text-[10px] font-bold ${notes.length >= 200 ? 'text-red-500' : 'text-slate-500'}`}>{notes.length}/200</span>
+                                <span className={`text-[10px] font-bold ${notes.length >= 500 ? 'text-red-500' : 'text-slate-500'}`}>{notes.length}/500</span>
                             </div>
                             <button onClick={(e) => { e.stopPropagation(); setIsNotesOpen(false); }} className="text-slate-500 hover:text-slate-300 p-1 transition-colors">
                                 <X className="w-5 h-5" />
@@ -2734,9 +2755,9 @@ function GlobalAddTaskModal({ isOpen, onClose, userRole, currentUserRosterName, 
                             ref={notesTextareaRef}
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            maxLength={200}
+                            maxLength={500}
                             className="flex-1 w-full bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 text-slate-100 text-sm font-bold resize-none outline-none focus:border-blue-500/50 transition-colors leading-relaxed"
-                            placeholder="Write your notes here... (max 200 characters)"
+                            placeholder="Write your notes here... (max 500 characters)"
                         />
                         
                         <div className="flex justify-end items-center px-1">
