@@ -727,23 +727,11 @@ export default function App() {
                     </nav>
 
                     <div className="flex gap-2">
-                        {userRole !== 'worker' && (
-                            <button
-                                onClick={() => { setIsPersonalTaskMode(true); setIsGlobalAddTaskOpen(true); }}
-                                className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-slate-300 border border-slate-600 hover:bg-slate-700 bg-slate-800 whitespace-nowrap active:scale-95 min-w-0 flex-shrink shadow-lg"
-                            >
-                                <span className="truncate">Personal Task</span>
-                            </button>
-                        )}
                         <button
                             onClick={() => { setIsPersonalTaskMode(userRole === 'worker'); setIsGlobalAddTaskOpen(true); }}
-                            className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white border whitespace-nowrap active:scale-95 min-w-0 flex-shrink shadow-lg ${
-                                userRole === 'worker' 
-                                ? 'bg-slate-600 hover:bg-slate-500 border-slate-500/50 hover:border-slate-400 shadow-slate-500/20' 
-                                : 'bg-blue-600 hover:bg-blue-500 border-blue-500/50 hover:border-blue-400 shadow-blue-500/20'
-                            }`}
+                            className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold transition-all text-[10px] md:text-xs text-white border whitespace-nowrap active:scale-95 min-w-0 flex-shrink shadow-lg bg-blue-600 hover:bg-blue-500 border-blue-500/50 hover:border-blue-400 shadow-blue-500/20"
                         >
-                            <span className="truncate">{userRole === 'worker' ? "Personal Task" : "Add Task"}</span>
+                            <span className="truncate">Add Task</span>
                         </button>
                     </div>
                 </div>
@@ -2585,8 +2573,13 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
     const [isNotified, setIsNotified] = React.useState(false);
     const [notes, setNotes] = React.useState('');
     const [isNotesOpen, setIsNotesOpen] = React.useState(false);
+    const [isPersonal, setIsPersonal] = React.useState(false);
     const textareaRef = React.useRef(null);
     const notesTextareaRef = React.useRef(null);
+
+    // Determine if we're effectively in personal mode
+    const isAdmin = ['admin', 'super_admin'].includes(userRole);
+    const effectivePersonal = userRole === 'worker' || isPersonal;
 
     React.useEffect(() => {
         if (isOpen) {
@@ -2597,6 +2590,8 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
             setIsNotified(false);
             setNotes('');
             setIsNotesOpen(false);
+            // Admin/Super Admin default to Team mode; workers always personal
+            setIsPersonal(isPersonalMode);
             setTimeout(() => {
                 if (textareaRef.current) textareaRef.current.focus();
             }, 50);
@@ -2605,11 +2600,11 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
 
     const handleCreate = async () => {
         let finalAssignee = assignee;
-        if (userRole === 'worker' || isPersonalMode) {
+        if (userRole === 'worker' || effectivePersonal) {
             finalAssignee = currentUserRosterName;
         }
         if (!action.trim() || !finalAssignee) return;
-        const submitRole = isPersonalMode ? 'worker' : userRole;
+        const submitRole = effectivePersonal ? 'worker' : userRole;
         const newTask = await addTask(finalAssignee, submitRole);
         if (newTask) {
             updateTask(newTask.id, {
@@ -2637,38 +2632,55 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                 </button>
 
                 <div className="flex justify-between items-start gap-2 pr-8">
-                    {userRole === 'worker' || isPersonalMode ? (
-                        <div className="flex flex-col">
-                            <h2 className="text-lg md:text-xl font-black text-white tracking-widest uppercase italic">Personal Task</h2>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1 italic">Private to your board</p>
+                    {effectivePersonal ? (
+                        <div className="flex items-start gap-3">
+                            <h2 className="text-lg md:text-xl font-black text-white tracking-widest uppercase italic leading-none pt-0.5">Personal Task</h2>
+                            {isAdmin && (
+                                <button
+                                    onClick={() => setIsPersonal(false)}
+                                    className="px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white border border-slate-600 hover:border-slate-500 transition-all active:scale-95 whitespace-nowrap"
+                                >
+                                    Team
+                                </button>
+                            )}
                         </div>
                     ) : (
-                        <div className="relative group">
-                            <select
-                                value={assignee}
-                                onChange={(e) => setAssignee(e.target.value)}
-                                className="appearance-none bg-blue-500/20 text-[10px] md:text-xs font-black uppercase px-3 py-1.5 rounded-md border border-blue-500/30 text-blue-300 outline-none cursor-pointer transition-all hover:bg-blue-500/30 pr-8"
-                            >
-                                <option value="" disabled>Assigned To</option>
-                                {teamMembers
-                                    .filter(m => {
-                                        if (userRole === 'super_admin') return true;
-                                        if (m.name === currentUserRosterName) return true;
-                                        // Cross-reference with profiles by user_id first, then email fallback
-                                        const memberProfile = m.user_id
-                                            ? profiles.find(p => p.id === m.user_id)
-                                            : m.email
-                                                ? profiles.find(p => p.email?.toLowerCase().trim() === m.email.toLowerCase().trim())
-                                                : null;
-                                        const memberRole = memberProfile?.role;
-                                        // Admins can only assign to workers (not other admins/super_admins)
-                                        if (memberRole === 'admin' || memberRole === 'super_admin') return false;
-                                        return true;
-                                    })
-                                    .map(m => <option key={m.id} value={m.name} className="bg-slate-900">{m.name}</option>)
-                                }
-                            </select>
-                            <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none group-hover:text-blue-300 transition-colors" />
+                        <div className="flex items-center gap-3">
+                            <div className="relative group">
+                                <select
+                                    value={assignee}
+                                    onChange={(e) => setAssignee(e.target.value)}
+                                    className="appearance-none bg-blue-500/20 text-[10px] md:text-xs font-black uppercase px-3 py-1.5 rounded-md border border-blue-500/30 text-blue-300 outline-none cursor-pointer transition-all hover:bg-blue-500/30 pr-8"
+                                >
+                                    <option value="" disabled>Team</option>
+                                    {teamMembers
+                                        .filter(m => {
+                                            if (userRole === 'super_admin') return true;
+                                            if (m.name === currentUserRosterName) return true;
+                                            // Cross-reference with profiles by user_id first, then email fallback
+                                            const memberProfile = m.user_id
+                                                ? profiles.find(p => p.id === m.user_id)
+                                                : m.email
+                                                    ? profiles.find(p => p.email?.toLowerCase().trim() === m.email.toLowerCase().trim())
+                                                    : null;
+                                            const memberRole = memberProfile?.role;
+                                            // Admins can only assign to workers (not other admins/super_admins)
+                                            if (memberRole === 'admin' || memberRole === 'super_admin') return false;
+                                            return true;
+                                        })
+                                        .map(m => <option key={m.id} value={m.name} className="bg-slate-900">{m.name}</option>)
+                                    }
+                                </select>
+                                <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none group-hover:text-blue-300 transition-colors" />
+                            </div>
+                            {isAdmin && (
+                                <button
+                                    onClick={() => setIsPersonal(true)}
+                                    className="px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white border border-slate-600 hover:border-slate-500 transition-all active:scale-95 whitespace-nowrap"
+                                >
+                                    Personal
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
@@ -2699,13 +2711,13 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                             categories={categories}
                             value={category}
                             onSelect={setCategory}
-                            onAdd={(name) => addCategory(name, null, isPersonalMode)}
+                            onAdd={(name) => addCategory(name, null, effectivePersonal)}
                             onDelete={deleteCategory}
-                            isPrivateContext={isPersonalMode}
+                            isPrivateContext={effectivePersonal}
                         />
 
                         {/* Add Task Modal Notifications Toggle */}
-                        {['admin', 'super_admin'].includes(userRole) && (
+                        {isAdmin && (
                             <div className="flex flex-col gap-0.5 items-start mt-2 pl-1">
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); setIsNotified(!isNotified); }}
@@ -2734,7 +2746,7 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                         </div>
                         <button
                             onClick={handleCreate}
-                            disabled={!action.trim() || (userRole !== 'worker' && !isPersonalMode && !assignee)}
+                            disabled={!action.trim() || (userRole !== 'worker' && !effectivePersonal && !assignee)}
                             className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-xl transition-all active:scale-95 shadow-lg flex items-center justify-center min-w-[120px] text-sm"
                         >
                             Add Task

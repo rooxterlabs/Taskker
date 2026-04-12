@@ -1,6 +1,13 @@
 // EDIT YOUR PATCH NOTES HERE!
 // Simply follow the format below to add new updates.
 export const patchNotes = [
+        {
+        version: "v0.1.05",
+        date: "April 11, 2026",
+        notes: [
+            "Fixed Admin/Super Admin Add Task button"
+        ]
+    },
     {
         version: "v0.1.04",
         date: "April 1, 2026",
