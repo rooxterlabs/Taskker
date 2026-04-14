@@ -40,7 +40,8 @@ import {
     Flame,
     ThumbsUp,
     PartyPopper,
-    FolderKanban
+    FolderKanban,
+    Link
 } from 'lucide-react';
 import { useTasks, calculateStats } from './hooks/useTasks';
 import { STATUS_OPTIONS, DUE_BY_OPTIONS } from './constants';
@@ -140,6 +141,12 @@ export default function App() {
         addCategory,
         updateCategory,
         deleteCategory,
+        teamLinks,
+        personalLinks,
+        addTeamLink,
+        deleteTeamLink,
+        addPersonalLink,
+        deletePersonalLink,
         updateTask,
         deleteTask,
         permanentlyDeleteTask,
@@ -174,6 +181,7 @@ export default function App() {
     const [isPersonalTaskMode, setIsPersonalTaskMode] = useState(false);
     const [isPatchNotesOpen, setIsPatchNotesOpen] = useState(false);
     const [isFunModalOpen, setIsFunModalOpen] = useState(false);
+    const [isHotLinksOpen, setIsHotLinksOpen] = useState(false);
     
     // Profile & Settings State
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -614,6 +622,15 @@ export default function App() {
                 </div>
 
                 <div className="flex-1 min-h-[20px]"></div>
+
+                {/* HOT LINKS BUTTON */}
+                <button
+                    onClick={() => setIsHotLinksOpen(true)}
+                    className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center border border-slate-700/50 rounded-xl md:rounded-2xl transition-all shadow-lg group bg-slate-800/30 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 hover:border-blue-500/50 mt-auto mb-2"
+                    title="HOT LINKS"
+                >
+                    <Link className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                </button>
 
                 {/* FUN BUTTON */}
                 <button
@@ -1459,10 +1476,24 @@ export default function App() {
                 addCategory={addCategory}
                 updateCategory={updateCategory}
                 deleteCategory={deleteCategory}
+                teamLinks={teamLinks}
+                addTeamLink={addTeamLink}
+                deleteTeamLink={deleteTeamLink}
             />
 
             {/* PATCH NOTES MODAL */}
             <PatchNotesModal isOpen={isPatchNotesOpen} onClose={() => setIsPatchNotesOpen(false)} />
+
+            {/* HOT LINKS SLIDE OUT */}
+            <HotLinksSlideOut 
+                isOpen={isHotLinksOpen} 
+                onClose={() => setIsHotLinksOpen(false)} 
+                teamLinks={teamLinks} 
+                personalLinks={personalLinks} 
+                addPersonalLink={addPersonalLink} 
+                deletePersonalLink={deletePersonalLink} 
+                session={session} 
+            />
 
             {/* FUN POPUP MODAL */}
             {isFunModalOpen && (
@@ -3343,7 +3374,7 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
 }
 
 // --- Admin Settings Modal Component ---
-function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile, rewards, updateReward, session, companyName, updateCompanyName, categories, addCategory, updateCategory, deleteCategory }) {
+function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile, rewards, updateReward, session, companyName, updateCompanyName, categories, addCategory, updateCategory, deleteCategory, teamLinks, addTeamLink, deleteTeamLink }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'Invite Team');
     const [localName, setLocalName] = React.useState(companyName || 'TEAM ROOXTER');
     const [isSavingName, setIsSavingName] = React.useState(false);
@@ -3378,8 +3409,12 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
         sidebarTabs.push({ id: 'Billing Management', icon: FileText });
     }
     sidebarTabs.push({ id: 'Reward System', icon: Zap });
+    sidebarTabs.push({ id: 'Global Links', icon: Link });
 
     const renderMainContent = () => {
+        if (activeTab === 'Global Links') {
+            return <GlobalLinksAdmin teamLinks={teamLinks} addTeamLink={addTeamLink} deleteTeamLink={deleteTeamLink} />;
+        }
         if (activeTab === 'Company Management' && userRole === 'super_admin') {
             const handleSaveName = async () => {
                 const trimmed = localName.trim();
@@ -3720,6 +3755,258 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                     <div className="flex-1 p-8 bg-slate-900/80 overflow-y-auto no-scrollbar">
                         {renderMainContent()}
                     </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Global Links Admin Component ---
+function GlobalLinksAdmin({ teamLinks, addTeamLink, deleteTeamLink }) {
+    const [newLabel, setNewLabel] = React.useState('');
+    const [newUrl, setNewUrl] = React.useState('');
+    const [isSaving, setIsSaving] = React.useState(false);
+
+    const handleAdd = async (e) => {
+        e.preventDefault();
+        const trimmedLabel = newLabel.trim();
+        const trimmedUrl = newUrl.trim();
+        if (!trimmedLabel || !trimmedUrl) return;
+
+        // basic URL prefix
+        let finalUrl = trimmedUrl;
+        if (!/^https?:\/\//i.test(finalUrl)) {
+            finalUrl = 'https://' + finalUrl;
+        }
+
+        setIsSaving(true);
+        await addTeamLink(trimmedLabel, finalUrl);
+        setNewLabel('');
+        setNewUrl('');
+        setIsSaving(false);
+    };
+
+    return (
+        <div className="flex flex-col h-full animate-in fade-in duration-500">
+            <div className="flex items-center gap-3 mb-8">
+                <Link className="w-6 h-6 text-blue-400" />
+                <h2 className="text-xl md:text-2xl font-black uppercase tracking-widest text-white">GLOBAL LINKS</h2>
+            </div>
+            
+            <p className="text-sm text-slate-400 mb-6 drop-shadow-md">
+                Links added here will appear in the "HOT LINKS" sidebar for all Team Members under the "TEAM" section.
+            </p>
+
+            <form onSubmit={handleAdd} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 mb-8 flex flex-col md:flex-row gap-4 items-end drop-shadow-xl">
+                <div className="w-full">
+                    <label className="block text-[10px] font-black tracking-widest uppercase text-slate-500 mb-2">Label</label>
+                    <input 
+                        type="text" 
+                        value={newLabel}
+                        onChange={(e) => setNewLabel(e.target.value)}
+                        placeholder="e.g. Frame.io Project"
+                        className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
+                    />
+                </div>
+                <div className="w-full">
+                    <label className="block text-[10px] font-black tracking-widest uppercase text-slate-500 mb-2">URL (Link)</label>
+                    <input 
+                        type="text" 
+                        value={newUrl}
+                        onChange={(e) => setNewUrl(e.target.value)}
+                        placeholder="e.g. https://frame.io/..."
+                        className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
+                    />
+                </div>
+                <button 
+                    type="submit"
+                    disabled={isSaving || !newLabel.trim() || !newUrl.trim()}
+                    className="w-full md:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:bg-slate-700 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition-colors whitespace-nowrap drop-shadow-md"
+                >
+                    {isSaving ? 'ADDING...' : 'ADD LINK'}
+                </button>
+            </form>
+
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <h3 className="text-xs font-black tracking-widest uppercase text-slate-500 mb-4 sticky top-0 bg-slate-900/90 py-2 z-10">Active Global Links ({teamLinks?.length || 0})</h3>
+                <div className="flex flex-col gap-2">
+                    {teamLinks && teamLinks.length > 0 ? (
+                        teamLinks.map(link => (
+                            <div key={link.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-700/50 bg-slate-800/30 group hover:bg-slate-700/30 transition-colors">
+                                <div className="flex items-center gap-4 truncate">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/20 group-hover:border-blue-500/40 transition-colors">
+                                        <Link className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                                    </div>
+                                    <div className="truncate">
+                                        <div className="text-sm font-bold text-slate-200 truncate">{link.label}</div>
+                                        <div className="text-[10px] text-slate-500 font-medium truncate group-hover:text-slate-400 transition-colors">{link.url}</div>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => deleteTeamLink(link.id)}
+                                    className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20 shrink-0"
+                                    title="Delete Global Link"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-12 text-slate-500 font-mono text-xs border-2 border-dashed border-slate-800 rounded-xl">
+                            No team links added yet. Add one above!
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Hot Links Pop-Up Panel ---
+function HotLinksSlideOut({ isOpen, onClose, teamLinks, personalLinks, addPersonalLink, deletePersonalLink, session }) {
+    const [newLabel, setNewLabel] = React.useState('');
+    const [newUrl, setNewUrl] = React.useState('');
+    const [isAdding, setIsAdding] = React.useState(false);
+
+    if (!isOpen) return null;
+
+    const handleAddPersonal = async (e) => {
+        e.preventDefault();
+        const trimmedLabel = newLabel.trim();
+        const trimmedUrl = newUrl.trim();
+        if (!trimmedLabel || !trimmedUrl || !session?.user?.id) return;
+
+        let finalUrl = trimmedUrl;
+        if (!/^https?:\/\//i.test(finalUrl)) {
+            finalUrl = 'https://' + finalUrl;
+        }
+
+        await addPersonalLink(session.user.id, trimmedLabel, finalUrl);
+        setNewLabel('');
+        setNewUrl('');
+        setIsAdding(false);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100]" onClick={onClose}>
+            <div 
+                className="fixed bottom-24 right-[80px] md:right-[96px] w-64 md:w-72 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-right-4 z-[110] flex flex-col max-h-[70vh] mb-2 mr-4"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-3 border-b border-white/5 bg-slate-800/50">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-300 text-center">HOT LINKS</p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-6 custom-scrollbar">
+                    
+                    {/* TEAM LINKS (Global) */}
+                    <div>
+                        <h3 className="text-[10px] font-black tracking-widest uppercase text-slate-500 mb-2 flex items-center gap-2 px-1">
+                            <Users className="w-3 h-3 text-slate-600" /> 
+                            Team Links
+                        </h3>
+                        
+                        <div className="flex flex-col gap-1">
+                            {teamLinks && teamLinks.length > 0 ? (
+                                teamLinks.map(link => (
+                                    <a 
+                                        key={link.id}
+                                        href={link.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="group flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-blue-600 transition-colors"
+                                    >
+                                        <div className="flex-1 truncate">
+                                            <div className="text-[11px] font-bold text-slate-300 truncate group-hover:text-white transition-colors">{link.label}</div>
+                                        </div>
+                                    </a>
+                                ))
+                            ) : (
+                                <div className="text-[10px] font-medium text-slate-600 italic px-3 py-1">No team links yet.</div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* PERSONAL LINKS (User) */}
+                    <div>
+                        <h3 className="text-[10px] font-black tracking-widest uppercase text-slate-500 mb-2 flex items-center gap-2 px-1">
+                            <User className="w-3 h-3 text-slate-600" /> 
+                            Private Links
+                        </h3>
+                        
+                        <div className="flex flex-col gap-1">
+                            {personalLinks && personalLinks.length > 0 ? (
+                                personalLinks.map(link => (
+                                    <div key={link.id} className="group flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-700 transition-colors">
+                                        <a 
+                                            href={link.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex-1 truncate pr-2"
+                                        >
+                                            <div className="text-[11px] font-bold text-slate-300 truncate group-hover:text-white">{link.label}</div>
+                                        </a>
+                                        <button 
+                                            onClick={() => deletePersonalLink(link.id)}
+                                            className="p-1.5 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all shrink-0 bg-transparent hover:bg-red-500/10 rounded-lg"
+                                            title="Delete Link"
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-[10px] font-medium text-slate-600 italic px-3 py-1">No private links added.</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* QUICK ADD FOOTER */}
+                <div className="p-3 border-t border-slate-700/50 bg-slate-800/20">
+                    {!isAdding ? (
+                        <button 
+                            onClick={() => setIsAdding(true)}
+                            className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white border border-dashed border-slate-700 hover:border-slate-500 rounded-lg transition-colors hover:bg-slate-800/50 group"
+                        >
+                            <Plus className="w-3 h-3 group-hover:scale-110 transition-transform" />
+                            ADD PERSONAL LINK
+                        </button>
+                    ) : (
+                        <form onSubmit={handleAddPersonal} className="flex flex-col gap-2 animate-in fade-in duration-300">
+                            <input 
+                                type="text" 
+                                autoFocus
+                                placeholder="Link Label" 
+                                value={newLabel}
+                                onChange={(e) => setNewLabel(e.target.value)}
+                                className="w-full bg-slate-900 border-slate-700 border text-white text-[11px] px-3 py-2 rounded-lg focus:ring-1 focus:ring-purple-500 outline-none"
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="URL" 
+                                value={newUrl}
+                                onChange={(e) => setNewUrl(e.target.value)}
+                                className="w-full bg-slate-900 border-slate-700 border text-white text-[11px] px-3 py-2 rounded-lg focus:ring-1 focus:ring-purple-500 outline-none"
+                            />
+                            <div className="flex items-center gap-2 mt-1">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setIsAdding(false)}
+                                    className="flex-1 py-1.5 text-[10px] font-bold uppercase text-slate-500 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-transparent"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={!newLabel.trim() || !newUrl.trim()}
+                                    className="flex-1 right py-1.5 text-[10px] font-bold uppercase text-white bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:bg-slate-700 rounded-lg transition-colors shadow-lg"
+                                >
+                                    Save
+                                </button>
+                            </div>
+                        </form>
+                    )}
                 </div>
             </div>
         </div>

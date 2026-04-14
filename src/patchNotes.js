@@ -8,6 +8,7 @@ export const patchNotes = [
             "Fixed Admin/Super Admin Add Task button",
             "Added column toggle settings for both boards",
             "Added stat cards toggle",
+            "Added Hot Links button on sidebar"
         ]
     },
     {

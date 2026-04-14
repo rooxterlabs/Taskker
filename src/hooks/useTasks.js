@@ -29,6 +29,8 @@ export function useTasks() {
     const [categories, setCategories] = useState([]);
     const [profiles, setProfiles] = useState([]); // Store actual user profiles
     const [rewards, setRewards] = useState([]); // Reward definitions from admin
+    const [teamLinks, setTeamLinks] = useState([]); // Global Links
+    const [personalLinks, setPersonalLinks] = useState([]); // User Links
     const [userSettings, setUserSettings] = useState({
         display_stat_cards: true,
         dnd_mobile_enabled: true, dnd_desktop_enabled: false,
@@ -48,14 +50,16 @@ export function useTasks() {
         try {
             setLoading(true);
             // NEW: Added profiles to the initial fetch to get real Auth UUIDs
-            const [tasksResult, teamsResult, categoriesResult, profilesResult, rewardsResult, settingsResult, appSettingsResult] = await Promise.all([
+            const [tasksResult, teamsResult, categoriesResult, profilesResult, rewardsResult, settingsResult, appSettingsResult, globalLinksResult, userLinksResult] = await Promise.all([
                 supabase.from('tasks').select('*').order('id', { ascending: false }),
                 supabase.from('team_members').select('*').order('name', { ascending: true }),
                 supabase.from('categories').select('*').order('name', { ascending: true }),
                 supabase.from('profiles').select('id, email, role, first_name, last_name, title, theme, name'),
                 supabase.from('rewards').select('*').order('slot', { ascending: true }),
                 supabase.from('user_settings').select('display_stat_cards, dnd_mobile_enabled, dnd_desktop_enabled, all_col_backburner, all_col_p3, all_col_p2, all_col_p1, all_col_in_progress, all_col_done, my_col_backburner, my_col_p3, my_col_p2, my_col_p1, my_col_in_progress, my_col_done').limit(1),
-                supabase.from('app_settings').select('*')
+                supabase.from('app_settings').select('*'),
+                supabase.from('global_links').select('*').order('created_at', { ascending: true }),
+                supabase.from('user_links').select('*').order('created_at', { ascending: true })
             ]);
 
             if (tasksResult.error) throw tasksResult.error;
@@ -66,11 +70,15 @@ export function useTasks() {
             if (rewardsResult.error) console.warn('Rewards fetch error (run the SQL migration):', rewardsResult.error);
             // Settings table might not exist yet or have no row for current user
             if (settingsResult.error) console.warn('Settings fetch error (run the SQL migration):', settingsResult.error);
+            if (globalLinksResult.error) console.warn('Global links error:', globalLinksResult.error);
+            if (userLinksResult.error) console.warn('User links error:', userLinksResult.error);
 
             setTasks(tasksResult.data || []);
             setTeamMembers(teamsResult.data || []);
             setCategories(categoriesResult.data || []);
             setProfiles(profilesResult.data || []);
+            setTeamLinks(globalLinksResult.data || []);
+            setPersonalLinks(userLinksResult.data || []);
             
             if (appSettingsResult && !appSettingsResult.error && appSettingsResult.data) {
                 const cnRow = appSettingsResult.data.find(r => r.setting_key === 'company_name');
@@ -519,6 +527,36 @@ export function useTasks() {
         }
     };
 
+    // --- Hot Links Helpers ---
+    const addTeamLink = async (label, url) => {
+        try {
+            const { data, error } = await supabase.from('global_links').insert([{ label, url }]).select();
+            if (error) throw error;
+            if (data && data[0]) setTeamLinks([...teamLinks, data[0]]);
+        } catch (error) { console.error('Error adding team link:', error); }
+    };
+    const deleteTeamLink = async (id) => {
+        try {
+            setTeamLinks(teamLinks.filter(l => l.id !== id)); // Optimistic UI
+            const { error } = await supabase.from('global_links').delete().eq('id', id);
+            if (error) throw error;
+        } catch (error) { console.error('Error deleting team link:', error); fetchData(); }
+    };
+    const addPersonalLink = async (user_id, label, url) => {
+        try {
+            const { data, error } = await supabase.from('user_links').insert([{ user_id, label, url }]).select();
+            if (error) throw error;
+            if (data && data[0]) setPersonalLinks([...personalLinks, data[0]]);
+        } catch (error) { console.error('Error adding personal link:', error); }
+    };
+    const deletePersonalLink = async (id) => {
+        try {
+            setPersonalLinks(personalLinks.filter(l => l.id !== id)); // Optimistic UI
+            const { error } = await supabase.from('user_links').delete().eq('id', id);
+            if (error) throw error;
+        } catch (error) { console.error('Error deleting personal link:', error); fetchData(); }
+    };
+
     return {
         tasks,
         teamMembers,
@@ -526,6 +564,8 @@ export function useTasks() {
         profiles,
         rewards,
         userSettings,
+        teamLinks,
+        personalLinks,
         companyName,
         stats,
         addTask,
@@ -546,6 +586,10 @@ export function useTasks() {
         updateUserSetting,
         updateCompanyName,
         resetData,
-        loading
+        loading,
+        addTeamLink,
+        deleteTeamLink,
+        addPersonalLink,
+        deletePersonalLink
     };
 }
