@@ -3,9 +3,11 @@
 export const patchNotes = [
         {
         version: "v0.1.05",
-        date: "April 11, 2026",
+        date: "April 13, 2026",
         notes: [
-            "Fixed Admin/Super Admin Add Task button"
+            "Fixed Admin/Super Admin Add Task button",
+            "Added column toggle settings for both boards",
+            "Added stat cards toggle",
         ]
     },
     {

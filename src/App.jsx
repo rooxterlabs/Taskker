@@ -988,13 +988,15 @@ export default function App() {
                 {/* View: Dashboard */}
                 {activeTab === 'dashboard' && (
                     <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <div className="flex w-full gap-2 md:gap-4 overflow-hidden">
-                            <StatCard label="BACKBURNER" shortLabel="BACKBURNER" value={displayStats.backburner} icon={Coffee} color="text-slate-400" bgColor="bg-slate-400/10" onClick={() => setModalFilter('Backburner')} />
-                            <StatCard label="P3 (LOW)" shortLabel="P3" value={displayStats.p3} icon={Calendar} color="text-yellow-500" bgColor="bg-yellow-500/10" onClick={() => setModalFilter('P3')} />
-                            <StatCard label="P2 (NORMAL)" shortLabel="P2" value={displayStats.p2} icon={AlertTriangle} color="text-orange-500" bgColor="bg-orange-500/10" onClick={() => setModalFilter('P2')} />
-                            <StatCard label="P1 (HIGH)" shortLabel="P1" value={displayStats.p1} icon={Zap} color="text-red-500" bgColor="bg-red-500/10" onClick={() => setModalFilter('P1')} />
-                            <StatCard label="Done (7 Days)" shortLabel="DONE" value={displayStats.completed} icon={CheckCircle2} color="text-emerald-500" bgColor="bg-emerald-500/10" onClick={() => setModalFilter('Completed')} />
-                        </div>
+                        {(userSettings?.display_stat_cards ?? true) && (
+                            <div className="flex w-full gap-2 md:gap-4 overflow-hidden">
+                                <StatCard label="BACKBURNER" shortLabel="BACKBURNER" value={displayStats.backburner} icon={Coffee} color="text-slate-400" bgColor="bg-slate-400/10" onClick={() => setModalFilter('Backburner')} />
+                                <StatCard label="P3 (LOW)" shortLabel="P3" value={displayStats.p3} icon={Calendar} color="text-yellow-500" bgColor="bg-yellow-500/10" onClick={() => setModalFilter('P3')} />
+                                <StatCard label="P2 (NORMAL)" shortLabel="P2" value={displayStats.p2} icon={AlertTriangle} color="text-orange-500" bgColor="bg-orange-500/10" onClick={() => setModalFilter('P2')} />
+                                <StatCard label="P1 (HIGH)" shortLabel="P1" value={displayStats.p1} icon={Zap} color="text-red-500" bgColor="bg-red-500/10" onClick={() => setModalFilter('P1')} />
+                                <StatCard label="Done (7 Days)" shortLabel="DONE" value={displayStats.completed} icon={CheckCircle2} color="text-emerald-500" bgColor="bg-emerald-500/10" onClick={() => setModalFilter('Completed')} />
+                            </div>
+                        )}
 
                         {/* Unified All Tasks / Production Board Container */}
                         <RoleGate userRole={userRole} allowed={['admin', 'super_admin']}>
@@ -1028,7 +1030,7 @@ export default function App() {
                                 {/* Board Content */}
                                 {showAllTasksBoard && (
                                     <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                        <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} />
+                                        <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} visibleColumns={{ backburner: userSettings?.all_col_backburner ?? true, p3: userSettings?.all_col_p3 ?? true, p2: userSettings?.all_col_p2 ?? true, p1: userSettings?.all_col_p1 ?? true, in_progress: userSettings?.all_col_in_progress ?? false, done: userSettings?.all_col_done ?? true }} onToggleColumn={(key) => updateUserSetting(currentUserProfile?.id, 'all_col_' + key, !(userSettings?.['all_col_' + key] ?? (key === 'in_progress' ? false : true)))} />
                                     </div>
                                 )}
                             </div>
@@ -1058,7 +1060,7 @@ export default function App() {
                             {/* Board Content */}
                             {showMyTasksBoard && (
                                 <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                    <AllTasksBoard tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} />
+                                    <AllTasksBoard tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} visibleColumns={{ backburner: userSettings?.my_col_backburner ?? true, p3: userSettings?.my_col_p3 ?? true, p2: userSettings?.my_col_p2 ?? true, p1: userSettings?.my_col_p1 ?? true, in_progress: userSettings?.my_col_in_progress ?? false, done: userSettings?.my_col_done ?? true }} onToggleColumn={(key) => updateUserSetting(currentUserProfile?.id, 'my_col_' + key, !(userSettings?.['my_col_' + key] ?? (key === 'in_progress' ? false : true)))} />
                                 </div>
                             )}
                         </div>
@@ -2409,7 +2411,7 @@ function DroppableColumn({ id, title, colorClass, bgClass, borderClass, activeBo
 }
 
 // --- All Tasks Rolldown Board Component ---
-function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories, addCategory, deleteCategory, deleteTask, kanbanEnabled }) {
+function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories, addCategory, deleteCategory, deleteTask, kanbanEnabled, visibleColumns, onToggleColumn }) {
     const [activeId, setActiveId] = React.useState(null);
     const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
 
@@ -2440,6 +2442,9 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
             case 'Backburner':
                 bucketTasks = tasks.filter(t => t.priority === 'Backburner' && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
                 break;
+            case 'InProgress':
+                bucketTasks = tasks.filter(t => t.status === 'In Progress' && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
+                break;
             case 'Completed':
                 bucketTasks = tasks.filter(t => {
                     if (t.status !== 'Done') return false;
@@ -2459,13 +2464,17 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
         return bucketTasks;
     };
 
-    const columns = [
-        { id: 'P1', title: 'P1 (HIGH)', colorClass: 'text-red-500', bgClass: 'bg-red-500/10', borderClass: 'border-red-500/20', activeBorderClass: 'border-red-400 ring-2 ring-red-500 shadow-[inset_0_0_20px_rgba(239,68,68,0.2)]', newPriority: 'P1', newDueBy: 'Today', orderClass: 'order-1 md:order-4' },
-        { id: 'P2', title: 'P2 (NORMAL)', colorClass: 'text-orange-500', bgClass: 'bg-orange-500/10', borderClass: 'border-orange-500/20', activeBorderClass: 'border-orange-400 ring-2 ring-orange-500 shadow-[inset_0_0_20px_rgba(249,115,22,0.2)]', newPriority: 'P2', newDueBy: 'This Week', orderClass: 'order-2 md:order-3' },
-        { id: 'P3', title: 'P3 (LOW)', colorClass: 'text-yellow-500', bgClass: 'bg-yellow-500/10', borderClass: 'border-yellow-500/20', activeBorderClass: 'border-yellow-400 ring-2 ring-yellow-500 shadow-[inset_0_0_20px_rgba(234,179,8,0.2)]', newPriority: 'P3', newDueBy: 'This Month', orderClass: 'order-3 md:order-2' },
-        { id: 'Backburner', title: 'Backburner', colorClass: 'text-slate-400', bgClass: 'bg-slate-500/10', borderClass: 'border-slate-500/20', activeBorderClass: 'border-slate-300 ring-2 ring-slate-400 shadow-[inset_0_0_20px_rgba(148,163,184,0.2)]', newPriority: 'Backburner', newDueBy: 'Backburner', orderClass: 'order-4 md:order-1' },
-        { id: 'Completed', title: 'Done (7 Days)', colorClass: 'text-emerald-500', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20', activeBorderClass: 'border-emerald-400 ring-2 ring-emerald-500 shadow-[inset_0_0_20px_rgba(16,185,129,0.2)]', isDone: true, orderClass: 'order-5 md:order-5' },
+    const allColumns = [
+        { id: 'Backburner', title: 'Backburner', colorClass: 'text-slate-400', bgClass: 'bg-slate-500/10', borderClass: 'border-slate-500/20', activeBorderClass: 'border-slate-300 ring-2 ring-slate-400 shadow-[inset_0_0_20px_rgba(148,163,184,0.2)]', newPriority: 'Backburner', newDueBy: 'Backburner', orderClass: 'order-4 md:order-1', visKey: 'backburner' },
+        { id: 'P3', title: 'P3 (LOW)', colorClass: 'text-yellow-500', bgClass: 'bg-yellow-500/10', borderClass: 'border-yellow-500/20', activeBorderClass: 'border-yellow-400 ring-2 ring-yellow-500 shadow-[inset_0_0_20px_rgba(234,179,8,0.2)]', newPriority: 'P3', newDueBy: 'This Month', orderClass: 'order-3 md:order-2', visKey: 'p3' },
+        { id: 'P2', title: 'P2 (NORMAL)', colorClass: 'text-orange-500', bgClass: 'bg-orange-500/10', borderClass: 'border-orange-500/20', activeBorderClass: 'border-orange-400 ring-2 ring-orange-500 shadow-[inset_0_0_20px_rgba(249,115,22,0.2)]', newPriority: 'P2', newDueBy: 'This Week', orderClass: 'order-2 md:order-3', visKey: 'p2' },
+        { id: 'P1', title: 'P1 (HIGH)', colorClass: 'text-red-500', bgClass: 'bg-red-500/10', borderClass: 'border-red-500/20', activeBorderClass: 'border-red-400 ring-2 ring-red-500 shadow-[inset_0_0_20px_rgba(239,68,68,0.2)]', newPriority: 'P1', newDueBy: 'Today', orderClass: 'order-1 md:order-4', visKey: 'p1' },
+        { id: 'InProgress', title: 'In Progress', colorClass: 'text-blue-400', bgClass: 'bg-blue-500/10', borderClass: 'border-blue-500/20', activeBorderClass: 'border-blue-400 ring-2 ring-blue-500 shadow-[inset_0_0_20px_rgba(59,130,246,0.2)]', isInProgress: true, orderClass: 'order-5 md:order-5', visKey: 'in_progress' },
+        { id: 'Completed', title: 'Done (7 Days)', colorClass: 'text-emerald-500', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20', activeBorderClass: 'border-emerald-400 ring-2 ring-emerald-500 shadow-[inset_0_0_20px_rgba(16,185,129,0.2)]', isDone: true, orderClass: 'order-6 md:order-6', visKey: 'done' },
     ];
+
+    // Filter columns by user visibility prefs
+    const columns = allColumns.filter(col => visibleColumns?.[col.visKey] !== false);
 
     function handleDragStart(event) {
         setActiveId(event.active.id);
@@ -2480,12 +2489,15 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
         const taskId = active.id;
         const destColId = over.id;
 
-        const destCol = columns.find(c => c.id === destColId);
+        const destCol = allColumns.find(c => c.id === destColId);
 
         // If dropping into a valid column
         if (destCol) {
             if (destCol.isDone) {
                 updateTask(taskId, 'status', 'Done');
+            } else if (destCol.isInProgress) {
+                // Only change status — preserve existing priority & deadline
+                updateTask(taskId, 'status', 'In Progress');
             } else {
                 updateTask(taskId, {
                     priority: destCol.newPriority,
@@ -2495,6 +2507,16 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
             }
         }
     }
+
+    // Toggle labels for the bottom bar
+    const toggleDefs = [
+        { visKey: 'backburner', label: 'Backburner' },
+        { visKey: 'p3', label: 'P3' },
+        { visKey: 'p2', label: 'P2' },
+        { visKey: 'p1', label: 'P1' },
+        { visKey: 'in_progress', label: 'In Progress' },
+        { visKey: 'done', label: 'Done' },
+    ];
 
     return (
         <DndContext
@@ -2506,11 +2528,6 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
             <div className="grid grid-cols-1 md:grid-flow-col md:auto-cols-fr gap-2 md:gap-4 w-full">
                 {columns.map(col => {
                     const colTasks = getTasksByBucket(col.id);
-                    // Only hide 'Backburner' column if empty and not dragging
-                    const isDragging = activeTask !== null;
-                    if (colTasks.length === 0 && col.id === 'Backburner' && !isDragging) {
-                        return null;
-                    }
                     return (
                         <DroppableColumn key={col.id} id={col.id} {...col} tasks={colTasks}>
                             {colTasks.length === 0 ? (
@@ -2533,6 +2550,24 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
                     );
                 })}
             </div>
+
+            {/* Column Visibility Toggle Bar */}
+            {onToggleColumn && (
+                <div className="flex items-center justify-center gap-3 md:gap-5 mt-4 pt-3 border-t border-slate-700/30 flex-wrap">
+                    {toggleDefs.map(td => {
+                        const isOn = visibleColumns?.[td.visKey] !== false;
+                        return (
+                            <button
+                                key={td.visKey}
+                                onClick={() => onToggleColumn(td.visKey)}
+                                className={`text-[10px] md:text-xs font-medium tracking-wide transition-colors duration-200 hover:opacity-80 ${isOn ? 'text-blue-400' : 'text-slate-600'}`}
+                            >
+                                {td.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
 
             <DragOverlay modifiers={[snapCenterToCursor]}>
                 {activeTask ? (
@@ -2563,6 +2598,7 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
         </DndContext>
     );
 }
+
 
 // --- Global Add Task Modal Component ---
 function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, currentUserRosterName, teamMembers, profiles, categories, addTask, updateTask, addCategory, deleteCategory }) {
@@ -3232,36 +3268,47 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                                 </div>
                             ) : prefTab === 'Advanced' ? (
                                 <div className="flex-1 flex flex-col items-center justify-center px-6">
-                                    <div className="w-full max-w-md bg-slate-800/30 border border-slate-700/50 rounded-2xl p-6 transition-all hover:bg-slate-800/50 mb-4">
-                                        <h3 className="text-white font-black tracking-widest uppercase text-sm mb-4">Enable Drag &amp; Drop Task Cards</h3>
-                                        <div className="flex flex-col gap-4">
-                                            {/* Mobile toggle */}
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-slate-300 text-xs font-bold uppercase tracking-wider">Mobile</p>
-                                                    <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Touch drag on mobile devices</p>
-                                                </div>
-                                                <button
-                                                    onClick={() => updateUserSetting(currentUserProfile.id, 'dnd_mobile_enabled', !(userSettings?.dnd_mobile_enabled ?? true))}
-                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${(userSettings?.dnd_mobile_enabled ?? true) ? 'bg-blue-500' : 'bg-slate-600'}`}
-                                                >
-                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(userSettings?.dnd_mobile_enabled ?? true) ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                </button>
+                                    <div className="w-full max-w-md flex flex-col gap-6 mt-8 mb-8">
+                                        {/* Stat Cards Toggle */}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-slate-300 text-xs font-bold uppercase tracking-wider">Stat Cards</p>
+                                                <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Show or hide the summary cards</p>
                                             </div>
-                                            <div className="h-px bg-slate-700/50" />
-                                            {/* Desktop toggle */}
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-slate-300 text-xs font-bold uppercase tracking-wider">Desktop</p>
-                                                    <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Pointer drag on desktop</p>
-                                                </div>
-                                                <button
-                                                    onClick={() => updateUserSetting(currentUserProfile.id, 'dnd_desktop_enabled', !(userSettings?.dnd_desktop_enabled))}
-                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${userSettings?.dnd_desktop_enabled ? 'bg-blue-500' : 'bg-slate-600'}`}
-                                                >
-                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${userSettings?.dnd_desktop_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                </button>
+                                            <button
+                                                onClick={() => updateUserSetting(currentUserProfile.id, 'display_stat_cards', !(userSettings?.display_stat_cards ?? true))}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${(userSettings?.display_stat_cards ?? true) ? 'bg-blue-500' : 'bg-slate-600'}`}
+                                            >
+                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(userSettings?.display_stat_cards ?? true) ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
+
+                                        {/* Drag & Drop Mobile Toggle */}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-slate-300 text-xs font-bold uppercase tracking-wider">Drag &amp; Drop Mobile</p>
+                                                <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Touch drag on mobile devices</p>
                                             </div>
+                                            <button
+                                                onClick={() => updateUserSetting(currentUserProfile.id, 'dnd_mobile_enabled', !(userSettings?.dnd_mobile_enabled ?? true))}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${(userSettings?.dnd_mobile_enabled ?? true) ? 'bg-blue-500' : 'bg-slate-600'}`}
+                                            >
+                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(userSettings?.dnd_mobile_enabled ?? true) ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
+
+                                        {/* Drag & Drop Desktop Toggle */}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-slate-300 text-xs font-bold uppercase tracking-wider">Drag &amp; Drop Desktop</p>
+                                                <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Pointer drag on desktop</p>
+                                            </div>
+                                            <button
+                                                onClick={() => updateUserSetting(currentUserProfile.id, 'dnd_desktop_enabled', !(userSettings?.dnd_desktop_enabled))}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${userSettings?.dnd_desktop_enabled ? 'bg-blue-500' : 'bg-slate-600'}`}
+                                            >
+                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${userSettings?.dnd_desktop_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </button>
                                         </div>
                                     </div>
                                     
@@ -3330,7 +3377,6 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
         sidebarTabs.push({ id: 'Project Management', icon: FolderKanban }); // formerly Team Management
         sidebarTabs.push({ id: 'Billing Management', icon: FileText });
     }
-    sidebarTabs.push({ id: 'Reward System', icon: Zap });
     sidebarTabs.push({ id: 'Reward System', icon: Zap });
 
     const renderMainContent = () => {
