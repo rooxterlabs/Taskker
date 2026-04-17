@@ -46,6 +46,7 @@ import {
 import { useTasks, calculateStats } from './hooks/useTasks';
 import { STATUS_OPTIONS, DUE_BY_OPTIONS } from './constants';
 import { formatDate, isTaskOverdue } from './utils/dateUtils';
+import { useLocalStorage } from './hooks/useLocalStorage';
 import {
     DndContext,
     pointerWithin,
@@ -1047,7 +1048,7 @@ export default function App() {
                                 {/* Board Content */}
                                 {showAllTasksBoard && (
                                     <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                        <AllTasksBoard tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} visibleColumns={{ backburner: userSettings?.all_col_backburner ?? true, p3: userSettings?.all_col_p3 ?? true, p2: userSettings?.all_col_p2 ?? true, p1: userSettings?.all_col_p1 ?? true, in_progress: userSettings?.all_col_in_progress ?? false, done: userSettings?.all_col_done ?? true }} onToggleColumn={(key) => updateUserSetting(currentUserProfile?.id, 'all_col_' + key, !(userSettings?.['all_col_' + key] ?? (key === 'in_progress' ? false : true)))} />
+                                        <AllTasksBoard boardId="allTasks" tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} visibleColumns={{ backburner: userSettings?.all_col_backburner ?? true, p3: userSettings?.all_col_p3 ?? true, p2: userSettings?.all_col_p2 ?? true, p1: userSettings?.all_col_p1 ?? true, in_progress: userSettings?.all_col_in_progress ?? false, done: userSettings?.all_col_done ?? true }} onToggleColumn={(key) => updateUserSetting(currentUserProfile?.id, 'all_col_' + key, !(userSettings?.['all_col_' + key] ?? (key === 'in_progress' ? false : true)))} />
                                     </div>
                                 )}
                             </div>
@@ -1077,7 +1078,7 @@ export default function App() {
                             {/* Board Content */}
                             {showMyTasksBoard && (
                                 <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                    <AllTasksBoard tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} visibleColumns={{ backburner: userSettings?.my_col_backburner ?? true, p3: userSettings?.my_col_p3 ?? true, p2: userSettings?.my_col_p2 ?? true, p1: userSettings?.my_col_p1 ?? true, in_progress: userSettings?.my_col_in_progress ?? false, done: userSettings?.my_col_done ?? true }} onToggleColumn={(key) => updateUserSetting(currentUserProfile?.id, 'my_col_' + key, !(userSettings?.['my_col_' + key] ?? (key === 'in_progress' ? false : true)))} />
+                                    <AllTasksBoard boardId="myTasks" tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} visibleColumns={{ backburner: userSettings?.my_col_backburner ?? true, p3: userSettings?.my_col_p3 ?? true, p2: userSettings?.my_col_p2 ?? true, p1: userSettings?.my_col_p1 ?? true, in_progress: userSettings?.my_col_in_progress ?? false, done: userSettings?.my_col_done ?? true }} onToggleColumn={(key) => updateUserSetting(currentUserProfile?.id, 'my_col_' + key, !(userSettings?.['my_col_' + key] ?? (key === 'in_progress' ? false : true)))} />
                                 </div>
                             )}
                         </div>
@@ -2442,9 +2443,25 @@ function DroppableColumn({ id, title, colorClass, bgClass, borderClass, activeBo
 }
 
 // --- All Tasks Rolldown Board Component ---
-function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories, addCategory, deleteCategory, deleteTask, kanbanEnabled, visibleColumns, onToggleColumn }) {
+function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, categories, addCategory, deleteCategory, deleteTask, kanbanEnabled, visibleColumns, onToggleColumn }) {
     const [activeId, setActiveId] = React.useState(null);
     const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
+
+    // --- View Mode: Card vs List (persisted per board) ---
+    const [viewMode, setViewMode] = useLocalStorage(`taskker_viewMode_${boardId || 'default'}`, 'card');
+
+    // --- Sort State (session only — resets on refresh to dateTarget asc) ---
+    const [sortColumn, setSortColumn] = React.useState('dateTarget');
+    const [sortDirection, setSortDirection] = React.useState('asc');
+
+    const handleColumnSort = (colKey) => {
+        if (sortColumn === colKey) {
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(colKey);
+            setSortDirection('asc');
+        }
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -2549,6 +2566,206 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
         { visKey: 'done', label: 'Done' },
     ];
 
+    // --- LIST VIEW: Flatten, sort, and render all tasks as a table ---
+    const priorityWeight = { 'P1 (Critical)': 1, 'P1': 1, 'P2': 2, 'P3': 3, 'Backburner': 4 };
+    const statusWeight = { 'To Do': 1, 'In Progress': 2, 'At Risk': 3, 'Blocked': 4, 'Done': 5 };
+
+    const getPriorityWeight = (p) => {
+        if (!p) return 99;
+        if (p.includes('P1')) return 1;
+        if (p.includes('P2')) return 2;
+        if (p.includes('P3')) return 3;
+        if (p === 'Backburner') return 4;
+        return 99;
+    };
+
+    const getDisplayPriority = (p) => {
+        if (!p) return '';
+        if (p.includes('P1')) return 'P1';
+        if (p.includes('P2')) return 'P2';
+        if (p.includes('P3')) return 'P3';
+        if (p === 'Backburner') return 'Backburner';
+        return p;
+    };
+
+    const getDisplayStatus = (status) => {
+        if (status === 'To Do') return 'Not Started';
+        return status || 'Not Started';
+    };
+
+    const getDateDisplay = (task) => {
+        if (task.priority === 'Backburner' || task.due_by_type === 'Backburner') return 'Backburner';
+        if (task.target_deadline) return formatDate(task.target_deadline);
+        return task.due_by_type || '';
+    };
+
+    const listViewTasks = React.useMemo(() => {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        // Active tasks (not Done, not Deleted, not archived)
+        let activeTasks = tasks.filter(t => t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
+
+        // Done tasks within 7 days
+        let doneTasks = tasks.filter(t => {
+            if (t.status !== 'Done') return false;
+            const compDate = t.deletion_date || t.submitted_on || t.created_at || t.date;
+            return new Date(compDate) >= sevenDaysAgo;
+        });
+
+        // Apply category filter
+        if (categoryFilter !== 'All') {
+            activeTasks = activeTasks.filter(t => t.category === categoryFilter);
+            doneTasks = doneTasks.filter(t => t.category === categoryFilter);
+        }
+
+        // Sort active tasks
+        const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
+
+        const sortFn = (a, b) => {
+            let cmp = 0;
+            switch (sortColumn) {
+                case 'task':
+                    cmp = (a.action || '').localeCompare(b.action || '');
+                    break;
+                case 'priority':
+                    cmp = getPriorityWeight(a.priority) - getPriorityWeight(b.priority);
+                    break;
+                case 'dateTarget': {
+                    const aTime = a.target_deadline ? new Date(a.target_deadline).getTime() : Infinity;
+                    const bTime = b.target_deadline ? new Date(b.target_deadline).getTime() : Infinity;
+                    cmp = aTime - bTime;
+                    break;
+                }
+                case 'assignee':
+                    cmp = (a.assignee || '').localeCompare(b.assignee || '');
+                    break;
+                case 'status':
+                    cmp = (statusWeight[a.status] || 99) - (statusWeight[b.status] || 99);
+                    break;
+                default:
+                    cmp = 0;
+            }
+            return cmp * sortMultiplier;
+        };
+
+        activeTasks.sort(sortFn);
+        // Done tasks always at the bottom, sorted by the same column within themselves
+        doneTasks.sort(sortFn);
+
+        return [...activeTasks, ...doneTasks];
+    }, [tasks, categoryFilter, sortColumn, sortDirection]);
+
+    // Column definitions for list view table headers
+    const listColumns = [
+        { key: 'task', label: 'Task' },
+        { key: 'priority', label: 'Priority Level' },
+        { key: 'dateTarget', label: 'Date Target' },
+        { key: 'assignee', label: 'Assignee' },
+        { key: 'status', label: 'Status' },
+    ];
+
+    const getSortIndicator = (colKey) => {
+        if (sortColumn !== colKey) return '';
+        return sortDirection === 'asc' ? ' ▲' : ' ▼';
+    };
+
+    const getPriorityCellClass = (priority) => {
+        if (!priority) return '';
+        if (priority.includes('P1')) return 'lv-priority-p1';
+        if (priority.includes('P2')) return 'lv-priority-p2';
+        if (priority.includes('P3')) return 'lv-priority-p3';
+        if (priority === 'Backburner') return 'lv-priority-backburner';
+        return '';
+    };
+
+    const getStatusCellClass = (status) => {
+        switch (status) {
+            case 'In Progress': return 'lv-status-in-progress';
+            case 'Done': return 'lv-status-done';
+            case 'At Risk': return 'lv-status-at-risk';
+            case 'Blocked': return 'lv-status-blocked';
+            case 'To Do':
+            default: return 'lv-status-not-started';
+        }
+    };
+
+    // --- RENDER ---
+    if (viewMode === 'list') {
+        return (
+            <>
+                {/* List View Table */}
+                <div className="w-full overflow-x-auto">
+                    <table className="list-view-table">
+                        <thead>
+                            <tr>
+                                {listColumns.map(col => (
+                                    <th
+                                        key={col.key}
+                                        onClick={() => handleColumnSort(col.key)}
+                                        className={`cursor-pointer select-none hover:text-blue-300 transition-colors ${sortColumn === col.key ? 'text-blue-400' : ''}`}
+                                    >
+                                        {col.label}{getSortIndicator(col.key)}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {listViewTasks.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="text-center py-8 text-slate-600 italic text-xs">No tasks to display</td>
+                                </tr>
+                            ) : (
+                                listViewTasks.map(task => (
+                                    <tr key={task.id} className={task.status === 'Done' ? 'opacity-60' : ''}>
+                                        <td className="lv-task-cell">
+                                            <span className={task.status === 'Done' ? 'line-through text-slate-500' : 'text-slate-200'}>
+                                                {task.action || 'Untitled Task'}
+                                            </span>
+                                        </td>
+                                        <td className={`lv-priority-cell ${getPriorityCellClass(task.priority)}`}>
+                                            {getDisplayPriority(task.priority)}
+                                        </td>
+                                        <td className="lv-date-cell">
+                                            {getDateDisplay(task)}
+                                        </td>
+                                        <td className="lv-assignee-cell">
+                                            {task.assigned_by_role === 'worker' ? 'Personal Task' : (task.assignee || '')}
+                                        </td>
+                                        <td className={`lv-status-cell ${getStatusCellClass(task.status)}`}>
+                                            {getDisplayStatus(task.status)}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Bottom Bar: Card/List Toggle */}
+                {onToggleColumn && (
+                    <div className="flex items-center justify-end gap-3 md:gap-5 mt-4 pt-3 border-t border-slate-700/30">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setViewMode('card')}
+                                className={`text-[10px] md:text-xs font-bold tracking-wider transition-colors duration-200 hover:opacity-80 ${viewMode === 'card' ? 'text-blue-400' : 'text-slate-600'}`}
+                            >
+                                Card
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`text-[10px] md:text-xs font-bold tracking-wider transition-colors duration-200 hover:opacity-80 ${viewMode === 'list' ? 'text-blue-400' : 'text-slate-600'}`}
+                            >
+                                List
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </>
+        );
+    }
+
+    // --- CARD VIEW (original) ---
     return (
         <DndContext
             sensors={sensors}
@@ -2582,21 +2799,37 @@ function AllTasksBoard({ tasks, userRole, categoryFilter, updateTask, categories
                 })}
             </div>
 
-            {/* Column Visibility Toggle Bar */}
+            {/* Column Visibility Toggle Bar + Card/List Toggle */}
             {onToggleColumn && (
-                <div className="flex items-center justify-center gap-3 md:gap-5 mt-4 pt-3 border-t border-slate-700/30 flex-wrap">
-                    {toggleDefs.map(td => {
-                        const isOn = visibleColumns?.[td.visKey] !== false;
-                        return (
-                            <button
-                                key={td.visKey}
-                                onClick={() => onToggleColumn(td.visKey)}
-                                className={`text-[10px] md:text-xs font-medium tracking-wide transition-colors duration-200 hover:opacity-80 ${isOn ? 'text-blue-400' : 'text-slate-600'}`}
-                            >
-                                {td.label}
-                            </button>
-                        );
-                    })}
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/30 flex-wrap gap-2">
+                    <div className="flex items-center gap-3 md:gap-5 flex-wrap">
+                        {toggleDefs.map(td => {
+                            const isOn = visibleColumns?.[td.visKey] !== false;
+                            return (
+                                <button
+                                    key={td.visKey}
+                                    onClick={() => onToggleColumn(td.visKey)}
+                                    className={`text-[10px] md:text-xs font-medium tracking-wide transition-colors duration-200 hover:opacity-80 ${isOn ? 'text-blue-400' : 'text-slate-600'}`}
+                                >
+                                    {td.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setViewMode('card')}
+                            className={`text-[10px] md:text-xs font-bold tracking-wider transition-colors duration-200 hover:opacity-80 ${viewMode === 'card' ? 'text-blue-400' : 'text-slate-600'}`}
+                        >
+                            Card
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`text-[10px] md:text-xs font-bold tracking-wider transition-colors duration-200 hover:opacity-80 ${viewMode === 'list' ? 'text-blue-400' : 'text-slate-600'}`}
+                        >
+                            List
+                        </button>
+                    </div>
                 </div>
             )}
 

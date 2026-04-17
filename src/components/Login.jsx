@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Activity, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { Activity, Mail, Lock, UserPlus, LogIn, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
     const [isSignUp, setIsSignUp] = useState(false);
@@ -9,6 +9,10 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [isForgotPassword, setIsForgotPassword] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetLoading, setResetLoading] = useState(false);
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -40,6 +44,25 @@ export default function Login() {
             setErrorMsg(error.message || 'An error occurred during authentication.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        if (!resetEmail.trim()) return;
+        setResetLoading(true);
+        setErrorMsg('');
+        setSuccessMsg('');
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+                redirectTo: window.location.origin + (import.meta.env.BASE_URL || '/'),
+            });
+            if (error) throw error;
+            setSuccessMsg('Password reset link sent! Check your email inbox.');
+        } catch (error) {
+            setErrorMsg(error.message || 'Failed to send reset email.');
+        } finally {
+            setResetLoading(false);
         }
     };
 
@@ -96,13 +119,21 @@ export default function Login() {
                             <div className="relative">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                                 <input
-                                    type="password"
+                                    type={showPassword ? 'text' : 'password'}
                                     placeholder="Password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3 pl-12 pr-4 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
+                                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3 pl-12 pr-12 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
                             </div>
                         </div>
 
@@ -125,18 +156,86 @@ export default function Login() {
                         </button>
                     </form>
 
-                    <div className="mt-8 pt-6 border-t border-slate-700/50 text-center">
+                    <div className="mt-6 flex flex-col items-center gap-3">
+                        {!isSignUp && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsForgotPassword(true);
+                                    setResetEmail(email);
+                                    setErrorMsg('');
+                                    setSuccessMsg('');
+                                }}
+                                className="text-blue-400 hover:text-blue-300 text-xs font-medium tracking-wide transition-colors"
+                            >
+                                Forgot Password?
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="mt-4 pt-6 border-t border-slate-700/50 text-center">
                         <button
                             onClick={() => {
                                 setIsSignUp(!isSignUp);
                                 setErrorMsg('');
                                 setSuccessMsg('');
+                                setIsForgotPassword(false);
                             }}
                             className="text-slate-400 hover:text-white text-sm transition-colors"
                         >
                             {isSignUp ? 'Already have an account? Sign in.' : "Don't have an account? Sign up."}
                         </button>
                     </div>
+
+                    {/* Forgot Password Modal Overlay */}
+                    {isForgotPassword && (
+                        <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-sm rounded-[2.5rem] flex flex-col items-center justify-center p-8 z-20 animate-in fade-in duration-300">
+                            <h3 className="text-lg font-bold uppercase tracking-wider text-slate-200 mb-2">Reset Password</h3>
+                            <p className="text-slate-400 text-xs text-center mb-6 max-w-[280px]">
+                                Enter your email and we'll send you a link to reset your password.
+                            </p>
+
+                            {errorMsg && (
+                                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl mb-4 w-full">
+                                    {errorMsg}
+                                </div>
+                            )}
+                            {successMsg && (
+                                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm px-4 py-3 rounded-xl mb-4 w-full">
+                                    {successMsg}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleForgotPassword} className="w-full flex flex-col gap-4">
+                                <div className="relative">
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                                    <input
+                                        type="email"
+                                        placeholder="Email Address"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3 pl-12 pr-4 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={resetLoading}
+                                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20 active:scale-[0.98]"
+                                >
+                                    {resetLoading ? <Activity className="w-5 h-5 animate-spin" /> : 'Send Reset Link'}
+                                </button>
+                            </form>
+
+                            <button
+                                onClick={() => { setIsForgotPassword(false); setErrorMsg(''); setSuccessMsg(''); }}
+                                className="mt-4 text-slate-400 hover:text-white text-sm transition-colors"
+                            >
+                                Back to Sign In
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
