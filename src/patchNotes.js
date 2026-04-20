@@ -5,18 +5,18 @@ export const patchNotes = [
         version: "v0.1.07",
         date: "April 20, 2026",
         notes: [
-            "Added List View toggle for both boards",
-            "Added view password and forgot password functionality at login",
+            "Priority column doubling fix",
+            "Users can hide Due By options in settings",
+            "Added more Due By options",
+            "List view overhaul"
         ]
     },
       {
         version: "v0.1.06",
         date: "April 17, 2026",
         notes: [
-            "Priority column doubling fix",
-            "Users can hide Due By options in settings",
-            "Added more Due By options",
-            "List view overhaul"
+           "Added List View toggle for both boards",
+           "Added view password and forgot password functionality at login",
         ]
     },
         {
