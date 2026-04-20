@@ -48,6 +48,16 @@ export function useTasks() {
 
     useEffect(() => {
         fetchData();
+
+        // Re-fetch all data when a user signs in so RLS-gated tables
+        // (profiles, user_settings, tasks, etc.) load with the correct auth token.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_IN') {
+                fetchData();
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     const fetchData = async () => {

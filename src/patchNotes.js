@@ -8,7 +8,9 @@ export const patchNotes = [
             "Priority column doubling fix",
             "Users can hide Due By options in settings",
             "Added more Due By options",
-            "List view overhaul"
+            "List view overhaul",
+            "Bug fixes: Personal Task modal, login Guest flash, list view dropdowns, priority text colors",
+            "Added Delete column to list view"
         ]
     },
       {

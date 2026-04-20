@@ -1577,7 +1577,7 @@ export default function App() {
 }
 
 // --- Updated Category Dropdown Component ---
-function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOnly, userRole, isPrivateContext }) {
+function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOnly, userRole, isPrivateContext, center }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const [isCreating, setIsCreating] = React.useState(false);
     const [newName, setNewName] = React.useState('');
@@ -1623,7 +1623,7 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2">
+                <div className={`absolute top-full mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 ${center ? 'left-1/2 -translate-x-1/2' : 'left-0'}`}>
 
                     {/* List Existing Categories */}
                     <div className="max-h-48 overflow-y-auto no-scrollbar">
@@ -1697,7 +1697,7 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
 }
 
 // --- Due By Dropdown Component ---
-function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPersonalContext, userSettings, teamDueByPrefs }) {
+function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPersonalContext, userSettings, teamDueByPrefs, center }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const ref = React.useRef(null);
 
@@ -1759,7 +1759,7 @@ function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPers
             </button>
 
             {isOpen && (
-                <div className="absolute top-full right-0 mt-2 w-32 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 cursor-pointer">
+                <div className={`absolute top-full mt-2 w-32 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 cursor-pointer ${center ? 'left-1/2 -translate-x-1/2' : 'right-0'}`}>
                     {DUE_BY_OPTIONS.filter(opt => {
                         if (opt === 'Backburner') return true;
                         if (isPersonalContext) {
@@ -2506,7 +2506,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
     // --- View Mode: Card vs List (persisted per board) ---
     const [viewMode, setViewMode] = useLocalStorage(`taskker_viewMode_${boardId || 'default'}`, 'card');
 
-    // --- Sort State (session only — resets on refresh to dateTarget asc) ---
+    // --- Sort State (session only â€” resets on refresh to dateTarget asc) ---
     const [sortColumn, setSortColumn] = React.useState('dateTarget');
     const [sortDirection, setSortDirection] = React.useState('asc');
 
@@ -2602,7 +2602,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
             if (destCol.isDone) {
                 updateTask(taskId, 'status', 'Done');
             } else if (destCol.isInProgress) {
-                // Only change status — preserve existing priority & deadline
+                // Only change status â€” preserve existing priority & deadline
                 updateTask(taskId, 'status', 'In Progress');
             } else {
                 updateTask(taskId, {
@@ -2726,12 +2726,13 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
         { key: 'dateTarget', label: 'DATE TARGET' },
         { key: 'assignee', label: 'ASSIGNEE' },
         { key: 'status', label: 'STATUS' },
-        { key: 'notify', label: '' }
+        { key: 'notify', label: '' },
+        { key: 'delete', label: 'DELETE_ICON' }  // trash icon rendered specially in header
     ];
 
     const getSortIndicator = (colKey) => {
         if (sortColumn !== colKey) return '';
-        return sortDirection === 'asc' ? ' ▲' : ' ▼';
+        return sortDirection === 'asc' ? ' â–²' : ' â–¼';
     };
 
     const getPriorityCellClass = (priority) => {
@@ -2759,17 +2760,20 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
         return (
             <>
                 {/* List View Table */}
-                <div className="w-full overflow-x-auto">
+                <div className="w-full overflow-x-auto pb-80">
                     <table className="list-view-table">
                         <thead>
                             <tr>
                                 {listColumns.map(col => (
                                     <th
                                         key={col.key}
-                                        onClick={() => handleColumnSort(col.key)}
-                                        className={`cursor-pointer select-none hover:text-blue-300 transition-colors ${sortColumn === col.key ? 'text-blue-400' : ''}`}
+                                        onClick={() => col.key !== 'delete' && handleColumnSort(col.key)}
+                                        className={`select-none transition-colors ${col.key !== 'delete' ? 'cursor-pointer hover:text-blue-300' : 'cursor-default'} ${sortColumn === col.key ? 'text-blue-400' : ''}`}
                                     >
-                                        {col.label}{getSortIndicator(col.key)}
+                                        {col.key === 'delete'
+                                            ? <Trash2 className="w-3.5 h-3.5 mx-auto text-slate-600" />
+                                            : <>{col.label}{getSortIndicator(col.key)}</>
+                                        }
                                     </th>
                                 ))}
                             </tr>
@@ -2777,7 +2781,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                         <tbody>
                             {listViewTasks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="text-center py-8 text-slate-600 italic text-xs">No tasks to display</td>
+                                    <td colSpan={9} className="text-center py-8 text-slate-600 italic text-xs">No tasks to display</td>
                                 </tr>
                             ) : (
                                 listViewTasks.map(task => {
@@ -2831,6 +2835,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                                                 userSettings={userSettings}
                                                                 teamDueByPrefs={teamDueByPrefs}
                                                                 hideLabels={true}
+                                                                center={true}
                                                             />
                                                         </div>
                                                     ) : (
@@ -2848,6 +2853,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                                                 onAdd={(name) => addCategory(name, null, isPersonal)}
                                                                 onDelete={deleteCategory}
                                                                 isPrivateContext={isPersonal}
+                                                                center={true}
                                                             />
                                                         </div>
                                                     ) : (
@@ -2884,7 +2890,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                                             <StatusDropdown 
                                                                 task={task} 
                                                                 updateTask={updateTask} 
-                                                                center={true} 
+                                                                center={true}
                                                             />
                                                         </div>
                                                     ) : (
@@ -2902,12 +2908,22 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                                         </button>
                                                     )}
                                                 </td>
+                                                {/* DELETE COLUMN */}
+                                                <td className="text-center w-10">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this task?')) deleteTask(task.id); }}
+                                                        className="lv-delete-btn flex justify-center w-full transition-colors"
+                                                        title="Delete task"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </td>
                                             </tr>
                                             
                                             {/* Notes Expandable Row */}
                                             {expandedNoteId === task.id && task.notes && (
                                                 <tr className="bg-slate-900 border-b-2 border-slate-700">
-                                                    <td colSpan={8} className="p-4 relative">
+                                                    <td colSpan={9} className="p-4 relative">
                                                         <div className="absolute top-4 right-4">
                                                             <button 
                                                                 onClick={() => setExpandedNoteId(null)}
@@ -3087,7 +3103,7 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                 if (textareaRef.current) textareaRef.current.focus();
             }, 50);
         }
-    }, [isOpen, teamMembers, categories]);
+    }, [isOpen]);
 
     const handleCreate = async () => {
         let finalAssignee = assignee;
@@ -3425,7 +3441,7 @@ function BadgesModal({ isOpen, onClose, userRole, rewards }) {
                                                 <Zap className={`w-6 h-6 ${isSecond ? 'text-yellow-500' : 'text-slate-600'}`} />
                                             </div>
                                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center leading-tight">
-                                                {hasTitle ? reward.title : '—'}
+                                                {hasTitle ? reward.title : 'â€”'}
                                             </h3>
                                         </div>
 
@@ -3691,7 +3707,7 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                                             <p className="text-slate-500 text-[10px] uppercase font-bold">Yellow, Royal Blue Tint</p>
                                         </button>
 
-                                        {/* Theme 5 — Futuristic (LOCKED) */}
+                                        {/* Theme 5 â€” Futuristic (LOCKED) */}
                                         <div className="group relative p-4 rounded-2xl border-2 border-dashed border-slate-700/50 bg-slate-800/20 text-left transition-all cursor-not-allowed overflow-hidden">
                                             <h3 className="text-slate-500 font-bold tracking-widest uppercase text-sm mb-1">Futuristic</h3>
                                             <p className="text-slate-600 text-[10px] uppercase font-bold">Bright, Minimal, Clean</p>
@@ -3705,7 +3721,7 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                                             </div>
                                         </div>
 
-                                        {/* Theme 6 — 90's Vibe (LOCKED) */}
+                                        {/* Theme 6 â€” 90's Vibe (LOCKED) */}
                                         <div className="group relative p-4 rounded-2xl border-2 border-dashed border-slate-700/50 bg-slate-800/20 text-left transition-all cursor-not-allowed overflow-hidden">
                                             <h3 className="text-slate-500 font-bold tracking-widest uppercase text-sm mb-1">90's Vibe</h3>
                                             <p className="text-slate-600 text-[10px] uppercase font-bold">Nostalgic & Colorful</p>
@@ -4508,3 +4524,6 @@ function HotLinksSlideOut({ isOpen, onClose, teamLinks, personalLinks, addPerson
         </div>
     );
 }
+
+
+

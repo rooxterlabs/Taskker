@@ -274,17 +274,17 @@
 
 .lv-priority-p1 {
   background-color: rgba(239, 68, 68, 0.85) !important;
-  color: #ffffff !important;
+  color: #172554 !important; /* dark navy — readable on red bg */
 }
 
 .lv-priority-p2 {
   background-color: rgba(249, 115, 22, 0.85) !important;
-  color: #ffffff !important;
+  color: #172554 !important; /* dark navy — readable on orange bg */
 }
 
 .lv-priority-p3 {
   background-color: rgba(234, 179, 8, 0.85) !important;
-  color: #1a1a2e !important;
+  color: #172554 !important; /* dark navy — readable on yellow bg */
 }
 
 .lv-priority-backburner {
@@ -332,6 +332,15 @@
 
 .lv-date-cell {
   color: #94a3b8;
+}
+
+/* --- Delete Button (list view) --- */
+.lv-delete-btn {
+  color: #475569; /* slate-600 */
+  transition: color 0.2s ease;
+}
+.lv-delete-btn:hover {
+  color: #ef4444; /* red-500 */
 }
 
 
