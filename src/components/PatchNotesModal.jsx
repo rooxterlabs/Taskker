@@ -17,7 +17,7 @@ export default function PatchNotesModal({ isOpen, onClose }) {
                     </button>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col gap-6">
+                <div className="flex-1 overflow-y-auto pill-scrollbar p-5 flex flex-col gap-6 pr-3">
                     {patchNotes.map((note, index) => (
                         <div key={index} className="flex flex-col gap-2 relative border border-slate-800/80 bg-slate-950/40 rounded-xl p-4 transition-colors hover:border-slate-700/50 shadow-inner">
                             <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-1">

@@ -6,7 +6,7 @@ export const STATUS_OPTIONS = [
     { value: 'Done', label: 'Done', color: 'emerald' }
 ];
 
-export const DUE_BY_OPTIONS = ['1 hr', '6 hrs', 'Today', '3 days', 'This Week', 'This Month', 'Backburner'];
+export const DUE_BY_OPTIONS = ['1 hr', '6 hrs', 'Today', '3 days', '7 days', '14 days', 'End of week', '4 weeks', 'End of Month', 'Backburner'];
 
 export const PRIORITY_OPTIONS = [
     { value: 'P1 (Critical)', label: 'P1 (Critical)' },

@@ -34,14 +34,23 @@ export function calculateTargetDeadline(dueByType) {
         case '3 days':
             now.setDate(now.getDate() + 3);
             return now.toISOString();
-        case 'This Week':
+        case '7 days':
+            now.setDate(now.getDate() + 7);
+            return now.toISOString();
+        case '14 days':
+            now.setDate(now.getDate() + 14);
+            return now.toISOString();
+        case 'End of week':
             // End of week (Sunday 11:59PM)
             const dayOfWeek = now.getDay();
             const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
             now.setDate(now.getDate() + daysUntilSunday);
             now.setHours(23, 59, 59, 999);
             return now.toISOString();
-        case 'This Month':
+        case '4 weeks':
+            now.setDate(now.getDate() + 28);
+            return now.toISOString();
+        case 'End of Month':
             // Last day of current month, 11:59PM
             const year = now.getFullYear();
             const month = now.getMonth();
@@ -56,8 +65,8 @@ export function calculateTargetDeadline(dueByType) {
 
 export function getPriorityFromDueByType(dueByType) {
     if (['1 hr', '6 hrs', 'Today'].includes(dueByType)) return 'P1 (Critical)';
-    if (['3 days', 'This Week'].includes(dueByType)) return 'P2';
-    if (['This Month'].includes(dueByType)) return 'P3';
+    if (['3 days', '7 days', '14 days', 'End of week'].includes(dueByType)) return 'P2';
+    if (['4 weeks', 'End of Month'].includes(dueByType)) return 'P3';
     if (dueByType === 'Backburner') return 'Backburner';
     return 'P3';
 }

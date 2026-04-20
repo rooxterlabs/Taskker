@@ -38,8 +38,12 @@ export function useTasks() {
         all_col_backburner: true, all_col_p3: true, all_col_p2: true, all_col_p1: true, all_col_in_progress: false, all_col_done: true,
         // Board column visibility — My Tasks
         my_col_backburner: true, my_col_p3: true, my_col_p2: true, my_col_p1: true, my_col_in_progress: false, my_col_done: true,
+        pref_due_1hr: true, pref_due_6hrs: true, pref_due_today: true, pref_due_3days: true, pref_due_7days: true, pref_due_14days: true, pref_due_end_of_week: true, pref_due_4weeks: true, pref_due_end_of_month: true
     }); // User preferences
     const [companyName, setCompanyName] = useState('TEAM ROOXTER'); // Global App Setting
+    const [teamDueByPrefs, setTeamDueByPrefs] = useState({
+        '1 hr': true, '6 hrs': true, 'Today': true, '3 days': true, '7 days': true, '14 days': true, 'End of week': true, '4 weeks': true, 'End of Month': true
+    });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -56,7 +60,7 @@ export function useTasks() {
                 supabase.from('categories').select('*').order('name', { ascending: true }),
                 supabase.from('profiles').select('id, email, role, first_name, last_name, title, theme, name'),
                 supabase.from('rewards').select('*').order('slot', { ascending: true }),
-                supabase.from('user_settings').select('display_stat_cards, dnd_mobile_enabled, dnd_desktop_enabled, all_col_backburner, all_col_p3, all_col_p2, all_col_p1, all_col_in_progress, all_col_done, my_col_backburner, my_col_p3, my_col_p2, my_col_p1, my_col_in_progress, my_col_done').limit(1),
+                supabase.from('user_settings').select('display_stat_cards, dnd_mobile_enabled, dnd_desktop_enabled, all_col_backburner, all_col_p3, all_col_p2, all_col_p1, all_col_in_progress, all_col_done, my_col_backburner, my_col_p3, my_col_p2, my_col_p1, my_col_in_progress, my_col_done, pref_due_1hr, pref_due_6hrs, pref_due_today, pref_due_3days, pref_due_7days, pref_due_14days, pref_due_end_of_week, pref_due_4weeks, pref_due_end_of_month').limit(1),
                 supabase.from('app_settings').select('*'),
                 supabase.from('global_links').select('*').order('created_at', { ascending: true }),
                 supabase.from('user_links').select('*').order('created_at', { ascending: true })
@@ -85,6 +89,10 @@ export function useTasks() {
                 if (cnRow?.setting_value) {
                     setCompanyName(cnRow.setting_value);
                 }
+                const dueByPrefsRow = appSettingsResult.data.find(r => r.setting_key === 'team_due_by_prefs');
+                if (dueByPrefsRow?.setting_value) {
+                    try { setTeamDueByPrefs(JSON.parse(dueByPrefsRow.setting_value)); } catch (e) { }
+                }
             }
             
             if (settingsResult.data && settingsResult.data.length > 0) {
@@ -95,6 +103,7 @@ export function useTasks() {
                     dnd_mobile_enabled: true, dnd_desktop_enabled: false,
                     all_col_backburner: true, all_col_p3: true, all_col_p2: true, all_col_p1: true, all_col_in_progress: false, all_col_done: true,
                     my_col_backburner: true, my_col_p3: true, my_col_p2: true, my_col_p1: true, my_col_in_progress: false, my_col_done: true,
+                    pref_due_1hr: true, pref_due_6hrs: true, pref_due_today: true, pref_due_3days: true, pref_due_7days: true, pref_due_14days: true, pref_due_end_of_week: true, pref_due_4weeks: true, pref_due_end_of_month: true,
                 }); // default
             }
             
@@ -155,17 +164,17 @@ export function useTasks() {
                     tasksToP1Today.push(t.id);
                 }
             } 
-            // 2. Escalate to P2 (3 days) - > 1 day AND ≤ 3 days
+            // 2. Escalate to P2 (3 days) - > 1 day AND <= 3 days
             else if (timeRemaining <= 3 * ONE_DAY) {
-                // Only escalate upwards (From "This Month" or "This Week")
-                if (t.due_by_type === 'This Month' || t.due_by_type === 'This Week') {
+                // Only escalate upwards
+                if (['End of Month', '4 weeks', '14 days', '7 days', 'End of week'].includes(t.due_by_type)) {
                     tasksToP2ThreeDays.push(t.id);
                 }
             }
-            // 3. Escalate to P2 (This Week) - > 3 days AND ≤ 7 days
+            // 3. Escalate to P2 (7 days) - > 3 days AND <= 7 days
             else if (timeRemaining <= 7 * ONE_DAY) {
-                // Only escalate upwards (From "This Month")
-                if (t.due_by_type === 'This Month') {
+                // Only escalate upwards 
+                if (['End of Month', '4 weeks', '14 days', 'End of week'].includes(t.due_by_type)) {
                     tasksToP2ThisWeek.push(t.id);
                 }
             }
@@ -183,7 +192,7 @@ export function useTasks() {
 
         await runTierUpdate(tasksToP1Today, { priority: 'P1 (Critical)', due_by_type: 'Today' });
         await runTierUpdate(tasksToP2ThreeDays, { priority: 'P2', due_by_type: '3 days' });
-        await runTierUpdate(tasksToP2ThisWeek, { priority: 'P2', due_by_type: 'This Week' });
+        await runTierUpdate(tasksToP2ThisWeek, { priority: 'P2', due_by_type: '7 days' });
     };
 
     // Run escalation after initial fetch completes and on an interval
@@ -309,7 +318,7 @@ export function useTasks() {
     };
 
     const addTask = async (assignee, creatorRole) => {
-        const dueByType = 'This Week'; 
+        const dueByType = 'End of week'; 
         const defaultCategory = categories.length > 0 ? categories[0].name : '';
         const id = crypto.randomUUID();
 
@@ -509,6 +518,24 @@ export function useTasks() {
         }
     };
 
+    // --- Update Team Due By Preferences ---
+    const updateTeamDueByPref = async (newPrefs, userId) => {
+        setTeamDueByPrefs(newPrefs);
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({ 
+                setting_key: 'team_due_by_prefs', 
+                setting_value: JSON.stringify(newPrefs), 
+                updated_by: userId, 
+                updated_at: new Date().toISOString() 
+            }, { onConflict: 'setting_key' });
+        
+        if (error) {
+            console.error("Error saving team due by preferences:", error);
+            fetchData();
+        }
+    };
+
     // --- Update Global Company Name ---
     const updateCompanyName = async (newName, userId) => {
         setCompanyName(newName);
@@ -583,7 +610,9 @@ export function useTasks() {
         updateProfileDetails,
         updateProfileTheme,
         updateReward,
+        teamDueByPrefs,
         updateUserSetting,
+        updateTeamDueByPref,
         updateCompanyName,
         resetData,
         loading,

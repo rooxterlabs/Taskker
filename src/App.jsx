@@ -11,6 +11,7 @@ import {
     Zap,
     Calendar,
     OctagonAlert,
+    Check,
     CheckCircle2,
     Activity,
     BarChart3,
@@ -157,6 +158,8 @@ export default function App() {
         updateProfileTheme,
         updateReward,
         updateUserSetting,
+        teamDueByPrefs,
+        updateTeamDueByPref,
         companyName,
         updateCompanyName,
         resetData,
@@ -394,7 +397,7 @@ export default function App() {
         );
 
         // Sort by assignee (ascending), then urgency
-        const weightMap = { '1 hr': 1, '6 hrs': 2, 'Today': 3, '3 days': 4, 'This Week': 5, 'This Month': 6 };
+        const weightMap = { '1 hr': 1, '6 hrs': 2, 'Today': 3, '3 days': 4, '7 days': 5, '14 days': 6, 'End of week': 7, '4 weeks': 8, 'End of Month': 9 };
         calendarTasks.sort((a, b) => {
             if (a.assignee < b.assignee) return -1;
             if (a.assignee > b.assignee) return 1;
@@ -1048,7 +1051,7 @@ export default function App() {
                                 {/* Board Content */}
                                 {showAllTasksBoard && (
                                     <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                        <AllTasksBoard boardId="allTasks" tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} visibleColumns={{ backburner: userSettings?.all_col_backburner ?? true, p3: userSettings?.all_col_p3 ?? true, p2: userSettings?.all_col_p2 ?? true, p1: userSettings?.all_col_p1 ?? true, in_progress: userSettings?.all_col_in_progress ?? false, done: userSettings?.all_col_done ?? true }} onToggleColumn={(key) => updateUserSetting(currentUserProfile?.id, 'all_col_' + key, !(userSettings?.['all_col_' + key] ?? (key === 'in_progress' ? false : true)))} />
+                                        <AllTasksBoard boardId="allTasks" tasks={visibleTasks} userRole={userRole} categoryFilter={allTasksCategoryFilter} updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} visibleColumns={{ backburner: userSettings?.all_col_backburner ?? true, p3: userSettings?.all_col_p3 ?? true, p2: userSettings?.all_col_p2 ?? true, p1: userSettings?.all_col_p1 ?? true, in_progress: userSettings?.all_col_in_progress ?? false, done: userSettings?.all_col_done ?? true }} onToggleColumn={(key) => updateUserSetting(currentUserProfile?.id, 'all_col_' + key, !(userSettings?.['all_col_' + key] ?? (key === 'in_progress' ? false : true)))} userSettings={userSettings} teamDueByPrefs={teamDueByPrefs} teamMembers={teamMembers} />
                                     </div>
                                 )}
                             </div>
@@ -1078,7 +1081,7 @@ export default function App() {
                             {/* Board Content */}
                             {showMyTasksBoard && (
                                 <div className="px-8 pt-4 pb-2 animate-in fade-in duration-500">
-                                    <AllTasksBoard boardId="myTasks" tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} visibleColumns={{ backburner: userSettings?.my_col_backburner ?? true, p3: userSettings?.my_col_p3 ?? true, p2: userSettings?.my_col_p2 ?? true, p1: userSettings?.my_col_p1 ?? true, in_progress: userSettings?.my_col_in_progress ?? false, done: userSettings?.my_col_done ?? true }} onToggleColumn={(key) => updateUserSetting(currentUserProfile?.id, 'my_col_' + key, !(userSettings?.['my_col_' + key] ?? (key === 'in_progress' ? false : true)))} />
+                                    <AllTasksBoard boardId="myTasks" tasks={myTasks} userRole={userRole} categoryFilter="All" updateTask={updateTask} categories={visibleCategories} addCategory={addCategory} deleteCategory={deleteCategory} deleteTask={deleteTask} kanbanEnabled={userSettings?.dnd_desktop_enabled} visibleColumns={{ backburner: userSettings?.my_col_backburner ?? true, p3: userSettings?.my_col_p3 ?? true, p2: userSettings?.my_col_p2 ?? true, p1: userSettings?.my_col_p1 ?? true, in_progress: userSettings?.my_col_in_progress ?? false, done: userSettings?.my_col_done ?? true }} onToggleColumn={(key) => updateUserSetting(currentUserProfile?.id, 'my_col_' + key, !(userSettings?.['my_col_' + key] ?? (key === 'in_progress' ? false : true)))} userSettings={userSettings} teamDueByPrefs={teamDueByPrefs} teamMembers={teamMembers} />
                                 </div>
                             )}
                         </div>
@@ -1195,6 +1198,8 @@ export default function App() {
                                                         deleteTask={deleteTask}
                                                         showAssignee={false}
                                                         userRole={userRole}
+                                                        userSettings={userSettings}
+                                                        teamDueByPrefs={teamDueByPrefs}
                                                     />
                                                 ))}
                                         </tbody>
@@ -1439,6 +1444,8 @@ export default function App() {
                 updateTask={updateTask}
                 addCategory={addCategory}
                 deleteCategory={deleteCategory}
+                userSettings={userSettings}
+                teamDueByPrefs={teamDueByPrefs}
             />
 
             {/* Settings Modal */}
@@ -1480,6 +1487,8 @@ export default function App() {
                 teamLinks={teamLinks}
                 addTeamLink={addTeamLink}
                 deleteTeamLink={deleteTeamLink}
+                teamDueByPrefs={teamDueByPrefs}
+                updateTeamDueByPref={updateTeamDueByPref}
             />
 
             {/* PATCH NOTES MODAL */}
@@ -1688,7 +1697,7 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
 }
 
 // --- Due By Dropdown Component ---
-function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly }) {
+function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPersonalContext, userSettings, teamDueByPrefs }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const ref = React.useRef(null);
 
@@ -1726,8 +1735,8 @@ function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly }) {
     // Map specific due dates to their priority representation for the dropdown menu
     const getOptionPriority = (opt) => {
         if (['1 hr', '6 hrs', 'Today'].includes(opt)) return { text: 'P1', color: 'text-red-500' };
-        if (['3 days', 'This Week'].includes(opt)) return { text: 'P2', color: 'text-orange-500' };
-        if (['This Month'].includes(opt)) return { text: 'P3', color: 'text-yellow-500' };
+        if (['3 days', '7 days', '14 days', 'End of week'].includes(opt)) return { text: 'P2', color: 'text-orange-500' };
+        if (['4 weeks', 'End of Month'].includes(opt)) return { text: 'P3', color: 'text-yellow-500' };
         return null; // Backburner or unrecognized
     };
 
@@ -1751,7 +1760,15 @@ function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly }) {
 
             {isOpen && (
                 <div className="absolute top-full right-0 mt-2 w-32 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 cursor-pointer">
-                    {DUE_BY_OPTIONS.map(opt => {
+                    {DUE_BY_OPTIONS.filter(opt => {
+                        if (opt === 'Backburner') return true;
+                        if (isPersonalContext) {
+                            const keyMap = { '1 hr': 'pref_due_1hr', '6 hrs': 'pref_due_6hrs', 'Today': 'pref_due_today', '3 days': 'pref_due_3days', '7 days': 'pref_due_7days', '14 days': 'pref_due_14days', 'End of week': 'pref_due_end_of_week', '4 weeks': 'pref_due_4weeks', 'End of Month': 'pref_due_end_of_month' };
+                            return userSettings?.[keyMap[opt]] !== false;
+                        } else {
+                            return teamDueByPrefs?.[opt] !== false;
+                        }
+                    }).map(opt => {
                         const optPriority = getOptionPriority(opt);
                         return (
                             <div
@@ -1870,7 +1887,7 @@ function StatusDropdown({ task, updateTask, center, onPointerDownStop }) {
 }
 
 // --- Responsive Task Components ---
-function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, deleteTask, showAssignee, userRole }) {
+function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, deleteTask, showAssignee, userRole, userSettings, teamDueByPrefs }) {
     const textareaRef = React.useRef(null);
     const notesTextareaRef = React.useRef(null);
     const [isNotesOpen, setIsNotesOpen] = React.useState(false);
@@ -1983,6 +2000,9 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                         value={task.due_by_type || ''}
                         priority={task.priority}
                         onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
+                        isPersonalContext={task.assigned_by_role === 'worker'}
+                        userSettings={userSettings}
+                        teamDueByPrefs={teamDueByPrefs}
                     />
                 </div>
             </td>
@@ -2195,7 +2215,7 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
 }
 
 // --- Kanban Helpers ---
-function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCategory, hideLabels, userRole, isDraggable = true }) {
+function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCategory, hideLabels, userRole, isDraggable = true, userSettings, teamDueByPrefs }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: task.id,
         data: { task },
@@ -2326,6 +2346,9 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                             onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
                             hideLabels={hideLabels}
                             readOnly={isWorker}
+                            isPersonalContext={task.assigned_by_role === 'worker'}
+                            userSettings={userSettings}
+                            teamDueByPrefs={teamDueByPrefs}
                         />
                     )}
                 </div>
@@ -2443,9 +2466,42 @@ function DroppableColumn({ id, title, colorClass, bgClass, borderClass, activeBo
 }
 
 // --- All Tasks Rolldown Board Component ---
-function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, categories, addCategory, deleteCategory, deleteTask, kanbanEnabled, visibleColumns, onToggleColumn }) {
+function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, categories, addCategory, deleteCategory, deleteTask, kanbanEnabled, visibleColumns, onToggleColumn, userSettings, teamDueByPrefs, teamMembers }) {
     const [activeId, setActiveId] = React.useState(null);
     const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
+
+    // --- List View Interactive States ---
+    const [expandedNoteId, setExpandedNoteId] = React.useState(null);
+    const [editingTaskId, setEditingTaskId] = React.useState(null);
+    const [editTaskTitle, setEditTaskTitle] = React.useState('');
+
+    const toggleNoteExpansion = (taskId) => {
+        setExpandedNoteId(prev => prev === taskId ? null : taskId);
+    };
+
+    const startTitleEdit = (task) => {
+        setEditingTaskId(task.id);
+        setEditTaskTitle(task.action || '');
+    };
+
+    const commitTitleEdit = (taskId) => {
+        const trimmed = editTaskTitle.trim();
+        if ( trimmed ) {
+            updateTask(taskId, 'action', trimmed);
+        }
+        setEditingTaskId(null);
+    };
+
+    const handleTitleKey = (e, taskId) => {
+        if (e.key === 'Enter') commitTitleEdit(taskId);
+        if (e.key === 'Escape') setEditingTaskId(null);
+    };
+
+    const isRowEditable = (task) => {
+        if (['admin', 'super_admin'].includes(userRole)) return true;
+        if (userRole === 'worker' && task.assigned_by_role === 'worker') return true;
+        return false;
+    };
 
     // --- View Mode: Card vs List (persisted per board) ---
     const [viewMode, setViewMode] = useLocalStorage(`taskker_viewMode_${boardId || 'default'}`, 'card');
@@ -2472,6 +2528,8 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
     );
 
     // Helper to filter tasks by priority/status and currently selected category
+    // When In Progress column is visible, exclude "In Progress" tasks from priority columns to avoid duplication
+    const inProgressColumnVisible = visibleColumns?.in_progress === true;
     const getTasksByBucket = (bucketName) => {
         let bucketTasks = [];
         const sevenDaysAgo = new Date();
@@ -2479,16 +2537,16 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
 
         switch (bucketName) {
             case 'P1':
-                bucketTasks = tasks.filter(t => t.priority && t.priority.includes('P1') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
+                bucketTasks = tasks.filter(t => t.priority && t.priority.includes('P1') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived && !(inProgressColumnVisible && t.status === 'In Progress'));
                 break;
             case 'P2':
-                bucketTasks = tasks.filter(t => t.priority && t.priority.includes('P2') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
+                bucketTasks = tasks.filter(t => t.priority && t.priority.includes('P2') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived && !(inProgressColumnVisible && t.status === 'In Progress'));
                 break;
             case 'P3':
-                bucketTasks = tasks.filter(t => t.priority && t.priority.includes('P3') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
+                bucketTasks = tasks.filter(t => t.priority && t.priority.includes('P3') && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived && !(inProgressColumnVisible && t.status === 'In Progress'));
                 break;
             case 'Backburner':
-                bucketTasks = tasks.filter(t => t.priority === 'Backburner' && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
+                bucketTasks = tasks.filter(t => t.priority === 'Backburner' && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived && !(inProgressColumnVisible && t.status === 'In Progress'));
                 break;
             case 'InProgress':
                 bucketTasks = tasks.filter(t => t.status === 'In Progress' && t.status !== 'Done' && t.status !== 'Deleted' && !t.is_archived);
@@ -2514,8 +2572,8 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
 
     const allColumns = [
         { id: 'Backburner', title: 'Backburner', colorClass: 'text-slate-400', bgClass: 'bg-slate-500/10', borderClass: 'border-slate-500/20', activeBorderClass: 'border-slate-300 ring-2 ring-slate-400 shadow-[inset_0_0_20px_rgba(148,163,184,0.2)]', newPriority: 'Backburner', newDueBy: 'Backburner', orderClass: 'order-4 md:order-1', visKey: 'backburner' },
-        { id: 'P3', title: 'P3 (LOW)', colorClass: 'text-yellow-500', bgClass: 'bg-yellow-500/10', borderClass: 'border-yellow-500/20', activeBorderClass: 'border-yellow-400 ring-2 ring-yellow-500 shadow-[inset_0_0_20px_rgba(234,179,8,0.2)]', newPriority: 'P3', newDueBy: 'This Month', orderClass: 'order-3 md:order-2', visKey: 'p3' },
-        { id: 'P2', title: 'P2 (NORMAL)', colorClass: 'text-orange-500', bgClass: 'bg-orange-500/10', borderClass: 'border-orange-500/20', activeBorderClass: 'border-orange-400 ring-2 ring-orange-500 shadow-[inset_0_0_20px_rgba(249,115,22,0.2)]', newPriority: 'P2', newDueBy: 'This Week', orderClass: 'order-2 md:order-3', visKey: 'p2' },
+        { id: 'P3', title: 'P3 (LOW)', colorClass: 'text-yellow-500', bgClass: 'bg-yellow-500/10', borderClass: 'border-yellow-500/20', activeBorderClass: 'border-yellow-400 ring-2 ring-yellow-500 shadow-[inset_0_0_20px_rgba(234,179,8,0.2)]', newPriority: 'P3', newDueBy: 'End of Month', orderClass: 'order-3 md:order-2', visKey: 'p3' },
+        { id: 'P2', title: 'P2 (NORMAL)', colorClass: 'text-orange-500', bgClass: 'bg-orange-500/10', borderClass: 'border-orange-500/20', activeBorderClass: 'border-orange-400 ring-2 ring-orange-500 shadow-[inset_0_0_20px_rgba(249,115,22,0.2)]', newPriority: 'P2', newDueBy: 'End of week', orderClass: 'order-2 md:order-3', visKey: 'p2' },
         { id: 'P1', title: 'P1 (HIGH)', colorClass: 'text-red-500', bgClass: 'bg-red-500/10', borderClass: 'border-red-500/20', activeBorderClass: 'border-red-400 ring-2 ring-red-500 shadow-[inset_0_0_20px_rgba(239,68,68,0.2)]', newPriority: 'P1', newDueBy: 'Today', orderClass: 'order-1 md:order-4', visKey: 'p1' },
         { id: 'InProgress', title: 'In Progress', colorClass: 'text-blue-400', bgClass: 'bg-blue-500/10', borderClass: 'border-blue-500/20', activeBorderClass: 'border-blue-400 ring-2 ring-blue-500 shadow-[inset_0_0_20px_rgba(59,130,246,0.2)]', isInProgress: true, orderClass: 'order-5 md:order-5', visKey: 'in_progress' },
         { id: 'Completed', title: 'Done (7 Days)', colorClass: 'text-emerald-500', bgClass: 'bg-emerald-500/10', borderClass: 'border-emerald-500/20', activeBorderClass: 'border-emerald-400 ring-2 ring-emerald-500 shadow-[inset_0_0_20px_rgba(16,185,129,0.2)]', isDone: true, orderClass: 'order-6 md:order-6', visKey: 'done' },
@@ -2631,6 +2689,9 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                 case 'priority':
                     cmp = getPriorityWeight(a.priority) - getPriorityWeight(b.priority);
                     break;
+                case 'category':
+                    cmp = (a.category || '').localeCompare(b.category || '');
+                    break;
                 case 'dateTarget': {
                     const aTime = a.target_deadline ? new Date(a.target_deadline).getTime() : Infinity;
                     const bTime = b.target_deadline ? new Date(b.target_deadline).getTime() : Infinity;
@@ -2658,11 +2719,14 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
 
     // Column definitions for list view table headers
     const listColumns = [
-        { key: 'task', label: 'Task' },
-        { key: 'priority', label: 'Priority Level' },
-        { key: 'dateTarget', label: 'Date Target' },
-        { key: 'assignee', label: 'Assignee' },
-        { key: 'status', label: 'Status' },
+        { key: 'task', label: 'TASK' },
+        { key: 'notes', label: 'NOTES' },
+        { key: 'priority', label: 'PRIORITY' },
+        { key: 'category', label: 'CATEGORY' },
+        { key: 'dateTarget', label: 'DATE TARGET' },
+        { key: 'assignee', label: 'ASSIGNEE' },
+        { key: 'status', label: 'STATUS' },
+        { key: 'notify', label: '' }
     ];
 
     const getSortIndicator = (colKey) => {
@@ -2713,30 +2777,155 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                         <tbody>
                             {listViewTasks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-8 text-slate-600 italic text-xs">No tasks to display</td>
+                                    <td colSpan={8} className="text-center py-8 text-slate-600 italic text-xs">No tasks to display</td>
                                 </tr>
                             ) : (
-                                listViewTasks.map(task => (
-                                    <tr key={task.id} className={task.status === 'Done' ? 'opacity-60' : ''}>
-                                        <td className="lv-task-cell">
-                                            <span className={task.status === 'Done' ? 'line-through text-slate-500' : 'text-slate-200'}>
-                                                {task.action || 'Untitled Task'}
-                                            </span>
-                                        </td>
-                                        <td className={`lv-priority-cell ${getPriorityCellClass(task.priority)}`}>
-                                            {getDisplayPriority(task.priority)}
-                                        </td>
-                                        <td className="lv-date-cell">
-                                            {getDateDisplay(task)}
-                                        </td>
-                                        <td className="lv-assignee-cell">
-                                            {task.assigned_by_role === 'worker' ? 'Personal Task' : (task.assignee || '')}
-                                        </td>
-                                        <td className={`lv-status-cell ${getStatusCellClass(task.status)}`}>
-                                            {getDisplayStatus(task.status)}
-                                        </td>
-                                    </tr>
-                                ))
+                                listViewTasks.map(task => {
+                                    const isPersonal = task.assigned_by_role === 'worker';
+                                    const editable = isRowEditable(task);
+
+                                    return (
+                                        <React.Fragment key={task.id}>
+                                            <tr className={`group ${task.status === 'Done' ? 'opacity-60' : ''}`}>
+                                                <td className="lv-task-cell relative">
+                                                    {editingTaskId === task.id ? (
+                                                        <input
+                                                            autoFocus
+                                                            className="bg-slate-900 border border-blue-500 rounded px-2 py-1.5 outline-none text-white w-full text-xs font-bold"
+                                                            value={editTaskTitle}
+                                                            onChange={(e) => setEditTaskTitle(e.target.value)}
+                                                            onBlur={() => commitTitleEdit(task.id)}
+                                                            onKeyDown={(e) => handleTitleKey(e, task.id)}
+                                                        />
+                                                    ) : (
+                                                        <div 
+                                                            className={`truncate ${editable ? 'cursor-text hover:text-blue-300' : ''}`}
+                                                            onClick={(e) => { if (editable) startTitleEdit(task); }}
+                                                            title={task.action}
+                                                        >
+                                                            <span className={task.status === 'Done' ? 'line-through text-slate-500' : 'text-slate-200'}>
+                                                                {task.action || 'Untitled Task'}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="text-center w-8">
+                                                    {task.notes && task.notes.trim() !== '' ? (
+                                                        <button 
+                                                            onClick={() => toggleNoteExpansion(task.id)} 
+                                                            className={`transition-colors p-1 rounded-lg ${expandedNoteId === task.id ? 'bg-emerald-500/20 text-emerald-400' : 'text-emerald-600 hover:text-emerald-400'}`}
+                                                            title="Toggle Notes"
+                                                        >
+                                                            <Check className="w-4 h-4 inline-block" />
+                                                        </button>
+                                                    ) : null}
+                                                </td>
+                                                <td className={`lv-priority-cell ${getPriorityCellClass(task.priority)}`}>
+                                                    {editable ? (
+                                                        <div className="flex justify-center w-full">
+                                                            <DueByDropdown
+                                                                value={task.due_by_type || ''}
+                                                                priority={task.priority}
+                                                                onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
+                                                                isPersonalContext={isPersonal}
+                                                                userSettings={userSettings}
+                                                                teamDueByPrefs={teamDueByPrefs}
+                                                                hideLabels={true}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        getDisplayPriority(task.priority)
+                                                    )}
+                                                </td>
+                                                <td className="text-center font-bold text-slate-400 text-xs">
+                                                    {editable ? (
+                                                        <div onClick={e => e.stopPropagation()} className="flex justify-center w-full">
+                                                            <CategoryDropdown
+                                                                userRole={userRole}
+                                                                categories={categories}
+                                                                value={task.category || ''}
+                                                                onSelect={(name) => updateTask(task.id, 'category', name)}
+                                                                onAdd={(name) => addCategory(name, null, isPersonal)}
+                                                                onDelete={deleteCategory}
+                                                                isPrivateContext={isPersonal}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        task.category || '-'
+                                                    )}
+                                                </td>
+                                                <td className="lv-date-cell text-center">
+                                                    {getDateDisplay(task)}
+                                                </td>
+                                                <td className="lv-assignee-cell font-bold text-[10px]">
+                                                    {isPersonal ? (
+                                                        'Private'
+                                                    ) : (
+                                                        (editable && userRole !== 'worker') ? (
+                                                            <select 
+                                                                className="bg-transparent border-none text-slate-300 font-bold outline-none uppercase tracking-wider text-[10px] w-full text-center cursor-pointer appearance-none hover:text-blue-300 transition-colors"
+                                                                value={task.assignee || ''}
+                                                                onChange={(e) => updateTask(task.id, 'assignee', e.target.value)}
+                                                                title="Change Assignee"
+                                                            >
+                                                                <option value="" className="bg-slate-800">Unassigned</option>
+                                                                {teamMembers?.map(m => (
+                                                                    <option key={m.id} value={m.name} className="bg-slate-800">{m.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        ) : (
+                                                            task.assignee || '-'
+                                                        )
+                                                    )}
+                                                </td>
+                                                <td className={`lv-status-cell ${getStatusCellClass(task.status)} relative w-32`}>
+                                                    {editable ? (
+                                                        <div className="flex justify-center w-full">
+                                                            <StatusDropdown 
+                                                                task={task} 
+                                                                updateTask={updateTask} 
+                                                                center={true} 
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        getDisplayStatus(task.status)
+                                                    )}
+                                                </td>
+                                                <td className="text-center w-10">
+                                                    {['admin', 'super_admin'].includes(userRole) && (
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
+                                                            className="flex justify-center w-full transition-transform hover:scale-110"
+                                                            title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
+                                                        >
+                                                            <Bell className={`w-4 h-4 transition-colors ${task.is_notified ? 'text-red-500 fill-current' : 'text-slate-600 hover:text-slate-400'}`} />
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                            
+                                            {/* Notes Expandable Row */}
+                                            {expandedNoteId === task.id && task.notes && (
+                                                <tr className="bg-slate-900 border-b-2 border-slate-700">
+                                                    <td colSpan={8} className="p-4 relative">
+                                                        <div className="absolute top-4 right-4">
+                                                            <button 
+                                                                onClick={() => setExpandedNoteId(null)}
+                                                                className="text-slate-500 hover:text-red-400 transition-colors bg-slate-800 p-1.5 rounded"
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                        <div className="text-xs text-slate-300 whitespace-pre-wrap font-mono leading-relaxed max-h-40 overflow-y-auto pr-10 text-left border-l-4 border-emerald-500 pl-4 py-2">
+                                                            <span className="text-emerald-500 font-black uppercase tracking-widest text-[10px] block mb-2">Attached Notes</span>
+                                                            {task.notes}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
@@ -2791,6 +2980,8 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                         deleteCategory={deleteCategory}
                                         hideLabels={true}
                                         isDraggable={kanbanEnabled}
+                                        userSettings={userSettings}
+                                        teamDueByPrefs={teamDueByPrefs}
                                     />
                                 ))
                             )}
@@ -2865,11 +3056,11 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
 
 
 // --- Global Add Task Modal Component ---
-function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, currentUserRosterName, teamMembers, profiles, categories, addTask, updateTask, addCategory, deleteCategory }) {
+function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, currentUserRosterName, teamMembers, profiles, categories, addTask, updateTask, addCategory, deleteCategory, userSettings, teamDueByPrefs }) {
     const [action, setAction] = React.useState('');
     const [assignee, setAssignee] = React.useState('');
     const [category, setCategory] = React.useState('');
-    const [dueByType, setDueByType] = React.useState('This Week');
+    const [dueByType, setDueByType] = React.useState('End of week');
     const [isNotified, setIsNotified] = React.useState(false);
     const [notes, setNotes] = React.useState('');
     const [isNotesOpen, setIsNotesOpen] = React.useState(false);
@@ -2886,7 +3077,7 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
             setAction('');
             setAssignee('');
             setCategory(categories.length > 0 ? categories[0].name : '');
-            setDueByType('This Week');
+            setDueByType('End of week');
             setIsNotified(false);
             setNotes('');
             setIsNotesOpen(false);
@@ -2920,7 +3111,7 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
 
     if (!isOpen) return null;
 
-    const mockPriority = ['1 hr', '6 hrs', 'Today'].includes(dueByType) ? 'P1' : ['3 days', 'This Week'].includes(dueByType) ? 'P2' : ['This Month'].includes(dueByType) ? 'P3' : null;
+    const mockPriority = ['1 hr', '6 hrs', 'Today'].includes(dueByType) ? 'P1' : ['3 days', '7 days', '14 days', 'End of week'].includes(dueByType) ? 'P2' : ['4 weeks', 'End of Month'].includes(dueByType) ? 'P3' : null;
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose}>
@@ -3042,6 +3233,9 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                                 value={dueByType}
                                 priority={mockPriority}
                                 onSelect={setDueByType}
+                                isPersonalContext={effectivePersonal}
+                                userSettings={userSettings}
+                                teamDueByPrefs={teamDueByPrefs}
                             />
                         </div>
                         <button
@@ -3574,12 +3768,35 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
                                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${userSettings?.dnd_desktop_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                                             </button>
                                         </div>
-                                    </div>
-                                    
-                                    <div className="mt-auto border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center w-full max-w-md p-6 text-center">
-                                        <p className="text-slate-500 font-mono text-xs leading-relaxed">
-                                            Advanced Settings is under construction.
-                                        </p>
+                                        {/* Personal Tasks Due By Visibility */}
+                                        <div className="flex flex-col gap-3 pt-4 border-t border-slate-700/50">
+                                            <div>
+                                                <p className="text-slate-300 text-xs font-bold uppercase tracking-wider">Personal Tasks Due By Limits</p>
+                                                <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider leading-relaxed">Toggle which options appear when creating personal tasks.</p>
+                                            </div>
+                                            <div className="flex flex-col gap-3 pl-4 mt-2">
+                                                {[
+                                                    { level: 'P1', color: 'text-red-500', opts: ['1 hr', '6 hrs', 'Today'] },
+                                                    { level: 'P2', color: 'text-orange-500', opts: ['3 days', '7 days', '14 days', 'End of week'] },
+                                                    { level: 'P3', color: 'text-yellow-500', opts: ['4 weeks', 'End of Month'] }
+                                                ].map(group => (
+                                                    <div key={group.level} className="flex items-center gap-6">
+                                                        <span className={`text-[10px] font-black uppercase tracking-widest ${group.color} w-6`}>{group.level}</span>
+                                                        <div className="flex flex-wrap gap-4 text-[10px] font-bold">
+                                                            {group.opts.map(opt => {
+                                                                const keyMap = { '1 hr': 'pref_due_1hr', '6 hrs': 'pref_due_6hrs', 'Today': 'pref_due_today', '3 days': 'pref_due_3days', '7 days': 'pref_due_7days', '14 days': 'pref_due_14days', 'End of week': 'pref_due_end_of_week', '4 weeks': 'pref_due_4weeks', 'End of Month': 'pref_due_end_of_month' };
+                                                                const key = keyMap[opt];
+                                                                const isOn = userSettings?.[key] !== false;
+                                                                return (
+                                                                    <button key={opt} onClick={() => updateUserSetting(currentUserProfile.id, key, !isOn)}
+                                                                        className={`transition-colors duration-200 uppercase tracking-widest ${isOn ? 'text-blue-400 hover:text-blue-300' : 'text-slate-600 hover:text-slate-400'}`}>{opt}</button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
@@ -3607,7 +3824,7 @@ function SettingsModal({ isOpen, onClose, initialTab, currentUserRosterName, cur
 }
 
 // --- Admin Settings Modal Component ---
-function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile, rewards, updateReward, session, companyName, updateCompanyName, categories, addCategory, updateCategory, deleteCategory, teamLinks, addTeamLink, deleteTeamLink }) {
+function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, teamMembers, updateProfileRole, terminateProfile, rewards, updateReward, session, companyName, updateCompanyName, categories, addCategory, updateCategory, deleteCategory, teamLinks, addTeamLink, deleteTeamLink, teamDueByPrefs, updateTeamDueByPref }) {
     const [activeTab, setActiveTab] = React.useState(initialTab || 'Invite Team');
     const [localName, setLocalName] = React.useState(companyName || 'TEAM ROOXTER');
     const [isSavingName, setIsSavingName] = React.useState(false);
@@ -3940,6 +4157,52 @@ function AdminSettingsModal({ isOpen, onClose, initialTab, userRole, profiles, t
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            );
+        }
+
+        if (activeTab === 'System Settings') {
+            return (
+                <div className="flex-1 flex flex-col animate-in fade-in duration-500">
+                    <h2 className="text-xl font-black uppercase text-white mb-6 tracking-widest flex items-center gap-3">
+                        <Settings className="w-6 h-6 text-blue-400" /> {activeTab}
+                    </h2>
+                    <div className="flex flex-col gap-6">
+                        <div className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50">
+                            <h3 className="text-sm font-black uppercase text-slate-300 tracking-widest mb-2 border-l-2 border-blue-500 pl-3">Team Tasks Due By Limits</h3>
+                            <p className="text-xs text-slate-500 mb-6 drop-shadow-md pb-4 border-b border-slate-700/50">
+                                Toggle which options appear when creating Team Tasks. This applies to all users.
+                            </p>
+                            <div className="flex flex-col gap-4 pl-4">
+                                {[
+                                    { level: 'P1', color: 'text-red-500', opts: ['1 hr', '6 hrs', 'Today'] },
+                                    { level: 'P2', color: 'text-orange-500', opts: ['3 days', '7 days', '14 days', 'End of week'] },
+                                    { level: 'P3', color: 'text-yellow-500', opts: ['4 weeks', 'End of Month'] }
+                                ].map(group => (
+                                    <div key={group.level} className="flex items-center gap-6">
+                                        <span className={`text-xs font-black uppercase tracking-widest ${group.color} w-8`}>{group.level}</span>
+                                        <div className="flex flex-wrap gap-4 text-xs font-bold">
+                                            {group.opts.map(opt => {
+                                                const isOn = teamDueByPrefs?.[opt] !== false;
+                                                return (
+                                                    <button 
+                                                        key={opt} 
+                                                        onClick={() => {
+                                                            const newPrefs = { ...teamDueByPrefs, [opt]: !isOn };
+                                                            updateTeamDueByPref(newPrefs, session?.user?.id);
+                                                        }}
+                                                        className={`transition-colors duration-200 uppercase tracking-wider ${isOn ? 'text-blue-400 hover:text-blue-300' : 'text-slate-600 hover:text-slate-400'}`}
+                                                    >
+                                                        {opt}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             );

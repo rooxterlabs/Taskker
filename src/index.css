@@ -23,6 +23,22 @@
   display: none;
 }
 
+/* Styled Pill Scrollbar */
+.pill-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.pill-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 8px; /* Adds space at top/bottom of scrollbar track */
+}
+.pill-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.3); /* slate-400 */
+  border-radius: 20px;
+}
+.pill-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.5);
+}
+
 /* =========================================
    ZERO-REFACTOR GLOBAL THEMING ALGORITHM
    ========================================= */
@@ -285,8 +301,8 @@
 }
 
 .lv-status-in-progress {
-  background-color: rgba(16, 185, 129, 0.9) !important;
-  color: #022c22 !important;
+  background-color: rgba(59, 130, 246, 0.9) !important;
+  color: #0f172a !important;
 }
 
 .lv-status-done {
@@ -295,8 +311,8 @@
 }
 
 .lv-status-not-started {
-  background-color: rgba(253, 230, 138, 0.7) !important;
-  color: #78350f !important;
+  background-color: rgba(100, 116, 139, 0.2) !important;
+  color: #94a3b8 !important;
 }
 
 .lv-status-at-risk {
