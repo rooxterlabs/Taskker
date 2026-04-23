@@ -266,31 +266,13 @@
   font-weight: 700;
 }
 
-/* --- Priority Cell Colors --- */
+/* --- Priority Cell — text-only, no background --- */
 .lv-priority-cell {
   font-weight: 800;
-  border-radius: 0;
-}
-
-.lv-priority-p1 {
-  background-color: rgba(239, 68, 68, 0.85) !important;
-  color: #172554 !important; /* dark navy — readable on red bg */
-}
-
-.lv-priority-p2 {
-  background-color: rgba(249, 115, 22, 0.85) !important;
-  color: #172554 !important; /* dark navy — readable on orange bg */
-}
-
-.lv-priority-p3 {
-  background-color: rgba(234, 179, 8, 0.85) !important;
-  color: #172554 !important; /* dark navy — readable on yellow bg */
-}
-
-.lv-priority-backburner {
-  background-color: rgba(100, 116, 139, 0.4) !important;
-  color: #94a3b8 !important;
-  border: 1px solid rgba(100, 116, 139, 0.5);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background-color: transparent !important;
 }
 
 /* --- Status Cell Colors --- */
@@ -361,10 +343,6 @@
 .theme-noir .list-view-table th { color: #a1a1aa; border-bottom-color: rgba(63, 63, 70, 0.6); }
 .theme-noir .list-view-table tbody tr:hover { background-color: rgba(39, 39, 42, 0.5); }
 .theme-noir .list-view-table td { color: #d4d4d8; border-bottom-color: rgba(39, 39, 42, 0.5); }
-.theme-noir .lv-priority-p1 { background-color: rgba(161, 161, 170, 0.3) !important; color: #d4d4d8 !important; }
-.theme-noir .lv-priority-p2 { background-color: rgba(161, 161, 170, 0.2) !important; color: #d4d4d8 !important; }
-.theme-noir .lv-priority-p3 { background-color: rgba(161, 161, 170, 0.15) !important; color: #d4d4d8 !important; }
-.theme-noir .lv-priority-backburner { background-color: rgba(63, 63, 70, 0.4) !important; color: #a1a1aa !important; border-color: rgba(63, 63, 70, 0.6); }
 .theme-noir .lv-status-in-progress { background-color: rgba(161, 161, 170, 0.25) !important; color: #ffffff !important; }
 .theme-noir .lv-status-not-started { background-color: rgba(82, 82, 91, 0.4) !important; color: #d4d4d8 !important; }
 .theme-noir .lv-status-done { background-color: rgba(63, 63, 70, 0.3) !important; color: #a1a1aa !important; }
@@ -376,10 +354,6 @@
 .theme-cool-yellow .list-view-table th { color: #66CCE5; border-bottom-color: rgba(102, 204, 229, 0.3); }
 .theme-cool-yellow .list-view-table tbody tr:hover { background-color: rgba(102, 204, 229, 0.08); }
 .theme-cool-yellow .list-view-table td { color: #E0F7FA; border-bottom-color: rgba(102, 204, 229, 0.15); }
-.theme-cool-yellow .lv-priority-p1 { background-color: rgba(255, 191, 0, 0.8) !important; color: #061324 !important; }
-.theme-cool-yellow .lv-priority-p2 { background-color: rgba(255, 191, 0, 0.5) !important; color: #061324 !important; }
-.theme-cool-yellow .lv-priority-p3 { background-color: rgba(229, 255, 51, 0.5) !important; color: #061324 !important; }
-.theme-cool-yellow .lv-priority-backburner { background-color: rgba(102, 204, 229, 0.15) !important; color: #66CCE5 !important; border-color: rgba(102, 204, 229, 0.3); }
 .theme-cool-yellow .lv-status-in-progress { background-color: rgba(178, 255, 204, 0.7) !important; color: #061324 !important; }
 .theme-cool-yellow .lv-status-not-started { background-color: rgba(255, 229, 0, 0.3) !important; color: #FFE500 !important; }
 .theme-cool-yellow .lv-status-done { background-color: rgba(178, 255, 204, 0.3) !important; color: #B2FFCC !important; }

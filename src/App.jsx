@@ -313,10 +313,8 @@ export default function App() {
 
     const visibleCategories = React.useMemo(() => {
         if (!categories) return [];
-        if (userRole === 'admin' || userRole === 'super_admin') {
-            return categories.filter(c => !c.created_by);
-        }
         const myId = session?.user?.id;
+        // All roles: show global categories (no created_by) + their own private ones
         return categories.filter(c => !c.created_by || c.created_by === myId);
     }, [categories, userRole, session]);
 
@@ -1712,7 +1710,6 @@ function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPers
     }, []);
 
     // --- Helper Functions ---
-    // Helper to get only the short priority code
     const getShortPriority = (p) => {
         if (!p) return null;
         if (p.includes('P1')) return 'P1';
@@ -1729,27 +1726,47 @@ function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPers
         return 'text-slate-400';
     };
 
+    // Map an option value to its formatted label + color class
+    const getOptionMeta = (opt) => {
+        const map = {
+            '1 hr':        { label: 'P1: 1hr',          color: 'text-red-500' },
+            '6 hrs':       { label: 'P1: 6hrs',         color: 'text-red-500' },
+            'Today':       { label: 'P1: Today',        color: 'text-red-500' },
+            '3 days':      { label: 'P2: 3 Days',       color: 'text-orange-500' },
+            '7 days':      { label: 'P2: 7 Days',       color: 'text-orange-500' },
+            '14 days':     { label: 'P2: 14 Days',      color: 'text-orange-500' },
+            'End of week': { label: 'P2: End of Week',  color: 'text-orange-500' },
+            '4 weeks':     { label: 'P3: 4 Weeks',      color: 'text-yellow-500' },
+            'End of Month':{ label: 'P3: End of Month', color: 'text-yellow-500' },
+            'Backburner':  { label: 'Backburner',        color: 'text-slate-400' },
+        };
+        return map[opt] || { label: opt, color: 'text-slate-300' };
+    };
+
     const shortPriority = getShortPriority(priority);
     const priorityColor = getPriorityColor(priority);
 
-    // Map specific due dates to their priority representation for the dropdown menu
-    const getOptionPriority = (opt) => {
-        if (['1 hr', '6 hrs', 'Today'].includes(opt)) return { text: 'P1', color: 'text-red-500' };
-        if (['3 days', '7 days', '14 days', 'End of week'].includes(opt)) return { text: 'P2', color: 'text-orange-500' };
-        if (['4 weeks', 'End of Month'].includes(opt)) return { text: 'P3', color: 'text-yellow-500' };
-        return null; // Backburner or unrecognized
-    };
+    // Button label: in list-view (hideLabels) show colored priority label; otherwise show raw value
+    const currentMeta = hideLabels ? getOptionMeta(value) : null;
 
     return (
         <div className="relative inline-block" ref={ref}>
             <button
                 type="button"
                 onClick={() => !readOnly && setIsOpen(!isOpen)}
-                className={`flex items-center gap-1.5 text-[10px] font-bold ${readOnly ? 'cursor-default' : 'hover:text-white transition-colors group'} whitespace-nowrap`}
+                className={`flex items-center gap-1.5 text-[10px] font-bold ${readOnly ? 'cursor-default' : 'hover:opacity-80 transition-opacity'} whitespace-nowrap`}
             >
-                <span className={`whitespace-nowrap ${value ? "text-blue-400" : "italic text-slate-600"}`}>
-                    {value || "Due By..."}
-                </span>
+                {hideLabels ? (
+                    // List view: show "P1: Today" style label in priority color
+                    <span className={`whitespace-nowrap font-black tracking-wide ${value ? currentMeta.color : 'italic text-slate-600'}`}>
+                        {value ? currentMeta.label : 'Due By...'}
+                    </span>
+                ) : (
+                    // Card / modal view: show raw value in blue
+                    <span className={`whitespace-nowrap ${value ? 'text-blue-400' : 'italic text-slate-600'}`}>
+                        {value || 'Due By...'}
+                    </span>
+                )}
                 {!hideLabels && shortPriority && (
                     <span className={`text-[10px] font-black ${priorityColor}`}>
                         {shortPriority}
@@ -1759,7 +1776,7 @@ function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPers
             </button>
 
             {isOpen && (
-                <div className={`absolute top-full mt-2 w-32 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 cursor-pointer ${center ? 'left-1/2 -translate-x-1/2' : 'right-0'}`}>
+                <div className={`absolute top-full mt-2 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 cursor-pointer ${center ? 'left-1/2 -translate-x-1/2' : 'right-0'}`}>
                     {DUE_BY_OPTIONS.filter(opt => {
                         if (opt === 'Backburner') return true;
                         if (isPersonalContext) {
@@ -1769,20 +1786,31 @@ function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPers
                             return teamDueByPrefs?.[opt] !== false;
                         }
                     }).map(opt => {
-                        const optPriority = getOptionPriority(opt);
+                        const meta = getOptionMeta(opt);
+                        const isSelected = value === opt;
                         return (
                             <div
                                 key={opt}
                                 onClick={() => { onSelect(opt); setIsOpen(false); }}
-                                className="flex items-center justify-between group/item px-4 py-2 hover:bg-blue-600 cursor-pointer transition-colors"
+                                className={`flex items-center justify-between px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors ${isSelected ? 'bg-slate-800/60' : ''}`}
                             >
-                                <span className={`text-[9px] sm:text-[10px] font-light tracking-wide ${value === opt ? 'text-white' : 'text-slate-300'}`}>
-                                    {opt}
-                                </span>
-                                {!hideLabels && optPriority && (
-                                    <span className={`text-[9px] font-bold tracking-wider ml-2 ${optPriority.color}`}>
-                                        {optPriority.text}
+                                {hideLabels ? (
+                                    // List view: show "P1: Today" with priority color
+                                    <span className={`text-[10px] font-bold tracking-wide ${meta.color} ${isSelected ? 'font-black' : ''}`}>
+                                        {meta.label}
                                     </span>
+                                ) : (
+                                    // Card / modal view: raw label + P badge on the right
+                                    <>
+                                        <span className={`text-[9px] sm:text-[10px] font-light tracking-wide ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                                            {opt}
+                                        </span>
+                                        {meta.color !== 'text-slate-400' && (
+                                            <span className={`text-[9px] font-bold tracking-wider ml-2 ${meta.color}`}>
+                                                {meta.label.split(':')[0]}
+                                            </span>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         );
@@ -2637,8 +2665,23 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
         return 99;
     };
 
-    const getDisplayPriority = (p) => {
-        if (!p) return '';
+    const getPriorityLabelForCell = (task) => {
+        const dbt = task.due_by_type;
+        const labelMap = {
+            '1 hr':         'P1: 1hr',
+            '6 hrs':        'P1: 6hrs',
+            'Today':        'P1: Today',
+            '3 days':       'P2: 3 Days',
+            '7 days':       'P2: 7 Days',
+            '14 days':      'P2: 14 Days',
+            'End of week':  'P2: End of Week',
+            '4 weeks':      'P3: 4 Weeks',
+            'End of Month': 'P3: End of Month',
+            'Backburner':   'Backburner',
+        };
+        if (dbt && labelMap[dbt]) return labelMap[dbt];
+        // Fallback to simple priority label
+        const p = task.priority || '';
         if (p.includes('P1')) return 'P1';
         if (p.includes('P2')) return 'P2';
         if (p.includes('P3')) return 'P3';
@@ -2731,16 +2774,15 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
     ];
 
     const getSortIndicator = (colKey) => {
-        if (sortColumn !== colKey) return '';
-        return sortDirection === 'asc' ? ' â–²' : ' â–¼';
+        return '';
     };
 
     const getPriorityCellClass = (priority) => {
         if (!priority) return '';
-        if (priority.includes('P1')) return 'lv-priority-p1';
-        if (priority.includes('P2')) return 'lv-priority-p2';
-        if (priority.includes('P3')) return 'lv-priority-p3';
-        if (priority === 'Backburner') return 'lv-priority-backburner';
+        if (priority.includes('P1')) return 'text-red-500';
+        if (priority.includes('P2')) return 'text-orange-500';
+        if (priority.includes('P3')) return 'text-yellow-500';
+        if (priority === 'Backburner') return 'text-slate-400';
         return '';
     };
 
@@ -2839,7 +2881,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                                             />
                                                         </div>
                                                     ) : (
-                                                        getDisplayPriority(task.priority)
+                                                        getPriorityLabelForCell(task)
                                                     )}
                                                 </td>
                                                 <td className="text-center font-bold text-slate-400 text-xs">
@@ -3088,12 +3130,27 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
     const isAdmin = ['admin', 'super_admin'].includes(userRole);
     const effectivePersonal = userRole === 'worker' || isPersonal;
 
+    // Compute the soonest available due-by option based on current context prefs
+    const getSoonestDueBy = (personal) => {
+        const orderedOptions = ['1 hr', '6 hrs', 'Today', '3 days', '7 days', '14 days', 'End of week', '4 weeks', 'End of Month'];
+        const keyMap = { '1 hr': 'pref_due_1hr', '6 hrs': 'pref_due_6hrs', 'Today': 'pref_due_today', '3 days': 'pref_due_3days', '7 days': 'pref_due_7days', '14 days': 'pref_due_14days', 'End of week': 'pref_due_end_of_week', '4 weeks': 'pref_due_4weeks', 'End of Month': 'pref_due_end_of_month' };
+        for (const opt of orderedOptions) {
+            if (personal) {
+                if (userSettings?.[keyMap[opt]] !== false) return opt;
+            } else {
+                if (teamDueByPrefs?.[opt] !== false) return opt;
+            }
+        }
+        return 'End of week'; // ultimate fallback
+    };
+
     React.useEffect(() => {
         if (isOpen) {
             setAction('');
             setAssignee('');
             setCategory(categories.length > 0 ? categories[0].name : '');
-            setDueByType('End of week');
+            const personal = userRole === 'worker' || isPersonalMode;
+            setDueByType(getSoonestDueBy(personal));
             setIsNotified(false);
             setNotes('');
             setIsNotesOpen(false);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { calculateTargetDeadline, getPriorityFromDueByType, isTaskOverdue } from '../utils/dateUtils';
 
@@ -45,15 +45,35 @@ export function useTasks() {
         '1 hr': true, '6 hrs': true, 'Today': true, '3 days': true, '7 days': true, '14 days': true, 'End of week': true, '4 weeks': true, 'End of Month': true
     });
     const [loading, setLoading] = useState(true);
+    // Tracks the access_token of the last session we loaded data for.
+    // We only re-fetch on SIGNED_IN if the token is genuinely new (real login),
+    // not when the browser wakes the tab and Supabase re-confirms the same session.
+    const loadedSessionTokenRef = useRef(null);
 
     useEffect(() => {
+        // Capture the initial session token so the auth listener below can
+        // distinguish a fresh login from a tab-restore re-confirmation.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.access_token) {
+                loadedSessionTokenRef.current = session.access_token;
+            }
+        });
+
         fetchData();
 
-        // Re-fetch all data when a user signs in so RLS-gated tables
-        // (profiles, user_settings, tasks, etc.) load with the correct auth token.
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        // Only re-fetch when a genuinely NEW session starts (e.g. user signs in
+        // from the login screen). Skip re-fetches caused by browser tab/window
+        // restore, which also fire SIGNED_IN but with the same existing token.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN') {
-                fetchData();
+                const incomingToken = session?.access_token;
+                if (incomingToken && incomingToken !== loadedSessionTokenRef.current) {
+                    // Token changed → genuine new login
+                    loadedSessionTokenRef.current = incomingToken;
+                    fetchData();
+                }
+                // Same token → tab/window restore; skip fetchData to avoid
+                // the "Initializing Rooxter Core" flash.
             }
         });
 

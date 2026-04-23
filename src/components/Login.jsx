@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Activity, Mail, Lock, UserPlus, LogIn, Eye, EyeOff } from 'lucide-react';
+import { Activity, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
-    const [isSignUp, setIsSignUp] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -21,25 +20,11 @@ export default function Login() {
         setSuccessMsg('');
 
         try {
-            if (isSignUp) {
-                const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                });
-                if (error) throw error;
-
-                if (!data.session) {
-                    setSuccessMsg('Success! Please check your email to confirm your account, or sign in if confirmation is disabled.');
-                    setIsSignUp(false);
-                }
-                // If data.session exists, App.jsx's onAuthStateChange will automatically transition to Dashboard
-            } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-                if (error) throw error;
-            }
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+            if (error) throw error;
         } catch (error) {
             setErrorMsg(error.message || 'An error occurred during authentication.');
         } finally {
@@ -88,7 +73,7 @@ export default function Login() {
 
                     <form onSubmit={handleAuth} className="flex flex-col gap-6">
                         <h2 className="text-2xl font-bold uppercase tracking-wider text-slate-200">
-                            {isSignUp ? 'Create Account' : 'Welcome Back'}
+                            Welcome Back
                         </h2>
 
                         {errorMsg && (
@@ -144,10 +129,6 @@ export default function Login() {
                         >
                             {loading ? (
                                 <Activity className="w-5 h-5 animate-spin" />
-                            ) : isSignUp ? (
-                                <>
-                                    <UserPlus className="w-5 h-5" /> Sign Up
-                                </>
                             ) : (
                                 <>
                                     <LogIn className="w-5 h-5" /> Sign In
@@ -157,33 +138,17 @@ export default function Login() {
                     </form>
 
                     <div className="mt-6 flex flex-col items-center gap-3">
-                        {!isSignUp && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setIsForgotPassword(true);
-                                    setResetEmail(email);
-                                    setErrorMsg('');
-                                    setSuccessMsg('');
-                                }}
-                                className="text-blue-400 hover:text-blue-300 text-xs font-medium tracking-wide transition-colors"
-                            >
-                                Forgot Password?
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="mt-4 pt-6 border-t border-slate-700/50 text-center">
                         <button
+                            type="button"
                             onClick={() => {
-                                setIsSignUp(!isSignUp);
+                                setIsForgotPassword(true);
+                                setResetEmail(email);
                                 setErrorMsg('');
                                 setSuccessMsg('');
-                                setIsForgotPassword(false);
                             }}
-                            className="text-slate-400 hover:text-white text-sm transition-colors"
+                            className="text-blue-400 hover:text-blue-300 text-xs font-medium tracking-wide transition-colors"
                         >
-                            {isSignUp ? 'Already have an account? Sign in.' : "Don't have an account? Sign up."}
+                            Forgot Password?
                         </button>
                     </div>
 

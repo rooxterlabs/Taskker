@@ -2,6 +2,16 @@
 // Simply follow the format below to add new updates.
 export const patchNotes = [
     {
+        version: "v0.1.08",
+        date: "April 23, 2026",
+        notes: [
+            "Fixed disappearing Personal Category",
+            "Default Due By option is now 'soonest' available",
+            "List view Priority cell UI update",
+            "List view header fixed",
+        ]
+    },
+    {
         version: "v0.1.07",
         date: "April 20, 2026",
         notes: [
