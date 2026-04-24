@@ -2,6 +2,13 @@
 // Simply follow the format below to add new updates.
 export const patchNotes = [
     {
+        version: "v0.1.09",
+        date: "April 24, 2026",
+        notes: [
+            "Add Task reworked"
+        ]
+    },
+    {
         version: "v0.1.08",
         date: "April 23, 2026",
         notes: [

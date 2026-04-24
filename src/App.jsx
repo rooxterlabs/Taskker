@@ -1636,35 +1636,9 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
             {isOpen && (
                 <div className={`absolute top-full mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 ${center ? 'left-1/2 -translate-x-1/2' : 'left-0'}`}>
 
-                    {/* List Existing Categories */}
-                    <div className="max-h-48 overflow-y-auto no-scrollbar">
-                        {categories.map(c => (
-                            <div
-                                key={c.id}
-                                className="flex items-center justify-between group/item px-4 py-2 hover:bg-blue-600 cursor-pointer transition-colors"
-                                onClick={() => { onSelect(c.name); setIsOpen(false); }}
-                            >
-                                <span className={`text-[9px] sm:text-[10px] font-normal tracking-wide ${value === c.name ? 'text-white' : 'text-slate-300'}`}>
-                                    {c.name}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); onDelete(c.id); }}
-                                    className={`opacity-0 group-hover/item:opacity-100 text-slate-400 hover:text-white transition-all ml-2 ${c.created_by ? 'block' : 'hidden'}`}
-                                    title="Delete category"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Separator only if there are existing categories */}
-                    {categories.length > 0 && <div className="h-px bg-slate-800 my-1" />}
-
                     {/* Create New Logic */}
                     {isCreating ? (
-                        <div className="px-3 py-2 flex items-center gap-2 bg-slate-800/50" onClick={(e) => e.stopPropagation()}>
+                        <div className="px-3 py-2 flex items-center gap-2 bg-slate-800/50 border-b border-slate-800" onClick={(e) => e.stopPropagation()}>
                             <input
                                 autoFocus
                                 value={newName}
@@ -1696,11 +1670,59 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
                                     setIsCreating(true); 
                                 }
                             }}
-                            className="w-full px-4 py-2 text-left text-[10px] font-bold text-blue-400 hover:bg-blue-900/30 transition-colors flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-[10px] font-bold text-blue-400 hover:bg-blue-900/30 transition-colors flex items-center gap-2 border-b border-slate-800 shrink-0"
                         >
                             <Plus className="w-3 h-3" /> CREATE NEW
                         </button>
                     )}
+
+                    {/* List Existing Categories */}
+                    <div className="max-h-48 overflow-y-auto no-scrollbar py-1">
+                        {(() => {
+                            const personalCategories = isPrivateContext ? [...categories].filter(c => c.created_by).sort((a, b) => a.name.localeCompare(b.name)) : [];
+                            const teamCategories = [...categories].filter(c => !c.created_by).sort((a, b) => a.name.localeCompare(b.name));
+                            
+                            return (
+                                <>
+                                    {personalCategories.map(c => (
+                                        <div
+                                            key={c.id}
+                                            className="flex items-center justify-between group/item px-4 py-2 hover:bg-blue-600 cursor-pointer transition-colors"
+                                            onClick={() => { onSelect(c.name); setIsOpen(false); }}
+                                        >
+                                            <span className={`text-[9px] sm:text-[10px] font-normal tracking-wide ${value === c.name ? 'text-white' : 'text-slate-300'}`}>
+                                                {c.name}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); onDelete(c.id); }}
+                                                className="opacity-0 group-hover/item:opacity-100 text-slate-400 hover:text-white transition-all ml-2 block"
+                                                title="Delete category"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    {personalCategories.length > 0 && teamCategories.length > 0 && (
+                                        <div className="h-px bg-slate-800 mx-3 my-1" />
+                                    )}
+
+                                    {teamCategories.map(c => (
+                                        <div
+                                            key={c.id}
+                                            className="flex items-center justify-between group/item px-4 py-2 hover:bg-blue-600 cursor-pointer transition-colors"
+                                            onClick={() => { onSelect(c.name); setIsOpen(false); }}
+                                        >
+                                            <span className={`text-[9px] sm:text-[10px] font-normal tracking-wide ${value === c.name ? 'text-white' : 'text-slate-300'}`}>
+                                                {c.name}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </>
+                            );
+                        })()}
+                    </div>
                 </div>
             )}
         </div>
@@ -3203,9 +3225,6 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
         if (isOpen) {
             setAction('');
             setAssignee('');
-            setCategory(categories.length > 0 ? categories[0].name : '');
-            const personal = userRole === 'worker' || isPersonalMode;
-            setDueByType(getSoonestDueBy(personal));
             setIsNotified(false);
             setNotes('');
             setIsNotesOpen(false);
@@ -3215,7 +3234,37 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                 if (textareaRef.current) textareaRef.current.focus();
             }, 50);
         }
-    }, [isOpen]);
+    }, [isOpen, isPersonalMode]);
+
+    React.useEffect(() => {
+        if (!isOpen) return;
+        
+        if (categories.length > 0) {
+            const personalCategories = [...categories].filter(c => c.created_by).sort((a,b) => a.name.localeCompare(b.name));
+            const teamCategories = [...categories].filter(c => !c.created_by).sort((a,b) => a.name.localeCompare(b.name));
+
+            if (effectivePersonal) {
+                if (personalCategories.length > 0) {
+                    setCategory(personalCategories[0].name);
+                } else if (teamCategories.length > 0) {
+                    setCategory(teamCategories[0].name);
+                } else {
+                    setCategory('');
+                }
+            } else {
+                if (teamCategories.length > 0) {
+                    setCategory(teamCategories[0].name);
+                } else {
+                    setCategory('');
+                }
+            }
+        } else {
+            setCategory('');
+        }
+        
+        setDueByType(getSoonestDueBy(effectivePersonal));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, effectivePersonal]);
 
     const handleCreate = async () => {
         let finalAssignee = assignee;
@@ -3251,55 +3300,53 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                 </button>
 
                 <div className="flex justify-between items-start gap-2 pr-8">
-                    {effectivePersonal ? (
-                        <div className="flex items-start gap-3">
-                            <h2 className="text-lg md:text-xl font-black text-white tracking-widest uppercase italic leading-none pt-0.5">Personal Task</h2>
-                            {isAdmin && (
+                    {isAdmin ? (
+                        <div className="flex bg-[#161c2d] p-1 rounded-2xl border border-slate-700/50 w-fit">
+                            {!effectivePersonal ? (
+                                <div className="relative group">
+                                    <select
+                                        value={assignee}
+                                        onChange={(e) => setAssignee(e.target.value)}
+                                        className="appearance-none bg-blue-600 text-[10px] md:text-sm font-black uppercase px-6 py-2 rounded-xl text-white outline-none cursor-pointer transition-all hover:bg-blue-500 pr-10 border-none shadow-sm"
+                                    >
+                                        <option value="" disabled>Team</option>
+                                        {teamMembers
+                                            .filter(m => {
+                                                if (userRole === 'super_admin') return true;
+                                                if (m.name === currentUserRosterName) return true;
+                                                const memberProfile = m.user_id
+                                                    ? profiles.find(p => p.id === m.user_id)
+                                                    : m.email
+                                                        ? profiles.find(p => p.email?.toLowerCase().trim() === m.email.toLowerCase().trim())
+                                                        : null;
+                                                const memberRole = memberProfile?.role;
+                                                if (memberRole === 'admin' || memberRole === 'super_admin') return false;
+                                                return true;
+                                            })
+                                            .map(m => <option key={m.id} value={m.name} className="bg-slate-900">{m.name}</option>)
+                                        }
+                                    </select>
+                                    <ChevronDown className="w-3.5 h-3.5 absolute right-4 top-1/2 -translate-y-1/2 text-white/80 pointer-events-none group-hover:text-white transition-colors" />
+                                </div>
+                            ) : (
                                 <button
                                     onClick={() => setIsPersonal(false)}
-                                    className="px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white border border-slate-600 hover:border-slate-500 transition-all active:scale-95 whitespace-nowrap"
+                                    className="px-6 py-2 rounded-xl text-[10px] md:text-sm font-black uppercase tracking-wider text-blue-500 hover:text-blue-400 hover:bg-slate-800/50 transition-all whitespace-nowrap"
                                 >
                                     Team
                                 </button>
                             )}
+
+                            <button
+                                onClick={() => setIsPersonal(true)}
+                                className={`px-6 py-2 rounded-xl text-[10px] md:text-sm font-black uppercase tracking-wider transition-all whitespace-nowrap ml-1 ${effectivePersonal ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+                            >
+                                Personal
+                            </button>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-3">
-                            <div className="relative group">
-                                <select
-                                    value={assignee}
-                                    onChange={(e) => setAssignee(e.target.value)}
-                                    className="appearance-none bg-blue-500/20 text-[10px] md:text-xs font-black uppercase px-3 py-1.5 rounded-md border border-blue-500/30 text-blue-300 outline-none cursor-pointer transition-all hover:bg-blue-500/30 pr-8"
-                                >
-                                    <option value="" disabled>Team</option>
-                                    {teamMembers
-                                        .filter(m => {
-                                            if (userRole === 'super_admin') return true;
-                                            if (m.name === currentUserRosterName) return true;
-                                            // Cross-reference with profiles by user_id first, then email fallback
-                                            const memberProfile = m.user_id
-                                                ? profiles.find(p => p.id === m.user_id)
-                                                : m.email
-                                                    ? profiles.find(p => p.email?.toLowerCase().trim() === m.email.toLowerCase().trim())
-                                                    : null;
-                                            const memberRole = memberProfile?.role;
-                                            // Admins can only assign to workers (not other admins/super_admins)
-                                            if (memberRole === 'admin' || memberRole === 'super_admin') return false;
-                                            return true;
-                                        })
-                                        .map(m => <option key={m.id} value={m.name} className="bg-slate-900">{m.name}</option>)
-                                    }
-                                </select>
-                                <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none group-hover:text-blue-300 transition-colors" />
-                            </div>
-                            {isAdmin && (
-                                <button
-                                    onClick={() => setIsPersonal(true)}
-                                    className="px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white border border-slate-600 hover:border-slate-500 transition-all active:scale-95 whitespace-nowrap"
-                                >
-                                    Personal
-                                </button>
-                            )}
+                        <div className="flex items-start gap-3">
+                            <h2 className="text-lg md:text-xl font-black text-white tracking-widest uppercase italic leading-none pt-0.5">Personal Task</h2>
                         </div>
                     )}
                 </div>
