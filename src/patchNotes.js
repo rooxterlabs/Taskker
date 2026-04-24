@@ -9,6 +9,11 @@ export const patchNotes = [
             "Default Due By option is now 'soonest' available",
             "List view Priority cell UI update",
             "List view header fixed",
+            "Added circle done button"
+            "notify button is now envelope icon",
+            "backburner is now P4: backburner",
+            "taskcard UI overhaul",
+            "Clicking TASKKER.IO cycles through themes!"
         ]
     },
     {

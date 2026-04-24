@@ -42,7 +42,8 @@ import {
     ThumbsUp,
     PartyPopper,
     FolderKanban,
-    Link
+    Link,
+    Mail
 } from 'lucide-react';
 import { useTasks, calculateStats } from './hooks/useTasks';
 import { STATUS_OPTIONS, DUE_BY_OPTIONS } from './constants';
@@ -552,12 +553,25 @@ export default function App() {
 
     const globalTheme = currentUserProfile?.theme || 'dark';
 
+    const handleThemeCycle = () => {
+        if (!currentUserProfile) return;
+        const themes = ['dark', 'oatmeal', 'noir', 'cool-yellow'];
+        const currentTheme = currentUserProfile.theme || 'dark';
+        const currentIndex = themes.indexOf(currentTheme);
+        const nextIndex = (currentIndex + 1) % themes.length;
+        updateProfileTheme(currentUserProfile.id, themes[nextIndex]);
+    };
+
     return (
         <div className={`min-h-screen bg-black text-slate-50 p-4 md:p-8 pt-12 md:pt-14 font-sans antialiased selection:bg-blue-500/30 theme-${globalTheme} transition-colors duration-500`}>
             {/* GLOBAL TOP HEADER */}
             <div className={`fixed top-0 left-0 right-0 w-full h-06 md:h-08 bg-slate-950/80 backdrop-blur-md border-b border-white/5 z-[60] px-4 md:px-8 flex items-center shadow-lg transition-colors duration-500`}>
                 <div className="w-full max-w-7xl mx-auto pl-0 lg:pl-4">
-                    <h1 className="text-2xl md:text-3xl font-extralight tracking-widest text-slate-200 logo-text">
+                    <h1 
+                        onClick={handleThemeCycle}
+                        className="text-2xl md:text-3xl font-extralight tracking-widest text-slate-200 logo-text cursor-pointer select-none hover:text-white transition-colors"
+                        title="Cycle Theme"
+                    >
                         TASKKER.IO
                     </h1>
                 </div>
@@ -1009,7 +1023,7 @@ export default function App() {
                     <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                         {(userSettings?.display_stat_cards ?? true) && (
                             <div className="flex w-full gap-2 md:gap-4 overflow-hidden">
-                                <StatCard label="BACKBURNER" shortLabel="BACKBURNER" value={displayStats.backburner} icon={Coffee} color="text-slate-400" bgColor="bg-slate-400/10" onClick={() => setModalFilter('Backburner')} />
+                                <StatCard label="P4 (BACKBURNER)" shortLabel="P4" value={displayStats.backburner} icon={Coffee} color="text-slate-400" bgColor="bg-slate-400/10" onClick={() => setModalFilter('Backburner')} />
                                 <StatCard label="P3 (LOW)" shortLabel="P3" value={displayStats.p3} icon={Calendar} color="text-yellow-500" bgColor="bg-yellow-500/10" onClick={() => setModalFilter('P3')} />
                                 <StatCard label="P2 (NORMAL)" shortLabel="P2" value={displayStats.p2} icon={AlertTriangle} color="text-orange-500" bgColor="bg-orange-500/10" onClick={() => setModalFilter('P2')} />
                                 <StatCard label="P1 (HIGH)" shortLabel="P1" value={displayStats.p1} icon={Zap} color="text-red-500" bgColor="bg-red-500/10" onClick={() => setModalFilter('P1')} />
@@ -1262,7 +1276,7 @@ export default function App() {
                                 }>
                                     {modalFilter === 'Completed' ? 'COMPLETED (7 days)' :
                                         modalFilter === 'Archive' ? 'SYSTEM ARCHIVE' :
-                                            modalFilter === 'Backburner' ? 'BACKBURNER' :
+                                            modalFilter === 'Backburner' ? 'P4 (BACKBURNER)' :
                                                 modalFilter}
                                 </span>
                                 <span className={`${modalFilter === 'Completed' ? 'bg-emerald-500' : modalFilter === 'Archive' ? 'bg-slate-600' : 'bg-blue-600'} text-white text-xs px-3 py-1 rounded-full`}>
@@ -1612,12 +1626,11 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
                     if (readOnly) return;
                     setIsOpen(!isOpen); setIsCreating(false); setNewName(''); 
                 }}
-                className={`flex items-center gap-1.5 text-slate-400 text-[10px] font-bold ${readOnly ? 'cursor-default' : 'hover:text-white transition-colors group'}`}
+                className={`flex items-center gap-1.5 text-slate-400 text-[10px] font-medium ${readOnly ? 'cursor-default' : 'hover:font-bold hover:text-white transition-all group'}`}
             >
                 <span className={`whitespace-nowrap ${value ? "text-blue-400" : "italic text-slate-600"}`}>
                     {value || "Select Category..."}
                 </span>
-                {!readOnly && <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : 'opacity-50'}`} />}
             </button>
 
             {isOpen && (
@@ -1631,7 +1644,7 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
                                 className="flex items-center justify-between group/item px-4 py-2 hover:bg-blue-600 cursor-pointer transition-colors"
                                 onClick={() => { onSelect(c.name); setIsOpen(false); }}
                             >
-                                <span className={`text-[9px] sm:text-[10px] font-light tracking-wide ${value === c.name ? 'text-white' : 'text-slate-300'}`}>
+                                <span className={`text-[9px] sm:text-[10px] font-normal tracking-wide ${value === c.name ? 'text-white' : 'text-slate-300'}`}>
                                     {c.name}
                                 </span>
                                 <button
@@ -1738,7 +1751,7 @@ function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPers
             'End of week': { label: 'P2: End of Week',  color: 'text-orange-500' },
             '4 weeks':     { label: 'P3: 4 Weeks',      color: 'text-yellow-500' },
             'End of Month':{ label: 'P3: End of Month', color: 'text-yellow-500' },
-            'Backburner':  { label: 'Backburner',        color: 'text-slate-400' },
+            'Backburner':  { label: 'P4: Backburner',        color: 'text-slate-400' },
         };
         return map[opt] || { label: opt, color: 'text-slate-300' };
     };
@@ -1754,25 +1767,24 @@ function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPers
             <button
                 type="button"
                 onClick={() => !readOnly && setIsOpen(!isOpen)}
-                className={`flex items-center gap-1.5 text-[10px] font-bold ${readOnly ? 'cursor-default' : 'hover:opacity-80 transition-opacity'} whitespace-nowrap`}
+                className={`flex items-center gap-1.5 text-[10px] font-medium ${readOnly ? 'cursor-default' : 'hover:font-bold hover:opacity-80 transition-all'} whitespace-nowrap`}
             >
                 {hideLabels ? (
                     // List view: show "P1: Today" style label in priority color
-                    <span className={`whitespace-nowrap font-black tracking-wide ${value ? currentMeta.color : 'italic text-slate-600'}`}>
+                    <span className={`whitespace-nowrap tracking-wide ${value ? currentMeta.color : 'italic text-slate-600'}`}>
                         {value ? currentMeta.label : 'Due By...'}
                     </span>
                 ) : (
                     // Card / modal view: show raw value in blue
                     <span className={`whitespace-nowrap ${value ? 'text-blue-400' : 'italic text-slate-600'}`}>
-                        {value || 'Due By...'}
+                        {value === 'Backburner' ? 'P4: Backburner' : (value || 'Due By...')}
                     </span>
                 )}
                 {!hideLabels && shortPriority && (
-                    <span className={`text-[10px] font-black ${priorityColor}`}>
+                    <span className={`text-[10px] font-normal ${priorityColor}`}>
                         {shortPriority}
                     </span>
                 )}
-                {!readOnly && <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : 'opacity-50'}`} />}
             </button>
 
             {isOpen && (
@@ -1796,14 +1808,14 @@ function DueByDropdown({ value, priority, onSelect, hideLabels, readOnly, isPers
                             >
                                 {hideLabels ? (
                                     // List view: show "P1: Today" with priority color
-                                    <span className={`text-[10px] font-bold tracking-wide ${meta.color} ${isSelected ? 'font-black' : ''}`}>
+                                    <span className={`text-[10px] font-light tracking-wide ${meta.color} ${isSelected ? 'font-normal' : ''}`}>
                                         {meta.label}
                                     </span>
                                 ) : (
                                     // Card / modal view: raw label + P badge on the right
                                     <>
                                         <span className={`text-[9px] sm:text-[10px] font-light tracking-wide ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                                            {opt}
+                                            {opt === 'Backburner' ? 'P4: Backburner' : opt}
                                         </span>
                                         {meta.color !== 'text-slate-400' && (
                                             <span className={`text-[9px] font-bold tracking-wider ml-2 ${meta.color}`}>
@@ -1889,10 +1901,9 @@ function StatusDropdown({ task, updateTask, center, onPointerDownStop }) {
                 type="button"
                 onPointerDown={onPointerDownStop ? (e) => e.stopPropagation() : undefined}
                 onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
-                className="flex items-center gap-1 text-[10px] font-bold hover:text-white transition-colors whitespace-nowrap"
+                className="flex items-center gap-1 text-[10px] font-medium hover:font-bold hover:text-white transition-all whitespace-nowrap"
             >
                 <span className={getColor(current)}>{current}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform opacity-50 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             {isOpen && (
                 <div className={`absolute top-full mt-1.5 w-32 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[200] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 ${
@@ -1903,7 +1914,7 @@ function StatusDropdown({ task, updateTask, center, onPointerDownStop }) {
                             key={opt.value}
                             onPointerDown={onPointerDownStop ? (e) => e.stopPropagation() : undefined}
                             onClick={(e) => handleSelect(e, opt.value)}
-                            className={`px-4 py-2 text-[10px] font-bold cursor-pointer transition-colors hover:bg-blue-600 hover:text-white ${getColor(opt.value)} ${current === opt.value ? 'bg-slate-800/80' : ''}`}
+                            className={`px-4 py-2 text-[10px] font-normal cursor-pointer transition-colors hover:bg-blue-600 hover:text-white ${getColor(opt.value)} ${current === opt.value ? 'bg-slate-800/80' : ''}`}
                         >
                             {opt.label}
                         </div>
@@ -2099,6 +2110,23 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
 
     const statusBorder = getStatusBorderClass(task.status);
 
+    const handleMarkDone = (e) => {
+        e.stopPropagation();
+        if (task.status === 'Done') {
+            updateTask(task.id, 'status', 'In Progress');
+        } else {
+            try { const audio = new Audio(doneSoundUrl); audio.play().catch(() => {}); } catch {}
+            const rect = e.currentTarget.getBoundingClientRect();
+            confetti({
+                particleCount: 15, spread: 60, startVelocity: 15,
+                colors: ['#10b981', '#34d399', '#059669', '#a7f3d0'],
+                origin: { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight },
+                zIndex: 9999, disableForReducedMotion: true, ticks: 100, gravity: 0.8, scalar: 0.8
+            });
+            setTimeout(() => updateTask(task.id, 'status', 'Done'), 700);
+        }
+    };
+
     return (
         <div className={`p-2 md:p-2.5 rounded-xl border flex flex-col gap-1.5 relative transition-colors ${task.assigned_by_role === 'worker' ? 'bg-slate-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] border-slate-600' : 'bg-slate-800/40'} ${isTaskOverdue(task.target_deadline) && task.status !== 'Done' && task.priority && task.priority.includes('P1') ? 'border-red-900/50 bg-red-900/10' : statusBorder}`}>
 
@@ -2111,10 +2139,10 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                 </div>
             )}
 
-            {/* Top row: Assignee / Bell / Notes / Trash */}
-            <div className="flex items-center w-full mb-0.5 relative z-10">
+            {/* Top row: Assignee / Actions */}
+            <div className="flex items-center justify-between w-full mb-0.5 relative z-10 gap-2">
                 {/* LEFT: Assignee */}
-                <div className="flex-1 flex justify-start min-w-0">
+                <div className="flex justify-start min-w-0 pr-1">
                     {showAssignee && (
                         <div className="text-[8px] font-black uppercase text-blue-400 tracking-wider truncate max-w-[100px]">
                             {task.assigned_by_role === 'worker' ? 'Personal Task' : task.assignee}
@@ -2122,25 +2150,37 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                     )}
                 </div>
 
-                {/* CENTER: Notified Bell */}
-                <div className="flex-1 flex justify-center shrink-0">
+                {/* RIGHT: Actions */}
+                <div className="flex justify-end items-center gap-2.5 shrink-0">
                     <button 
-                        onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
-                        className="transition-transform hover:scale-110"
-                        title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
-                    >
-                        <Bell className={`w-3.5 h-3.5 transition-colors ${task.is_notified ? 'text-red-500 fill-current' : 'text-slate-500 hover:text-slate-400'}`} />
-                    </button>
-                </div>
-
-                {/* RIGHT: Notes & Trash */}
-                <div className="flex-1 flex justify-end items-center gap-2 shrink-0">
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); setIsNotesOpen(true); setTimeout(() => notesTextareaRef.current?.focus(), 50); }}
-                        className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.notes && task.notes.trim() !== '' ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-400'}`}
+                        onClick={(e) => { 
+                            if (task.status === 'Done') return;
+                            e.stopPropagation(); setIsNotesOpen(true); setTimeout(() => notesTextareaRef.current?.focus(), 50); 
+                        }}
+                        className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.status === 'Done' ? 'text-slate-500 pointer-events-none' : (task.notes && task.notes.trim() !== '' ? 'text-orange-500 hover:text-orange-400' : 'text-slate-500 hover:text-orange-400')}`}
                     >
                         Notes
                     </button>
+                    
+                    <button 
+                        onClick={(e) => { 
+                            if (task.status === 'Done') return;
+                            e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); 
+                        }}
+                        className={`group/mail shrink-0 flex items-center justify-center ${task.status === 'Done' ? 'cursor-default pointer-events-none' : 'cursor-pointer pointer-events-auto'}`}
+                        title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
+                    >
+                        <Mail className={`w-3.5 h-3.5 transition-all ${task.status === 'Done' ? 'text-slate-500 stroke-[2px]' : (task.is_notified ? 'text-red-500 stroke-[3px]' : 'text-slate-500 group-hover/mail:text-white group-hover/mail:stroke-[3px] stroke-[2px]')}`} />
+                    </button>
+
+                    <button 
+                        onClick={handleMarkDone}
+                        className={`group/done relative flex items-center justify-center w-3 h-3 rounded-full transition-none shrink-0 cursor-pointer pointer-events-auto outline-none ${task.status === 'Done' ? 'ring-[2px] ring-emerald-500 bg-emerald-500/10' : 'ring-1 ring-slate-500 hover:ring-[2px] hover:ring-emerald-500'}`}
+                        title={task.status === 'Done' ? "Revert to In Progress" : "Mark as Done"}
+                    >
+                        <Check className={`w-2 h-2 text-emerald-500 transition-none ${task.status === 'Done' ? 'opacity-100' : 'opacity-0 group-hover/done:opacity-100'}`} strokeWidth={3} />
+                    </button>
+
                     <button onClick={() => deleteTask(task.id)} className="text-slate-500 hover:text-red-500 transition-colors p-1 shrink-0">
                         <Trash2 className="w-4 h-4" />
                     </button>
@@ -2169,27 +2209,21 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                     onSelect={(name) => updateTask(task.id, 'category', name)}
                     onAdd={(name) => addCategory(name, null, task.assigned_by_role === 'worker')}
                     onDelete={deleteCategory}
+                    readOnly={task.status === 'Done'}
                     isPrivateContext={task.assigned_by_role === 'worker'}
                 />
 
-                {task.status === 'Done' ? (
-                    <button
-                        onClick={(e) => { e.stopPropagation(); updateTask(task.id, 'status', 'In Progress'); }}
-                        className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors"
-                    >
-                        DONE
-                    </button>
-                ) : (
-                    <StatusDropdown task={task} updateTask={updateTask} />
-                )}
-
                 {task.status !== 'Done' && (
-                    <DueByDropdown
-                        value={task.due_by_type || ''}
-                        priority={task.priority}
-                        onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
-                        hideLabels={hideLabels}
-                    />
+                    <>
+                        <StatusDropdown task={task} updateTask={updateTask} />
+
+                        <DueByDropdown
+                            value={task.due_by_type || ''}
+                            priority={task.priority}
+                            onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
+                            hideLabels={hideLabels}
+                        />
+                    </>
                 )}
             </div>
 
@@ -2273,6 +2307,23 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
 
     const statusBorder = getStatusBorderClass(task.status);
 
+    const handleMarkDone = (e) => {
+        e.stopPropagation();
+        if (task.status === 'Done') {
+            updateTask(task.id, 'status', 'In Progress');
+        } else {
+            try { const audio = new Audio(doneSoundUrl); audio.play().catch(() => {}); } catch {}
+            const rect = e.currentTarget.getBoundingClientRect();
+            confetti({
+                particleCount: 15, spread: 60, startVelocity: 15,
+                colors: ['#10b981', '#34d399', '#059669', '#a7f3d0'],
+                origin: { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight },
+                zIndex: 9999, disableForReducedMotion: true, ticks: 100, gravity: 0.8, scalar: 0.8
+            });
+            setTimeout(() => updateTask(task.id, 'status', 'Done'), 700);
+        }
+    };
+
     return (
         <div
             ref={setNodeRef}
@@ -2294,34 +2345,46 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
 
                 <div className="flex items-start relative z-10">
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center w-full mb-0.5 pr-1">
+                        <div className="flex items-center justify-between w-full mb-0.5 pr-1 gap-2">
                             {/* LEFT: Assignee */}
-                            <div className="flex-1 flex justify-start min-w-0">
+                            <div className="flex justify-start min-w-0 pr-1">
                                 <div className="text-[8px] font-black uppercase text-blue-400 tracking-wider truncate max-w-[100px]">
                                     {task.assigned_by_role === 'worker' ? 'Personal Task' : task.assignee}
                                 </div>
                             </div>
-                            
-                            {/* CENTER: Notified Bell */}
-                            <div className="flex-1 flex justify-center shrink-0">
-                                <button 
-                                    onPointerDown={(e) => e.stopPropagation()}
-                                    onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
-                                    className="transition-transform hover:scale-110"
-                                    title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
-                                >
-                                    <Bell className={`w-3.5 h-3.5 transition-colors ${task.is_notified ? 'text-red-500 fill-current' : 'text-slate-500 hover:text-slate-400'}`} />
-                                </button>
-                            </div>
 
-                            {/* RIGHT: Notes */}
-                            <div className="flex-1 flex justify-end items-center shrink-0">
+                            {/* RIGHT: Actions */}
+                            <div className="flex justify-end items-center gap-2.5 shrink-0">
                                 <button 
                                     onPointerDown={(e) => e.stopPropagation()}
-                                    onClick={(e) => { e.stopPropagation(); setIsNotesOpen(true); setTimeout(() => notesTextareaRef.current?.focus(), 50); }}
-                                    className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.notes && task.notes.trim() !== '' ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-400'}`}
+                                    onClick={(e) => { 
+                                        if (task.status === 'Done') return;
+                                        e.stopPropagation(); setIsNotesOpen(true); setTimeout(() => notesTextareaRef.current?.focus(), 50); 
+                                    }}
+                                    className={`text-[8px] font-black uppercase tracking-wider transition-colors ${task.status === 'Done' ? 'text-slate-500 pointer-events-none' : (task.notes && task.notes.trim() !== '' ? 'text-orange-500 hover:text-orange-400' : 'text-slate-500 hover:text-orange-400')}`}
                                 >
                                     Notes
+                                </button>
+                                
+                                <button 
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => { 
+                                        if (task.status === 'Done') return;
+                                        e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); 
+                                    }}
+                                    className={`group/mail shrink-0 flex items-center justify-center ${task.status === 'Done' ? 'cursor-default pointer-events-none' : 'cursor-pointer pointer-events-auto'}`}
+                                    title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
+                                >
+                                    <Mail className={`w-3.5 h-3.5 transition-all ${task.status === 'Done' ? 'text-slate-500 stroke-[2px]' : (task.is_notified ? 'text-red-500 stroke-[3px]' : 'text-slate-500 group-hover/mail:text-white group-hover/mail:stroke-[3px] stroke-[2px]')}`} />
+                                </button>
+
+                                <button 
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={handleMarkDone}
+                                    className={`group/done relative flex items-center justify-center w-3 h-3 rounded-full transition-none shrink-0 cursor-pointer pointer-events-auto outline-none ${task.status === 'Done' ? 'ring-[2px] ring-emerald-500 bg-emerald-500/10' : 'ring-1 ring-slate-500 hover:ring-[2px] hover:ring-emerald-500'}`}
+                                    title={task.status === 'Done' ? "Revert to In Progress" : "Mark as Done"}
+                                >
+                                    <Check className={`w-2 h-2 text-emerald-500 transition-none ${task.status === 'Done' ? 'opacity-100' : 'opacity-0 group-hover/done:opacity-100'}`} strokeWidth={3} />
                                 </button>
                             </div>
                         </div>
@@ -2351,33 +2414,25 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                         onSelect={(name) => updateTask(task.id, 'category', name)}
                         onAdd={(name) => addCategory(name, null, task.assigned_by_role === 'worker')}
                         onDelete={deleteCategory}
-                        readOnly={isWorker}
+                        readOnly={isWorker || task.status === 'Done'}
                         isPrivateContext={task.assigned_by_role === 'worker'}
                     />
 
-                    {task.status === 'Done' ? (
-                        <button
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={(e) => { e.stopPropagation(); updateTask(task.id, 'status', 'In Progress'); }}
-                            className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors"
-                        >
-                            DONE
-                        </button>
-                    ) : (
-                        <StatusDropdown task={task} updateTask={updateTask} onPointerDownStop={true} />
-                    )}
-
                     {task.status !== 'Done' && (
-                        <DueByDropdown
-                            value={task.due_by_type || ''}
-                            priority={task.priority}
-                            onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
-                            hideLabels={hideLabels}
-                            readOnly={isWorker}
-                            isPersonalContext={task.assigned_by_role === 'worker'}
-                            userSettings={userSettings}
-                            teamDueByPrefs={teamDueByPrefs}
-                        />
+                        <>
+                            <StatusDropdown task={task} updateTask={updateTask} onPointerDownStop={true} />
+
+                            <DueByDropdown
+                                value={task.due_by_type || ''}
+                                priority={task.priority}
+                                onSelect={(val) => updateTask(task.id, 'due_by_type', val)}
+                                hideLabels={hideLabels}
+                                readOnly={isWorker}
+                                isPersonalContext={task.assigned_by_role === 'worker'}
+                                userSettings={userSettings}
+                                teamDueByPrefs={teamDueByPrefs}
+                            />
+                        </>
                     )}
                 </div>
 
@@ -2599,7 +2654,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
     };
 
     const allColumns = [
-        { id: 'Backburner', title: 'Backburner', colorClass: 'text-slate-400', bgClass: 'bg-slate-500/10', borderClass: 'border-slate-500/20', activeBorderClass: 'border-slate-300 ring-2 ring-slate-400 shadow-[inset_0_0_20px_rgba(148,163,184,0.2)]', newPriority: 'Backburner', newDueBy: 'Backburner', orderClass: 'order-4 md:order-1', visKey: 'backburner' },
+        { id: 'Backburner', title: 'P4: Backburner', colorClass: 'text-slate-400', bgClass: 'bg-slate-500/10', borderClass: 'border-slate-500/20', activeBorderClass: 'border-slate-300 ring-2 ring-slate-400 shadow-[inset_0_0_20px_rgba(148,163,184,0.2)]', newPriority: 'Backburner', newDueBy: 'Backburner', orderClass: 'order-4 md:order-1', visKey: 'backburner' },
         { id: 'P3', title: 'P3 (LOW)', colorClass: 'text-yellow-500', bgClass: 'bg-yellow-500/10', borderClass: 'border-yellow-500/20', activeBorderClass: 'border-yellow-400 ring-2 ring-yellow-500 shadow-[inset_0_0_20px_rgba(234,179,8,0.2)]', newPriority: 'P3', newDueBy: 'End of Month', orderClass: 'order-3 md:order-2', visKey: 'p3' },
         { id: 'P2', title: 'P2 (NORMAL)', colorClass: 'text-orange-500', bgClass: 'bg-orange-500/10', borderClass: 'border-orange-500/20', activeBorderClass: 'border-orange-400 ring-2 ring-orange-500 shadow-[inset_0_0_20px_rgba(249,115,22,0.2)]', newPriority: 'P2', newDueBy: 'End of week', orderClass: 'order-2 md:order-3', visKey: 'p2' },
         { id: 'P1', title: 'P1 (HIGH)', colorClass: 'text-red-500', bgClass: 'bg-red-500/10', borderClass: 'border-red-500/20', activeBorderClass: 'border-red-400 ring-2 ring-red-500 shadow-[inset_0_0_20px_rgba(239,68,68,0.2)]', newPriority: 'P1', newDueBy: 'Today', orderClass: 'order-1 md:order-4', visKey: 'p1' },
@@ -2644,7 +2699,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
 
     // Toggle labels for the bottom bar
     const toggleDefs = [
-        { visKey: 'backburner', label: 'Backburner' },
+        { visKey: 'backburner', label: 'P4: Backburner' },
         { visKey: 'p3', label: 'P3' },
         { visKey: 'p2', label: 'P2' },
         { visKey: 'p1', label: 'P1' },
@@ -3280,24 +3335,24 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                             isPrivateContext={effectivePersonal}
                         />
 
-                        {/* Add Task Modal Notifications Toggle */}
-                        {isAdmin && (
-                            <div className="flex flex-col gap-0.5 items-start mt-2 pl-1">
+                        {/* Add Task Modal Actions Toggle */}
+                        <div className="flex flex-col gap-0.5 items-start mt-2 pl-1">
+                            {isAdmin && !effectivePersonal && (
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); setIsNotified(!isNotified); }}
-                                    className="transition-transform hover:scale-110"
+                                    className="group/mail transition-transform hover:scale-110"
                                     title={isNotified ? 'Remove notification' : 'Mark as notified'}
                                 >
-                                    <Bell className={`w-4 h-4 transition-colors ${isNotified ? 'text-red-500 fill-current' : 'text-slate-500 hover:text-slate-400'}`} />
+                                    <Mail className={`w-4 h-4 transition-all ${isNotified ? 'text-red-500 stroke-[3px]' : 'text-slate-500 stroke-[2px] group-hover/mail:text-white group-hover/mail:stroke-[3px]'}`} />
                                 </button>
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); setIsNotesOpen(true); setTimeout(() => notesTextareaRef.current?.focus(), 50); }}
-                                    className={`text-[9px] font-black uppercase tracking-wider transition-colors ${notes.trim() !== '' ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-400'}`}
-                                >
-                                    Notes
-                                </button>
-                            </div>
-                        )}
+                            )}
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setIsNotesOpen(true); setTimeout(() => notesTextareaRef.current?.focus(), 50); }}
+                                className={`text-[9px] font-black uppercase tracking-wider transition-colors ${notes.trim() !== '' ? 'text-orange-500' : 'text-slate-500 hover:text-orange-400'}`}
+                            >
+                                Notes
+                            </button>
+                        </div>
                     </div>
 
                     <div className="flex flex-col items-end gap-3 shrink-0 min-h-[70px] justify-between">
@@ -3309,6 +3364,7 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                                 isPersonalContext={effectivePersonal}
                                 userSettings={userSettings}
                                 teamDueByPrefs={teamDueByPrefs}
+                                hideLabels={true}
                             />
                         </div>
                         <button
