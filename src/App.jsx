@@ -1187,11 +1187,9 @@ export default function App() {
                                                 <th className="px-4 py-3 font-bold whitespace-nowrap">TASKS</th>
                                                 <th className="px-4 py-3 font-bold whitespace-nowrap">CATEGORY</th>
                                                 <th className="px-4 py-3 font-bold whitespace-nowrap">DUE BY</th>
+                                                <th className="px-4 py-3 font-bold text-center whitespace-nowrap"><Mail className="w-4 h-4 mx-auto text-slate-500" title="Notify" /></th>
                                                 {['admin', 'super_admin'].includes(userRole) && (
-                                                    <>
-                                                        <th className="px-4 py-3 font-bold text-center whitespace-nowrap">NOTIFY</th>
-                                                        <th className="px-4 py-3 font-bold text-center whitespace-nowrap">NOTES</th>
-                                                    </>
+                                                    <th className="px-4 py-3 font-bold text-center whitespace-nowrap">NOTES</th>
                                                 )}
                                                 <th className="px-4 py-3 font-bold text-center whitespace-nowrap">DELETE</th>
                                             </tr>
@@ -1947,12 +1945,44 @@ function StatusDropdown({ task, updateTask, center, onPointerDownStop }) {
     );
 }
 
+// --- Reusable Char Limit Modal ---
+function CharLimitModal({ isOpen, onClose, onMoveToNotes }) {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={(e) => { e.stopPropagation(); onClose(); }}>
+            <div className="w-full max-w-sm bg-slate-800/95 p-6 rounded-[2rem] border border-slate-700/50 flex flex-col items-center gap-4 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute top-4 right-4 text-slate-500 hover:text-red-400 transition-colors p-1">
+                    <X className="w-5 h-5" />
+                </button>
+                <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center border border-orange-500/30">
+                    <OctagonAlert className="w-6 h-6 text-orange-500" />
+                </div>
+                <h3 className="text-lg font-black text-white text-center uppercase tracking-wider">Keep it brief!</h3>
+                <p className="text-sm font-bold text-slate-300 text-center leading-relaxed">
+                    You've hit the 25-character limit. Keep the Description as a clear 'Action Title' and move the details into the Notes section.
+                </p>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                        if (onMoveToNotes) onMoveToNotes();
+                    }}
+                    className="w-full mt-2 bg-orange-500 hover:bg-orange-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg active:scale-95"
+                >
+                    Move to Notes
+                </button>
+            </div>
+        </div>
+    );
+}
+
 // --- Responsive Task Components ---
 function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, deleteTask, showAssignee, userRole, userSettings, teamDueByPrefs }) {
     const textareaRef = React.useRef(null);
     const notesTextareaRef = React.useRef(null);
     const [isNotesOpen, setIsNotesOpen] = React.useState(false);
     const [draftNotes, setDraftNotes] = React.useState(task.notes || '');
+    const [showCharLimitModal, setShowCharLimitModal] = React.useState(false);
 
     React.useEffect(() => {
         if (task.action === '' && textareaRef.current && !isNotesOpen) {
@@ -2029,7 +2059,15 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                 <textarea
                     ref={textareaRef}
                     value={task.action}
-                    onChange={(e) => updateTask(task.id, 'action', e.target.value)}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        if (val.length > 25) {
+                            updateTask(task.id, 'action', val.slice(0, 25));
+                            setShowCharLimitModal(true);
+                        } else {
+                            updateTask(task.id, 'action', val);
+                        }
+                    }}
                     className={`bg-transparent border-none outline-none w-full font-bold text-sm md:text-base focus:text-blue-400 transition-colors placeholder:text-slate-800 resize-none overflow-hidden block relative z-10 ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200'}`}
                     placeholder="Task description..."
                     rows={1}
@@ -2037,6 +2075,14 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                         e.target.style.height = 'auto';
                         e.target.style.height = e.target.scrollHeight + 'px';
                     }}
+                />
+                <CharLimitModal 
+                    isOpen={showCharLimitModal} 
+                    onClose={() => setShowCharLimitModal(false)} 
+                    onMoveToNotes={() => {
+                        setIsNotesOpen(true);
+                        setTimeout(() => notesTextareaRef.current?.focus(), 50);
+                    }} 
                 />
             </td>
             {showAssignee && (
@@ -2067,30 +2113,28 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                     />
                 </div>
             </td>
+            <td className="px-4 py-3 text-center">
+                <button 
+                    onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
+                    className="group/mail flex justify-center w-full transition-transform hover:scale-110"
+                    title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
+                >
+                    <Mail className={`w-4 h-4 transition-all ${task.is_notified ? 'text-red-500 stroke-[3px]' : 'text-slate-500 group-hover/mail:text-white group-hover/mail:stroke-[3px] stroke-[2px]'}`} />
+                </button>
+            </td>
             {['admin', 'super_admin'].includes(userRole) && (
-                <>
-                    <td className="px-4 py-3 text-center">
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
-                            className="flex justify-center w-full transition-transform hover:scale-110"
-                            title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
-                        >
-                            <Bell className={`w-4 h-4 transition-colors ${task.is_notified ? 'text-red-500 fill-current' : 'text-slate-600 hover:text-slate-400'}`} />
-                        </button>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                        <button
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                setIsNotesOpen(true); 
-                                setTimeout(() => notesTextareaRef.current?.focus(), 50);
-                            }}
-                            className={`text-[10px] font-black uppercase tracking-wider transition-colors pt-0.5 ${task.notes && task.notes.trim() !== '' ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-400'}`}
-                        >
-                            Notes
-                        </button>
-                    </td>
-                </>
+                <td className="px-4 py-3 text-center">
+                    <button
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setIsNotesOpen(true); 
+                            setTimeout(() => notesTextareaRef.current?.focus(), 50);
+                        }}
+                        className={`text-[10px] font-black uppercase tracking-wider transition-colors pt-0.5 ${task.notes && task.notes.trim() !== '' ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-400'}`}
+                    >
+                        Notes
+                    </button>
+                </td>
             )}
             <td className="px-4 py-3 text-center">
                 <button
@@ -2108,6 +2152,7 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
 function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, deleteTask, showAssignee, hideLabels, userRole }) {
     const [isNotesOpen, setIsNotesOpen] = React.useState(false);
     const [draftNotes, setDraftNotes] = React.useState(task.notes || '');
+    const [showCharLimitModal, setShowCharLimitModal] = React.useState(false);
     const notesTextareaRef = React.useRef(null);
     const textareaRef = React.useRef(null);
 
@@ -2212,7 +2257,15 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
             <textarea
                 ref={textareaRef}
                 value={task.action}
-                onChange={(e) => updateTask(task.id, 'action', e.target.value)}
+                onChange={(e) => {
+                    const val = e.target.value;
+                    if (val.length > 25) {
+                        updateTask(task.id, 'action', val.slice(0, 25));
+                        setShowCharLimitModal(true);
+                    } else {
+                        updateTask(task.id, 'action', val);
+                    }
+                }}
                 className={`bg-transparent border-none outline-none w-full font-bold text-sm md:text-base focus:text-blue-400 transition-colors placeholder:text-slate-600 resize-none overflow-hidden block relative z-10 pt-0.5 ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200'}`}
                 placeholder="Task description..."
                 rows={1}
@@ -2220,6 +2273,14 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                     e.target.style.height = 'auto';
                     e.target.style.height = e.target.scrollHeight + 'px';
                 }}
+            />
+            <CharLimitModal 
+                isOpen={showCharLimitModal} 
+                onClose={() => setShowCharLimitModal(false)} 
+                onMoveToNotes={() => {
+                    setIsNotesOpen(true);
+                    setTimeout(() => notesTextareaRef.current?.focus(), 50);
+                }} 
             />
 
             {/* Bottom row: Category / Status / Due By or Done pill */}
@@ -2308,6 +2369,7 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
     
     const [isNotesOpen, setIsNotesOpen] = React.useState(false);
     const [draftNotes, setDraftNotes] = React.useState(task.notes || '');
+    const [showCharLimitModal, setShowCharLimitModal] = React.useState(false);
     const notesTextareaRef = React.useRef(null);
     
     React.useEffect(() => {
@@ -2413,7 +2475,15 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                         <textarea
                             onPointerDown={(e) => e.stopPropagation()}
                             value={task.action}
-                            onChange={(e) => updateTask(task.id, 'action', e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val.length > 25) {
+                                    updateTask(task.id, 'action', val.slice(0, 25));
+                                    setShowCharLimitModal(true);
+                                } else {
+                                    updateTask(task.id, 'action', val);
+                                }
+                            }}
                             readOnly={isWorker}
                             className={`w-full bg-transparent border-none outline-none font-bold text-sm resize-none overflow-hidden block ${task.status === 'Done' ? 'text-slate-500' : 'text-slate-200 focus:text-blue-400'} ${isWorker ? 'focus:text-slate-200 cursor-default' : ''}`}
                             placeholder="Task description..."
@@ -2422,6 +2492,14 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                                 e.target.style.height = 'auto';
                                 e.target.style.height = e.target.scrollHeight + 'px';
                             }}
+                        />
+                        <CharLimitModal 
+                            isOpen={showCharLimitModal} 
+                            onClose={() => setShowCharLimitModal(false)} 
+                            onMoveToNotes={() => {
+                                setIsNotesOpen(true);
+                                setTimeout(() => notesTextareaRef.current?.focus(), 50);
+                            }} 
                         />
                     </div>
                 </div>
@@ -2891,7 +2969,9 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                     >
                                         {col.key === 'delete'
                                             ? <Trash2 className="w-3.5 h-3.5 mx-auto text-slate-600" />
-                                            : <>{col.label}{getSortIndicator(col.key)}</>
+                                            : col.key === 'notify'
+                                                ? <Mail className="w-3.5 h-3.5 mx-auto text-slate-500" title="Notify" />
+                                                : <>{col.label}{getSortIndicator(col.key)}</>
                                         }
                                     </th>
                                 ))}
@@ -3004,28 +3084,22 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                                     )}
                                                 </td>
                                                 <td className={`lv-status-cell ${getStatusCellClass(task.status)} relative w-32`}>
-                                                    {editable ? (
-                                                        <div className="flex justify-center w-full">
-                                                            <StatusDropdown 
-                                                                task={task} 
-                                                                updateTask={updateTask} 
-                                                                center={true}
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        getDisplayStatus(task.status)
-                                                    )}
+                                                    <div className="flex justify-center w-full">
+                                                        <StatusDropdown 
+                                                            task={task} 
+                                                            updateTask={updateTask} 
+                                                            center={true}
+                                                        />
+                                                    </div>
                                                 </td>
                                                 <td className="text-center w-10">
-                                                    {['admin', 'super_admin'].includes(userRole) && (
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
-                                                            className="flex justify-center w-full transition-transform hover:scale-110"
-                                                            title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
-                                                        >
-                                                            <Bell className={`w-4 h-4 transition-colors ${task.is_notified ? 'text-red-500 fill-current' : 'text-slate-600 hover:text-slate-400'}`} />
-                                                        </button>
-                                                    )}
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); updateTask(task.id, { is_notified: !task.is_notified }); }}
+                                                        className="group/mail flex justify-center w-full transition-transform hover:scale-110"
+                                                        title={task.is_notified ? 'Remove notification' : 'Mark as notified'}
+                                                    >
+                                                        <Mail className={`w-4 h-4 transition-all ${task.is_notified ? 'text-red-500 stroke-[3px]' : 'text-slate-500 group-hover/mail:text-white group-hover/mail:stroke-[3px] stroke-[2px]'}`} />
+                                                    </button>
                                                 </td>
                                                 {/* DELETE COLUMN */}
                                                 <td className="text-center w-10">
@@ -3200,6 +3274,7 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
     const [notes, setNotes] = React.useState('');
     const [isNotesOpen, setIsNotesOpen] = React.useState(false);
     const [isPersonal, setIsPersonal] = React.useState(false);
+    const [showCharLimitModal, setShowCharLimitModal] = React.useState(false);
     const textareaRef = React.useRef(null);
     const notesTextareaRef = React.useRef(null);
 
@@ -3354,7 +3429,15 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                 <textarea
                     ref={textareaRef}
                     value={action}
-                    onChange={(e) => setAction(e.target.value)}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        if (val.length > 25) {
+                            setAction(val.slice(0, 25));
+                            setShowCharLimitModal(true);
+                        } else {
+                            setAction(val);
+                        }
+                    }}
                     className="bg-transparent border-none outline-none w-full font-bold text-lg md:text-xl text-white focus:text-blue-400 transition-colors placeholder:text-slate-600 resize-none overflow-hidden block"
                     placeholder="Task description..."
                     rows={1}
@@ -3368,6 +3451,14 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                             handleCreate();
                         }
                     }}
+                />
+                <CharLimitModal 
+                    isOpen={showCharLimitModal} 
+                    onClose={() => setShowCharLimitModal(false)} 
+                    onMoveToNotes={() => {
+                        setIsNotesOpen(true);
+                        setTimeout(() => notesTextareaRef.current?.focus(), 50);
+                    }} 
                 />
 
                 <div className="flex flex-wrap items-start justify-between gap-3 pt-4 border-t border-slate-700/50">

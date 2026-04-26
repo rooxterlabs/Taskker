@@ -5,7 +5,9 @@ export const patchNotes = [
         version: "v0.1.09",
         date: "April 24, 2026",
         notes: [
-            "Add Task reworked"
+            "Add Task reworked",
+            "Notify Column Reworked",
+            "Task Description limit added"
         ]
     },
     {
