@@ -1682,6 +1682,18 @@ function CategoryDropdown({ categories, value, onSelect, onAdd, onDelete, readOn
                             
                             return (
                                 <>
+                                    {/* Pinned "Personal" default entry — always first in personal context */}
+                                    {isPrivateContext && (
+                                        <div
+                                            className="flex items-center justify-between group/item px-4 py-2 hover:bg-blue-600 cursor-pointer transition-colors border-b border-slate-800/60"
+                                            onClick={() => { onSelect('Personal'); setIsOpen(false); }}
+                                        >
+                                            <span className={`text-[9px] sm:text-[10px] font-bold tracking-wide ${value === 'Personal' ? 'text-white' : 'text-slate-400'}`}>
+                                                Personal
+                                            </span>
+                                        </div>
+                                    )}
+
                                     {personalCategories.map(c => (
                                         <div
                                             key={c.id}
@@ -2690,7 +2702,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
     const [viewMode, setViewMode] = useLocalStorage(`taskker_viewMode_${boardId || 'default'}`, 'card');
 
     // --- Sort State (session only â€” resets on refresh to dateTarget asc) ---
-    const [sortColumn, setSortColumn] = React.useState('dateTarget');
+    const [sortColumn, setSortColumn] = React.useState('status');
     const [sortDirection, setSortDirection] = React.useState('asc');
 
     const handleColumnSort = (colKey) => {
@@ -2785,13 +2797,16 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
             if (destCol.isDone) {
                 updateTask(taskId, 'status', 'Done');
             } else if (destCol.isInProgress) {
-                // Only change status â€” preserve existing priority & deadline
+                // Drop on In Progress: flip status only, preserve priority & deadline
                 updateTask(taskId, 'status', 'In Progress');
             } else {
+                // Drop on priority column (P1/P2/P3/Backburner):
+                // update priority & deadline, reset status to 'To Do'
+                // so the card lands in that priority column — NOT In Progress
                 updateTask(taskId, {
                     priority: destCol.newPriority,
                     due_by_type: destCol.newDueBy,
-                    status: 'In Progress'
+                    status: 'To Do'
                 });
             }
         }
@@ -2799,7 +2814,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
 
     // Toggle labels for the bottom bar
     const toggleDefs = [
-        { visKey: 'backburner', label: 'P4: Backburner' },
+        { visKey: 'backburner', label: 'P4' },
         { visKey: 'p3', label: 'P3' },
         { visKey: 'p2', label: 'P2' },
         { visKey: 'p1', label: 'P1' },
@@ -2809,7 +2824,8 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
 
     // --- LIST VIEW: Flatten, sort, and render all tasks as a table ---
     const priorityWeight = { 'P1 (Critical)': 1, 'P1': 1, 'P2': 2, 'P3': 3, 'Backburner': 4 };
-    const statusWeight = { 'To Do': 1, 'In Progress': 2, 'At Risk': 3, 'Blocked': 4, 'Done': 5 };
+    // In Progress always first, then To Do by priority, Done last
+    const statusWeight = { 'In Progress': 1, 'To Do': 2, 'At Risk': 3, 'Blocked': 4, 'Done': 5 };
 
     const getPriorityWeight = (p) => {
         if (!p) return 99;
@@ -2875,6 +2891,24 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
             doneTasks = doneTasks.filter(t => t.category === categoryFilter);
         }
 
+        // Apply column visibility filters to rows
+        const vis = visibleColumns || {};
+        activeTasks = activeTasks.filter(t => {
+            // In Progress status toggle
+            if (t.status === 'In Progress' && vis.in_progress === false) return false;
+            // Priority-based toggles
+            if (t.priority && t.priority.includes('P1') && vis.p1 === false) return false;
+            if (t.priority && t.priority.includes('P2') && vis.p2 === false) return false;
+            if (t.priority && t.priority.includes('P3') && vis.p3 === false) return false;
+            if (t.priority === 'Backburner' && vis.backburner === false) return false;
+            return true;
+        });
+
+        // Done toggle
+        if (vis.done === false) {
+            doneTasks = [];
+        }
+
         // Sort active tasks
         const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
 
@@ -2900,7 +2934,12 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                     cmp = (a.assignee || '').localeCompare(b.assignee || '');
                     break;
                 case 'status':
+                    // Primary: status (In Progress → To Do → At Risk → Blocked → Done)
                     cmp = (statusWeight[a.status] || 99) - (statusWeight[b.status] || 99);
+                    // Secondary tiebreaker: priority (P1 → P2 → P3 → Backburner)
+                    if (cmp === 0) {
+                        cmp = getPriorityWeight(a.priority) - getPriorityWeight(b.priority);
+                    }
                     break;
                 default:
                     cmp = 0;
@@ -2913,10 +2952,11 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
         doneTasks.sort(sortFn);
 
         return [...activeTasks, ...doneTasks];
-    }, [tasks, categoryFilter, sortColumn, sortDirection]);
+    }, [tasks, categoryFilter, sortColumn, sortDirection, visibleColumns]);
 
     // Column definitions for list view table headers
     const listColumns = [
+        { key: 'done', label: 'DONE' },
         { key: 'task', label: 'TASK' },
         { key: 'notes', label: 'NOTES' },
         { key: 'priority', label: 'PRIORITY' },
@@ -2980,7 +3020,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                         <tbody>
                             {listViewTasks.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="text-center py-8 text-slate-600 italic text-xs">No tasks to display</td>
+                                    <td colSpan={10} className="text-center py-8 text-slate-600 italic text-xs">No tasks to display</td>
                                 </tr>
                             ) : (
                                 listViewTasks.map(task => {
@@ -2990,6 +3030,40 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                     return (
                                         <React.Fragment key={task.id}>
                                             <tr className={`group ${task.status === 'Done' ? 'opacity-60' : ''}`}>
+                                                {/* DONE CIRCLE COLUMN */}
+                                                <td className="lv-done-cell">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (task.status === 'Done') {
+                                                                updateTask(task.id, 'status', 'In Progress');
+                                                            } else {
+                                                                try { const audio = new Audio(doneSoundUrl); audio.play().catch(() => {}); } catch {}
+                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                confetti({
+                                                                    particleCount: 15, spread: 60, startVelocity: 15,
+                                                                    colors: ['#10b981', '#34d399', '#059669', '#a7f3d0'],
+                                                                    origin: { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight },
+                                                                    zIndex: 9999, disableForReducedMotion: true, ticks: 100, gravity: 0.8, scalar: 0.8
+                                                                });
+                                                                setTimeout(() => updateTask(task.id, 'status', 'Done'), 700);
+                                                            }
+                                                        }}
+                                                        className={`group/done mx-auto flex items-center justify-center w-4 h-4 rounded-full transition-all shrink-0 cursor-pointer outline-none ${
+                                                            task.status === 'Done'
+                                                                ? 'ring-[2px] ring-emerald-500 bg-emerald-500/20'
+                                                                : 'ring-1 ring-slate-500 hover:ring-[2px] hover:ring-emerald-500'
+                                                        }`}
+                                                        title={task.status === 'Done' ? 'Revert to In Progress' : 'Mark as Done'}
+                                                    >
+                                                        <Check
+                                                            className={`w-2.5 h-2.5 text-emerald-500 transition-opacity ${
+                                                                task.status === 'Done' ? 'opacity-100' : 'opacity-0 group-hover/done:opacity-100'
+                                                            }`}
+                                                            strokeWidth={3}
+                                                        />
+                                                    </button>
+                                                </td>
                                                 <td className="lv-task-cell relative">
                                                     {editingTaskId === task.id ? (
                                                         <input
@@ -3013,13 +3087,37 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                                     )}
                                                 </td>
                                                 <td className="text-center w-8">
-                                                    {task.notes && task.notes.trim() !== '' ? (
+                                                                {task.notes && task.notes.trim() !== '' ? (
                                                         <button 
                                                             onClick={() => toggleNoteExpansion(task.id)} 
-                                                            className={`transition-colors p-1 rounded-lg ${expandedNoteId === task.id ? 'bg-emerald-500/20 text-emerald-400' : 'text-emerald-600 hover:text-emerald-400'}`}
-                                                            title="Toggle Notes"
+                                                            className={`group transition-all p-1 rounded-lg ${expandedNoteId === task.id ? 'text-emerald-400' : 'text-slate-500 hover:text-white'}`}
+                                                            title="View Notes"
                                                         >
-                                                            <Check className="w-4 h-4 inline-block" />
+                                                            {/* Custom eye icon: almond outline with pupil + 3 lashes */}
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                width="16" height="16" viewBox="0 0 24 24"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                strokeWidth={expandedNoteId === task.id ? 2 : 1.5}
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                className="transition-all group-hover:stroke-[2px]"
+                                                            >
+                                                                {/* Almond eye outline */}
+                                                                <path d="M2 12 C6 5, 18 5, 22 12 C18 19, 6 19, 2 12 Z" />
+                                                                {/* Pupil */}
+                                                                <circle cx="12" cy="12" r="3" />
+                                                                {/* The 3 Lashes - Spread Out */}
+                                                                {/* Left Lash: Angled further left */}
+                                                               <line x1="5" y1="4" x2="8" y2="7" /> 
+    
+                                                                {/* Middle Lash: Centered */}
+                                                               <line x1="12" y1="2" x2="12" y2="5" />
+    
+                                                                {/* Right Lash: Angled further right */}
+                                                               <line x1="19" y1="4" x2="16" y2="7" />
+                                                            </svg>
                                                         </button>
                                                     ) : null}
                                                 </td>
@@ -3116,7 +3214,7 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                                             {/* Notes Expandable Row */}
                                             {expandedNoteId === task.id && task.notes && (
                                                 <tr className="bg-slate-900 border-b-2 border-slate-700">
-                                                    <td colSpan={9} className="p-4 relative">
+                                                    <td colSpan={10} className="p-4 relative">
                                                         <div className="absolute top-4 right-4">
                                                             <button 
                                                                 onClick={() => setExpandedNoteId(null)}
@@ -3140,9 +3238,23 @@ function AllTasksBoard({ boardId, tasks, userRole, categoryFilter, updateTask, c
                     </table>
                 </div>
 
-                {/* Bottom Bar: Card/List Toggle */}
+                {/* Bottom Bar: Column Toggles + Card/List Toggle (List View) */}
                 {onToggleColumn && (
-                    <div className="flex items-center justify-end gap-3 md:gap-5 mt-4 pt-3 border-t border-slate-700/30">
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/30 flex-wrap gap-2">
+                        <div className="flex items-center gap-3 md:gap-5 flex-wrap">
+                            {toggleDefs.map(td => {
+                                const isOn = visibleColumns?.[td.visKey] !== false;
+                                return (
+                                    <button
+                                        key={td.visKey}
+                                        onClick={() => onToggleColumn(td.visKey)}
+                                        className={`text-[10px] md:text-xs font-medium tracking-wide transition-colors duration-200 hover:opacity-80 ${isOn ? 'text-blue-400' : 'text-slate-600'}`}
+                                    >
+                                        {td.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setViewMode('card')}
@@ -3282,6 +3394,9 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
     const isAdmin = ['admin', 'super_admin'].includes(userRole);
     const effectivePersonal = userRole === 'worker' || isPersonal;
 
+    // Last-used personal category — persisted across opens within the session
+    const lastPersonalCatRef = React.useRef(null);
+
     // Compute the soonest available due-by option based on current context prefs
     const getSoonestDueBy = (personal) => {
         const orderedOptions = ['1 hr', '6 hrs', 'Today', '3 days', '7 days', '14 days', 'End of week', '4 weeks', 'End of Month'];
@@ -3319,12 +3434,13 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
             const teamCategories = [...categories].filter(c => !c.created_by).sort((a,b) => a.name.localeCompare(b.name));
 
             if (effectivePersonal) {
-                if (personalCategories.length > 0) {
+                // Priority: last-used personal cat → first user-created cat → 'Personal' default
+                if (lastPersonalCatRef.current && (personalCategories.some(c => c.name === lastPersonalCatRef.current) || lastPersonalCatRef.current === 'Personal')) {
+                    setCategory(lastPersonalCatRef.current);
+                } else if (personalCategories.length > 0) {
                     setCategory(personalCategories[0].name);
-                } else if (teamCategories.length > 0) {
-                    setCategory(teamCategories[0].name);
                 } else {
-                    setCategory('');
+                    setCategory('Personal');
                 }
             } else {
                 if (teamCategories.length > 0) {
@@ -3347,6 +3463,10 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
             finalAssignee = currentUserRosterName;
         }
         if (!action.trim() || !finalAssignee) return;
+        // Remember last-used personal category for next open
+        if (effectivePersonal && category) {
+            lastPersonalCatRef.current = category;
+        }
         const submitRole = effectivePersonal ? 'worker' : userRole;
         const newTask = await addTask(finalAssignee, submitRole);
         if (newTask) {

@@ -1,6 +1,19 @@
 // EDIT YOUR PATCH NOTES HERE!
 // Simply follow the format below to add new updates.
 export const patchNotes = [
+     {
+        version: "v0.1.10",
+        date: "April 27, 2026",
+        notes: [
+            "Drag and drop bug fixed",
+            "In Progress by default, is the first sorting option in List View",
+            "Category in Personal Task is 'Personal' by default",
+            "List view Notes column UI update",
+            "Toggle rows in List View added",
+            "Done column in List View added",
+
+        ]
+    },
     {
         version: "v0.1.09",
         date: "April 24, 2026",

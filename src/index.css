@@ -220,7 +220,7 @@
 }
 
 .list-view-table th {
-  padding: 12px 16px;
+  padding: 10px 10px;
   text-align: center;
   font-size: 11px;
   font-weight: 800;
@@ -248,7 +248,7 @@
 }
 
 .list-view-table td {
-  padding: 10px 16px;
+  padding: 8px 10px;
   text-align: center;
   font-size: 12px;
   font-weight: 600;
@@ -280,6 +280,18 @@
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 0.03em;
+  width: 100px !important;
+  max-width: 110px;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+
+/* --- Done circle cell --- */
+.lv-done-cell {
+  width: 32px !important;
+  min-width: 32px;
+  padding: 0 4px !important;
+  text-align: center;
 }
 
 .lv-status-in-progress {
