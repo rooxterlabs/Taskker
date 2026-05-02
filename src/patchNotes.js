@@ -1,6 +1,14 @@
 // EDIT YOUR PATCH NOTES HERE!
 // Simply follow the format below to add new updates.
 export const patchNotes = [
+    {
+        version: "v0.1.11",
+        date: "May 2, 2026",
+        notes: [
+            "Character limit is bumped to 30",
+            "Default Due By in Task making is P1:Today",
+        ]
+    },
      {
         version: "v0.1.10",
         date: "April 27, 2026",

@@ -1971,7 +1971,7 @@ function CharLimitModal({ isOpen, onClose, onMoveToNotes }) {
                 </div>
                 <h3 className="text-lg font-black text-white text-center uppercase tracking-wider">Keep it brief!</h3>
                 <p className="text-sm font-bold text-slate-300 text-center leading-relaxed">
-                    You've hit the 25-character limit. Keep the Description as a clear 'Action Title' and move the details into the Notes section.
+                    You've hit the 30-character limit. Keep the Description as a clear 'Action Title' and move the details into the Notes section.
                 </p>
                 <button
                     onClick={(e) => {
@@ -2073,8 +2073,8 @@ function TaskRow({ task, updateTask, categories, addCategory, deleteCategory, de
                     value={task.action}
                     onChange={(e) => {
                         const val = e.target.value;
-                        if (val.length > 25) {
-                            updateTask(task.id, 'action', val.slice(0, 25));
+                        if (val.length > 30) {
+                            updateTask(task.id, 'action', val.slice(0, 30));
                             setShowCharLimitModal(true);
                         } else {
                             updateTask(task.id, 'action', val);
@@ -2271,8 +2271,8 @@ function TaskCard({ task, updateTask, categories, addCategory, deleteCategory, d
                 value={task.action}
                 onChange={(e) => {
                     const val = e.target.value;
-                    if (val.length > 25) {
-                        updateTask(task.id, 'action', val.slice(0, 25));
+                    if (val.length > 30) {
+                        updateTask(task.id, 'action', val.slice(0, 30));
                         setShowCharLimitModal(true);
                     } else {
                         updateTask(task.id, 'action', val);
@@ -2489,8 +2489,8 @@ function DraggableTaskCard({ task, updateTask, categories, addCategory, deleteCa
                             value={task.action}
                             onChange={(e) => {
                                 const val = e.target.value;
-                                if (val.length > 25) {
-                                    updateTask(task.id, 'action', val.slice(0, 25));
+                                if (val.length > 30) {
+                                    updateTask(task.id, 'action', val.slice(0, 30));
                                     setShowCharLimitModal(true);
                                 } else {
                                     updateTask(task.id, 'action', val);
@@ -3399,7 +3399,7 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
 
     // Compute the soonest available due-by option based on current context prefs
     const getSoonestDueBy = (personal) => {
-        const orderedOptions = ['1 hr', '6 hrs', 'Today', '3 days', '7 days', '14 days', 'End of week', '4 weeks', 'End of Month'];
+        const orderedOptions = ['Today', '1 hr', '6 hrs', '3 days', '7 days', '14 days', 'End of week', '4 weeks', 'End of Month'];
         const keyMap = { '1 hr': 'pref_due_1hr', '6 hrs': 'pref_due_6hrs', 'Today': 'pref_due_today', '3 days': 'pref_due_3days', '7 days': 'pref_due_7days', '14 days': 'pref_due_14days', 'End of week': 'pref_due_end_of_week', '4 weeks': 'pref_due_4weeks', 'End of Month': 'pref_due_end_of_month' };
         for (const opt of orderedOptions) {
             if (personal) {
@@ -3551,8 +3551,8 @@ function GlobalAddTaskModal({ isOpen, isPersonalMode, onClose, userRole, current
                     value={action}
                     onChange={(e) => {
                         const val = e.target.value;
-                        if (val.length > 25) {
-                            setAction(val.slice(0, 25));
+                        if (val.length > 30) {
+                            setAction(val.slice(0, 30));
                             setShowCharLimitModal(true);
                         } else {
                             setAction(val);
